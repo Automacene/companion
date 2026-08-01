@@ -45,9 +45,28 @@ export async function checkOllamaConnection(
 /**
  * Pure Vercel AI SDK streaming handler
  */
+function normalizeMessages(messages: ModelMessage[]) {
+  return messages.map((message) => {
+    if (typeof message.content === 'string') {
+      return {
+        role: message.role,
+        content: message.content,
+      };
+    }
+
+    return {
+      role: message.role,
+      content: message.content
+        .filter((part) => part.type === 'text')
+        .map((part) => part.text)
+        .join(''),
+    };
+  });
+}
+
 export async function streamChatResponse(
   settings: ModelSettings,
-  messages: Array<{ role: string; content: string }>,
+  messages: ModelMessage[],
   onChunk: (textDelta: string) => void
 ): Promise<string> {
   const cleanHost = settings.ollamaHost.replace(/\/+$/, '');
@@ -57,7 +76,7 @@ export async function streamChatResponse(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: settings.activeModel,
-      messages: messages,
+      messages: normalizeMessages(messages),
       stream: true,
     }),
   });
