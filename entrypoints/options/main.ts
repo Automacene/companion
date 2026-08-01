@@ -26,6 +26,27 @@ interface ExtensionSettings {
   debugMode?: boolean;
 }
 
+const DEFAULT_SETTINGS: ExtensionSettings = {
+  ollamaHost: 'http://localhost:11434',
+  connTimeout: 5000,
+  keepAlive: '5m',
+  activeModel: 'llama3.2:latest',
+  fallbackModel: 'qwen3.5:latest',
+  systemPrompt:
+    'You are Automacene Companion, an AI sidepanel assistant analyzing webpage context concisely and accurately.',
+  streamResponses: true,
+  temperature: 0.7,
+  numCtx: 8192,
+  numPredict: 1024,
+  topP: 0.9,
+  topK: 40,
+  repeatPenalty: 1.1,
+  maxMemory: 12000,
+  stopSeq: '',
+  rawMode: false,
+  debugMode: false,
+};
+
 function getStorage() {
   // Prefer chrome.storage.local when available (extension), otherwise fallback to localStorage
   if (typeof browser !== 'undefined' && browser.storage && browser.storage.local) {
@@ -34,7 +55,10 @@ function getStorage() {
   return null;
 }
 
-function populateModelDropdowns(models: OllamaModel[]) {
+function populateModelDropdowns(
+  models: OllamaModel[],
+  selectedValues?: { activeModel?: string; fallbackModel?: string }
+) {
   const primarySelect = document.getElementById('active-model') as HTMLSelectElement | null;
   const fallbackSelect = document.getElementById('fallback-model') as HTMLSelectElement | null;
   if (!primarySelect || !fallbackSelect) return;
@@ -42,6 +66,103 @@ function populateModelDropdowns(models: OllamaModel[]) {
   const optionsHtml = models.map((m) => `<option value="${m.name}">${m.name}</option>`).join('');
   primarySelect.innerHTML = optionsHtml;
   fallbackSelect.innerHTML = `<option value="">None</option>` + optionsHtml;
+
+  if (selectedValues?.activeModel) {
+    const activeOption = Array.from(primarySelect.options).find((opt) => opt.value === selectedValues.activeModel);
+    if (activeOption) {
+      primarySelect.value = selectedValues.activeModel;
+    } else {
+      const fallbackOpt = document.createElement('option');
+      fallbackOpt.value = selectedValues.activeModel;
+      fallbackOpt.textContent = selectedValues.activeModel;
+      primarySelect.appendChild(fallbackOpt);
+      primarySelect.value = selectedValues.activeModel;
+    }
+  }
+
+  if (selectedValues?.fallbackModel) {
+    const fallbackOption = Array.from(fallbackSelect.options).find((opt) => opt.value === selectedValues.fallbackModel);
+    if (fallbackOption) {
+      fallbackSelect.value = selectedValues.fallbackModel;
+    } else {
+      const fallbackOpt = document.createElement('option');
+      fallbackOpt.value = selectedValues.fallbackModel;
+      fallbackOpt.textContent = selectedValues.fallbackModel;
+      fallbackSelect.appendChild(fallbackOpt);
+      fallbackSelect.value = selectedValues.fallbackModel;
+    }
+  }
+}
+
+function applySettingsToForm(settings: ExtensionSettings | null | undefined) {
+  const resolvedSettings = settings || DEFAULT_SETTINGS;
+  const hostInput = document.getElementById('ollama-host') as HTMLInputElement | null;
+  const timeoutInput = document.getElementById('conn-timeout') as HTMLInputElement | null;
+  const keepAliveInput = document.getElementById('keep-alive') as HTMLInputElement | null;
+  const primarySelect = document.getElementById('active-model') as HTMLSelectElement | null;
+  const fallbackSelect = document.getElementById('fallback-model') as HTMLSelectElement | null;
+  const systemPrompt = document.getElementById('system-prompt') as HTMLTextAreaElement | null;
+  const streamResponses = document.getElementById('stream-responses') as HTMLInputElement | null;
+  const tempEl = document.getElementById('temperature') as HTMLInputElement | null;
+  const tempValEl = document.getElementById('temp-val') as HTMLElement | null;
+  const numCtxEl = document.getElementById('num-ctx') as HTMLInputElement | null;
+  const numPredictEl = document.getElementById('num-predict') as HTMLInputElement | null;
+  const topPEl = document.getElementById('top-p') as HTMLInputElement | null;
+  const topKEl = document.getElementById('top-k') as HTMLInputElement | null;
+  const repeatPenaltyEl = document.getElementById('repeat-penalty') as HTMLInputElement | null;
+  const maxMemoryEl = document.getElementById('max-memory') as HTMLInputElement | null;
+  const stopSeqEl = document.getElementById('stop-seq') as HTMLInputElement | null;
+  const rawModeEl = document.getElementById('raw-mode') as HTMLInputElement | null;
+  const debugModeEl = document.getElementById('debug-mode') as HTMLInputElement | null;
+
+  if (hostInput) hostInput.value = resolvedSettings.ollamaHost || 'http://localhost:11434';
+  if (timeoutInput) timeoutInput.value = resolvedSettings.connTimeout?.toString() || '5000';
+  if (keepAliveInput) keepAliveInput.value = resolvedSettings.keepAlive || '';
+  if (systemPrompt) systemPrompt.value = resolvedSettings.systemPrompt || '';
+  if (streamResponses) streamResponses.checked = !!resolvedSettings.streamResponses;
+
+  if (tempEl) {
+    tempEl.value = resolvedSettings.temperature?.toString() || '0.7';
+  }
+  if (tempValEl) {
+    tempValEl.textContent = tempEl?.value || '0.7';
+  }
+
+  if (numCtxEl) numCtxEl.value = resolvedSettings.numCtx?.toString() || '';
+  if (numPredictEl) numPredictEl.value = resolvedSettings.numPredict?.toString() || '';
+  if (topPEl) topPEl.value = resolvedSettings.topP?.toString() || '';
+  if (topKEl) topKEl.value = resolvedSettings.topK?.toString() || '';
+  if (repeatPenaltyEl) repeatPenaltyEl.value = resolvedSettings.repeatPenalty?.toString() || '';
+  if (maxMemoryEl) maxMemoryEl.value = resolvedSettings.maxMemory?.toString() || '';
+  if (stopSeqEl) stopSeqEl.value = resolvedSettings.stopSeq || '';
+  if (rawModeEl) rawModeEl.checked = !!resolvedSettings.rawMode;
+  if (debugModeEl) debugModeEl.checked = !!resolvedSettings.debugMode;
+
+  if (primarySelect && resolvedSettings.activeModel) {
+    const activeOption = Array.from(primarySelect.options).find((opt) => opt.value === resolvedSettings.activeModel);
+    if (activeOption) {
+      primarySelect.value = resolvedSettings.activeModel;
+    } else {
+      const fallbackOpt = document.createElement('option');
+      fallbackOpt.value = resolvedSettings.activeModel;
+      fallbackOpt.textContent = resolvedSettings.activeModel;
+      primarySelect.appendChild(fallbackOpt);
+      primarySelect.value = resolvedSettings.activeModel;
+    }
+  }
+
+  if (fallbackSelect && resolvedSettings.fallbackModel) {
+    const fallbackOption = Array.from(fallbackSelect.options).find((opt) => opt.value === resolvedSettings.fallbackModel);
+    if (fallbackOption) {
+      fallbackSelect.value = resolvedSettings.fallbackModel;
+    } else {
+      const fallbackOpt = document.createElement('option');
+      fallbackOpt.value = resolvedSettings.fallbackModel;
+      fallbackOpt.textContent = resolvedSettings.fallbackModel;
+      fallbackSelect.appendChild(fallbackOpt);
+      fallbackSelect.value = resolvedSettings.fallbackModel;
+    }
+  }
 }
 
 async function saveSettingsToStorage(settingsData: Record<string, any>) {
@@ -78,7 +199,7 @@ async function preloadModelToVRAM(
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   // Initialize background ghost grid animation
   initGhostOverlay('grid-overlay');
 
@@ -91,6 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const systemPrompt = document.getElementById('system-prompt') as HTMLTextAreaElement | null;
   const streamResponses = document.getElementById('stream-responses') as HTMLInputElement | null;
   const settingsForm = document.getElementById('settings-form') as HTMLFormElement | null;
+  const resetBtn = document.getElementById('reset-settings-btn') as HTMLButtonElement | null;
   const saveToast = document.getElementById('save-toast') as HTMLElement | null;
   const statusDot = document.getElementById('status-dot') as HTMLElement | null;
   const statusPill = document.getElementById('status-pill') as HTMLElement | null;
@@ -115,7 +237,10 @@ document.addEventListener('DOMContentLoaded', () => {
         statusPill.className = 'status-badge connected';
         statusPill.innerText = '[ 200 OK ]';
       }
-      populateModelDropdowns(res.models);
+      populateModelDropdowns(res.models, {
+        activeModel: (document.getElementById('active-model') as HTMLSelectElement | null)?.value || undefined,
+        fallbackModel: (document.getElementById('fallback-model') as HTMLSelectElement | null)?.value || undefined,
+      });
       if (showToast && saveToast) {
         saveToast.textContent = 'Model list loaded';
         saveToast.classList.add('show');
@@ -137,69 +262,39 @@ document.addEventListener('DOMContentLoaded', () => {
     await runTestConnection(true);
   });
 
-  // Load saved settings (if any)
-  const storage = getStorage();
-  if (storage) {
-    (storage as Browser.storage.StorageArea).get(['extensionSettings'], (items) => {
-      const s = items?.extensionSettings as ExtensionSettings | undefined;
-      if (s) {
-        if (hostInput) hostInput.value = s.ollamaHost || hostInput.value;
-        if (timeoutInput) timeoutInput.value = s.connTimeout?.toString() || timeoutInput.value;
-        if (keepAliveInput) keepAliveInput.value = s.keepAlive || keepAliveInput.value || '';
-        if (systemPrompt) systemPrompt.value = s.systemPrompt || systemPrompt.value || '';
-        if (streamResponses) streamResponses.checked = !!s.streamResponses;
-
-        // hyperparams and others (null-checked assignments)
-        const tempEl = document.getElementById('temperature') as HTMLInputElement | null;
-        if (tempEl) tempEl.value = s.temperature?.toString() || '0.7';
-
-        const numCtxEl = document.getElementById('num-ctx') as HTMLInputElement | null;
-        if (numCtxEl) numCtxEl.value = s.numCtx?.toString() || '';
-
-        const numPredictEl = document.getElementById('num-predict') as HTMLInputElement | null;
-        if (numPredictEl) numPredictEl.value = s.numPredict?.toString() || '';
-
-        const topPEl = document.getElementById('top-p') as HTMLInputElement | null;
-        if (topPEl) topPEl.value = s.topP?.toString() || '';
-
-        const topKEl = document.getElementById('top-k') as HTMLInputElement | null;
-        if (topKEl) topKEl.value = s.topK?.toString() || '';
-
-        const repeatPenaltyEl = document.getElementById('repeat-penalty') as HTMLInputElement | null;
-        if (repeatPenaltyEl) repeatPenaltyEl.value = s.repeatPenalty?.toString() || '';
-
-        const maxMemoryEl = document.getElementById('max-memory') as HTMLInputElement | null;
-        if (maxMemoryEl) maxMemoryEl.value = s.maxMemory?.toString() || '';
-
-        const stopSeqEl = document.getElementById('stop-seq') as HTMLInputElement | null;
-        if (stopSeqEl) stopSeqEl.value = s.stopSeq?.toString() || '';
-
-        const rawModeEl = document.getElementById('raw-mode') as HTMLInputElement | null;
-        if (rawModeEl) rawModeEl.checked = !!s.rawMode;
-
-        const debugModeEl = document.getElementById('debug-mode') as HTMLInputElement | null;
-        if (debugModeEl) debugModeEl.checked = !!s.debugMode;
-      }
-    });
-  } else {
-    // fallback: localStorage
-    const raw = localStorage.getItem('extensionSettings');
-    if (raw) {
-      try {
-        const s = JSON.parse(raw);
-        hostInput.value = s.ollamaHost || hostInput.value;
-      } catch {}
+  const storedSettings = await new Promise<ExtensionSettings | null>((resolve) => {
+    const storage = getStorage();
+    if (storage) {
+      (storage as Browser.storage.StorageArea).get(['extensionSettings'], (items) => {
+        const s = items?.extensionSettings as ExtensionSettings | undefined;
+        resolve(s || null);
+      });
+      return;
     }
-  }
+
+    const raw = localStorage.getItem('extensionSettings');
+    if (!raw) {
+      resolve(null);
+      return;
+    }
+
+    try {
+      resolve(JSON.parse(raw) as ExtensionSettings);
+    } catch {
+      resolve(null);
+    }
+  });
+
+  applySettingsToForm(storedSettings);
 
   // On load, attempt to populate models from default host
-  runTestConnection(false);
+  await runTestConnection(false);
 
-  // Save form handler
-  settingsForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
+  async function saveCurrentFormSettings() {
+    if (!hostInput || !timeoutInput) return;
+
     const settingsData: Record<string, any> = {
-      ollamaHost: hostInput.value.trim(),
+      ollamaHost: hostInput.value.trim() || DEFAULT_SETTINGS.ollamaHost,
       connTimeout: parseInt(timeoutInput.value || '5000', 10),
       keepAlive: keepAliveInput?.value || '',
       activeModel: primarySelect?.value || '',
@@ -220,24 +315,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       await saveSettingsToStorage(settingsData);
-      // show saved toast
       if (saveToast) {
+        saveToast.textContent = '✓ Settings saved successfully';
         saveToast.classList.remove('opacity-0');
         setTimeout(() => saveToast.classList.add('opacity-0'), 1400);
-      }
-
-      // optionally preload model into VRAM
-      if (settingsData.keepAlive && settingsData.activeModel) {
-        preloadModelToVRAM(
-          settingsData.ollamaHost || 'http://localhost:11434',
-          settingsData.activeModel,
-          settingsData.keepAlive,
-          settingsData.numCtx || 0
-        );
       }
     } catch (err) {
       console.error('Failed saving settings', err);
       alert('Failed to save settings');
+    }
+  }
+
+  settingsForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await saveCurrentFormSettings();
+  });
+
+  resetBtn?.addEventListener('click', async () => {
+    applySettingsToForm(DEFAULT_SETTINGS);
+    await saveCurrentFormSettings();
+    if (saveToast) {
+      saveToast.textContent = '✓ Defaults restored';
+      saveToast.classList.remove('opacity-0');
+      setTimeout(() => saveToast.classList.add('opacity-0'), 1400);
     }
   });
 });
