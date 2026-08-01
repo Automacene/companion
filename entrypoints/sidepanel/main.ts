@@ -2,11 +2,79 @@ import '../../styles/theme.css';
 import '../../styles/global.css';
 import '../../styles/anim.css';
 import '../../styles/sidepanel.css';
+
 import { VercelConversation } from '../../lib/conversation';
 import { initGhostOverlay } from '../../lib/anim';
+import { checkOllamaConnection, streamChatResponse } from '../../lib/model';
 
 const OLLAMA_HOST = 'http://localhost:11434';
 const MODEL_NAME = 'llama3';
+
+interface ExtensionSettings {
+  ollamaHost?: string;
+  connTimeout?: number;
+  activeModel?: string;
+  fallbackModel?: string;
+  systemPrompt?: string;
+  streamResponses?: boolean;
+}
+
+function getStorage() {
+  if (typeof browser !== 'undefined' && browser.storage && browser.storage.local) {
+    return browser.storage.local;
+  }
+  return null;
+}
+
+async function loadSettings(): Promise<ExtensionSettings> {
+  const storage = getStorage();
+  if (storage) {
+    return new Promise((resolve) => {
+      (storage as Browser.storage.StorageArea).get(['extensionSettings'], (items) => {
+        const s = items?.extensionSettings as ExtensionSettings | undefined;
+        resolve({
+          ollamaHost: s?.ollamaHost || OLLAMA_HOST,
+          connTimeout: s?.connTimeout || 5000,
+          activeModel: s?.activeModel || MODEL_NAME,
+          fallbackModel: s?.fallbackModel || '',
+          systemPrompt:
+            s?.systemPrompt ||
+            'You are Automacene Companion, an AI sidepanel assistant analyzing webpage context concisely and accurately.',
+          streamResponses: s?.streamResponses ?? true,
+        });
+      });
+    });
+  }
+
+  const raw = localStorage.getItem('extensionSettings');
+  if (raw) {
+    try {
+      const s = JSON.parse(raw) as ExtensionSettings;
+      return {
+        ollamaHost: s.ollamaHost || OLLAMA_HOST,
+        connTimeout: s.connTimeout || 5000,
+        activeModel: s.activeModel || MODEL_NAME,
+        fallbackModel: s.fallbackModel || '',
+        systemPrompt:
+          s.systemPrompt ||
+          'You are Automacene Companion, an AI sidepanel assistant analyzing webpage context concisely and accurately.',
+        streamResponses: s.streamResponses ?? true,
+      };
+    } catch {
+      // ignore invalid storage payloads
+    }
+  }
+
+  return {
+    ollamaHost: OLLAMA_HOST,
+    connTimeout: 5000,
+    activeModel: MODEL_NAME,
+    fallbackModel: '',
+    systemPrompt:
+      'You are Automacene Companion, an AI sidepanel assistant analyzing webpage context concisely and accurately.',
+    streamResponses: true,
+  };
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Initialize background ghost grid animation
@@ -25,24 +93,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
+  const settings = await loadSettings();
+
   // 2. Initialize Conversation Manager
   const conversation = new VercelConversation(
-    'You are Automacene Companion, an AI sidepanel assistant analyzing webpage context concisely and accurately.',
+    settings.systemPrompt ||
+      'You are Automacene Companion, an AI sidepanel assistant analyzing webpage context concisely and accurately.',
     8000
   );
 
-  // 3. Healthcheck Ollama Connection
-  async function checkOllamaConnection(): Promise<boolean> {
-    try {
-      const res = await fetch(`${OLLAMA_HOST}/api/tags`, { method: 'GET' });
-      if (res.ok) {
-        statusDot!.className = 'status-indicator-dot connected';
-        statusPill!.className = 'status-badge connected';
-        statusPill!.innerText = '[ 200 OK ]';
-        return true;
-      }
-    } catch {
-      // Failed to connect
+  // 3. UI Status Updating Helper
+  async function updateConnectionStatus(
+    hostUrl = settings.ollamaHost || OLLAMA_HOST
+  ): Promise<boolean> {
+    const { success } = await checkOllamaConnection(hostUrl);
+
+    if (success) {
+      statusDot!.className = 'status-indicator-dot connected';
+      statusPill!.className = 'status-badge connected';
+      statusPill!.innerText = '[ 200 OK ]';
+      return true;
     }
 
     statusDot!.className = 'status-indicator-dot error';
@@ -51,7 +121,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     return false;
   }
 
-  await checkOllamaConnection();
+  await updateConnectionStatus();
 
   // 4. Chat Bubble Rendering Helper
   function appendBubble(role: 'user' | 'assistant', initialText = ''): HTMLDivElement {
@@ -69,15 +139,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     return bubble;
   }
 
-  // 5. Send Message & Stream Response from Ollama
+  // 5. Send Message & Stream Response using Vercel AI SDK Infrastructure
   chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const prompt = chatInput.value.trim();
     if (!prompt) return;
 
-    const isConnected = await checkOllamaConnection();
+    const currentSettings = await loadSettings();
+    const hostUrl = currentSettings.ollamaHost || OLLAMA_HOST;
+    const modelName = currentSettings.activeModel || MODEL_NAME;
+
+    const isConnected = await updateConnectionStatus(hostUrl);
     if (!isConnected) {
-      alert('Ollama is not running locally. Make sure Ollama is open and running on http://localhost:11434');
+      alert(
+        `Ollama is not reachable at ${hostUrl}. Make sure Ollama is open and the host/model settings are correct.`
+      );
       return;
     }
 
@@ -91,47 +167,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     const aiBubble = appendBubble('assistant', '');
 
     try {
-      const response = await fetch(`${OLLAMA_HOST}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: MODEL_NAME,
-          messages: conversation.getMessages(),
-          stream: true,
-        }),
-      });
+      // Delegate streaming logic to lib/model.ts via Vercel streamText
+      let accumulatedText = '';
 
-      if (!response.body) throw new Error('ReadableStream not supported.');
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let fullAssistantText = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n').filter(Boolean);
-
-        for (const line of lines) {
-          try {
-            const parsed = JSON.parse(line);
-            if (parsed.message?.content) {
-              fullAssistantText += parsed.message.content;
-              aiBubble.innerText = fullAssistantText;
-              chatContainer!.scrollTop = chatContainer!.scrollHeight;
-            }
-          } catch {
-            // Ignore partial JSON chunks
-          }
+      await streamChatResponse(
+        {
+          ollamaHost: hostUrl,
+          activeModel: modelName,
+        },
+        conversation.getMessages(),
+        (textDelta) => {
+          accumulatedText += textDelta;
+          aiBubble.innerText = accumulatedText;
+          chatContainer!.scrollTop = chatContainer!.scrollHeight;
         }
-      }
+      );
 
-      conversation.addAssistant(fullAssistantText);
-
+      // Store final assistant message in conversation context
+      conversation.addAssistant(accumulatedText);
     } catch (err) {
-      aiBubble.innerText = `Error: Failed to reach Ollama. (${(err as Error).message})`;
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      aiBubble.innerText = `Error: ${message}`;
       aiBubble.classList.add('text-rose-600');
     } finally {
       runBtn.disabled = false;

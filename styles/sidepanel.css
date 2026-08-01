@@ -35,11 +35,48 @@
   gap: 0.75rem;
 }
 
+.brand-logo-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .brand-logo {
-  height: 6rem;
+  height: 12rem;
   width: auto;
   max-width: 100%;
   margin: 0 auto;
+}
+
+.brand-status-badge {
+  position: absolute;
+  top: 24%;
+  left: 44.80%;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 0.2rem;
+  background-color: var(--orange-primary);
+  box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.65);
+  /* Combine translate and rotate in a single transform */
+  transform: rotate(45deg);
+  animation: pulse-badge 1.8s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes pulse-badge {
+  0% {
+    box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.7);
+    transform: rotate(45deg) scale(1);
+  }
+  70% {
+    box-shadow: 0 0 0 0.55rem rgba(234, 88, 12, 0);
+    transform: rotate(45deg) scale(1.05);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(234, 88, 12, 0);
+    transform: rotate(45deg) scale(1);
+  }
 }
 
 .hero-heading {
@@ -101,7 +138,7 @@
 }
 
 .chat-bubble.user {
-  background-color: #fb923c;
+  background-color: #ea580c;
   color: #ffffff;
   border-radius: 1rem 1rem 0.75rem 1rem;
 }

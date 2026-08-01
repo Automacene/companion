@@ -2,9 +2,9 @@ import '../../styles/theme.css';
 import '../../styles/global.css';
 import '../../styles/anim.css';
 import '../../styles/options.css';
-import { initGhostOverlay } from '../../lib/anim';
 
-type OllamaModel = { name: string };
+import { initGhostOverlay } from '../../lib/anim';
+import { checkOllamaConnection, type OllamaModel } from '../../lib/model';
 
 interface ExtensionSettings {
   ollamaHost?: string;
@@ -28,25 +28,10 @@ interface ExtensionSettings {
 
 function getStorage() {
   // Prefer chrome.storage.local when available (extension), otherwise fallback to localStorage
-  if (typeof browser !== 'undefined' && browser.storage && browser.storage.local) return browser.storage.local;
-  return null;
-}
-
-async function checkConnection(hostUrl: string, timeoutMs = 5000): Promise<{ success: boolean; models?: OllamaModel[]; error?: string }> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const res = await fetch(`${hostUrl.replace(/\/$/, '')}/api/tags`, { method: 'GET', signal: controller.signal });
-    clearTimeout(timeoutId);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    const models = data?.models || data;
-    return { success: true, models };
-  } catch (err) {
-    clearTimeout(timeoutId);
-    return { success: false, error: (err as Error).message };
+  if (typeof browser !== 'undefined' && browser.storage && browser.storage.local) {
+    return browser.storage.local;
   }
+  return null;
 }
 
 function populateModelDropdowns(models: OllamaModel[]) {
@@ -54,7 +39,7 @@ function populateModelDropdowns(models: OllamaModel[]) {
   const fallbackSelect = document.getElementById('fallback-model') as HTMLSelectElement | null;
   if (!primarySelect || !fallbackSelect) return;
 
-  const optionsHtml = models.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
+  const optionsHtml = models.map((m) => `<option value="${m.name}">${m.name}</option>`).join('');
   primarySelect.innerHTML = optionsHtml;
   fallbackSelect.innerHTML = `<option value="">None</option>` + optionsHtml;
 }
@@ -75,7 +60,12 @@ async function saveSettingsToStorage(settingsData: Record<string, any>) {
   localStorage.setItem('extensionSettings', JSON.stringify(settingsData));
 }
 
-async function preloadModelToVRAM(hostUrl: string, modelName: string, keepAlive: string, numCtx: number) {
+async function preloadModelToVRAM(
+  hostUrl: string,
+  modelName: string,
+  keepAlive: string,
+  numCtx: number
+) {
   if (!keepAlive) return;
   try {
     await fetch(`${hostUrl.replace(/\/$/, '')}/api/generate`, {
@@ -110,7 +100,6 @@ document.addEventListener('DOMContentLoaded', () => {
   async function runTestConnection(showToast = true) {
     if (!hostInput || !timeoutInput) return { success: false };
     const host = hostInput.value.trim() || 'http://localhost:11434';
-    const timeoutMs = parseInt(timeoutInput.value || '5000', 10) || 5000;
 
     if (statusDot) statusDot.className = 'status-indicator-dot connecting';
     if (statusPill) {
@@ -118,7 +107,8 @@ document.addEventListener('DOMContentLoaded', () => {
       statusPill.innerText = '[ CHECKING... ]';
     }
 
-    const res = await checkConnection(host, timeoutMs);
+    // Call centralized model check
+    const res = await checkOllamaConnection(host);
     if (res.success && res.models && res.models.length) {
       if (statusDot) statusDot.className = 'status-indicator-dot connected';
       if (statusPill) {
@@ -238,7 +228,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // optionally preload model into VRAM
       if (settingsData.keepAlive && settingsData.activeModel) {
-        preloadModelToVRAM(settingsData.ollamaHost || 'http://localhost:11434', settingsData.activeModel, settingsData.keepAlive, settingsData.numCtx || 0);
+        preloadModelToVRAM(
+          settingsData.ollamaHost || 'http://localhost:11434',
+          settingsData.activeModel,
+          settingsData.keepAlive,
+          settingsData.numCtx || 0
+        );
       }
     } catch (err) {
       console.error('Failed saving settings', err);
