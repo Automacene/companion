@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 290" width="100%" height="100%">
+  <defs>
+    <!-- Hacker Orange Glow Filter -->
+    <filter id="orangeGlowTight" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <style>
+      /* Dark Charcoal Elements */
+      .trace-line-charcoal { stroke: #1A1D24; stroke-width: 3.5; stroke-linecap: round; opacity: 0.95; fill: none; }
+      .node-charcoal { fill: #1A1D24; }
+      .node-charcoal-outline { fill: #FFFFFF; stroke: #1A1D24; stroke-width: 3; }
+      
+      /* Hacker Orange Accent Elements */
+      .core-orange { fill: #FF5500; filter: url(#orangeGlowTight); }
+      .trace-line-orange { stroke: #FF5500; stroke-width: 3.5; stroke-linecap: round; fill: none; }
+      .grid-dot-orange { fill: #FF5500; }
+      .grid-dot-dim { fill: #1A1D24; opacity: 0.15; }
+      .grid-dot-subtle { fill: #1A1D24; opacity: 0.35; }
+    </style>
+  </defs>
+
+  <!-- Content re-centered to tight (390x290) bounding box -->
+  <g transform="translate(-205, -80)">
+    
+    <!-- Ambient Sensor Grid -->
+    <g id="sensor-grid">
+      <circle cx="310" cy="130" r="2.5" class="grid-dot-dim"/>
+      <circle cx="490" cy="130" r="2.5" class="grid-dot-dim"/>
+      <circle cx="250" cy="190" r="2.5" class="grid-dot-dim"/>
+      <circle cx="550" cy="190" r="2.5" class="grid-dot-dim"/>
+      <circle cx="190" cy="250" r="2.5" class="grid-dot-dim"/>
+      <circle cx="610" cy="250" r="2.5" class="grid-dot-dim"/>
+      
+      <circle cx="400" cy="95" r="3" class="grid-dot-orange"/>
+      <circle cx="360" cy="270" r="2.5" class="grid-dot-subtle"/>
+      <circle cx="440" cy="270" r="2.5" class="grid-dot-subtle"/>
+      <circle cx="400" cy="360" r="3" class="grid-dot-orange"/>
+      <circle cx="250" cy="270" r="2.5" class="grid-dot-orange"/>
+      <circle cx="550" cy="270" r="2.5" class="grid-dot-orange"/>
+    </g>
+
+    <!-- Network Circuit Lines -->
+    <g id="circuit-traces">
+      <line x1="400" y1="170" x2="350" y2="220" class="trace-line-orange"/>
+      <line x1="400" y1="170" x2="450" y2="220" class="trace-line-orange"/>
+
+      <line x1="350" y1="220" x2="300" y2="270" class="trace-line-charcoal"/>
+      <line x1="450" y1="220" x2="500" y2="270" class="trace-line-charcoal"/>
+
+      <line x1="300" y1="270" x2="340" y2="310" class="trace-line-charcoal"/>
+      <line x1="500" y1="270" x2="460" y2="310" class="trace-line-charcoal"/>
+    </g>
+
+    <!-- Nodes -->
+    <g id="network-nodes">
+      <rect x="381" y="151" width="38" height="38" rx="4" transform="rotate(45 400 170)" class="core-orange"/>
+
+      <rect x="339" y="209" width="22" height="22" rx="3" transform="rotate(45 350 220)" class="node-charcoal-outline"/>
+      <rect x="439" y="209" width="22" height="22" rx="3" transform="rotate(45 450 220)" class="node-charcoal-outline"/>
+
+      <rect x="289" y="259" width="22" height="22" rx="3" transform="rotate(45 300 270)" class="node-charcoal"/>
+      <rect x="489" y="259" width="22" height="22" rx="3" transform="rotate(45 500 270)" class="node-charcoal"/>
+
+      <rect x="330" y="300" width="20" height="20" rx="2" transform="rotate(45 340 310)" class="node-charcoal-outline"/>
+      <rect x="450" y="300" width="20" height="20" rx="2" transform="rotate(45 460 310)" class="node-charcoal-outline"/>
+
+      <circle cx="230" cy="270" r="3.5" class="grid-dot-orange"/>
+      <circle cx="570" cy="270" r="3.5" class="grid-dot-orange"/>
+      <circle cx="340" cy="345" r="3" class="node-charcoal"/>
+      <circle cx="460" cy="345" r="3" class="node-charcoal"/>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,47 @@
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: rotate(45deg) scale(1);
+  }
+
+  20%, 60% {
+    opacity: 0.35;
+    transform: rotate(45deg) scale(0.95);
+  }
+
+  40%, 80% {
+    opacity: 0.75;
+    transform: rotate(45deg) scale(1.02);
+  }
+}
+
+.ghost-square {
+  position: absolute;
+  width: var(--grid-size, 40px);
+  height: var(--grid-size, 40px);
+  border-radius: 6px;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.85);
+  animation: ghostFade 3s ease-in-out forwards;
+  will-change: opacity, transform, background-color;
+  z-index: 1;
+}
+
+@keyframes ghostFade {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  20% {
+    opacity: 0.18;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  80% {
+    opacity: 0.18;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+}
