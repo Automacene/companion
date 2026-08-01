@@ -47,21 +47,49 @@ export async function checkOllamaConnection(
  */
 export async function streamChatResponse(
   settings: ModelSettings,
-  messages: ModelMessage[],
+  messages: Array<{ role: string; content: string }>,
   onChunk: (textDelta: string) => void
 ): Promise<string> {
-  const openai = getOllamaVercelProvider(settings.ollamaHost);
-
-  const result = streamText({
-    model: openai(settings.activeModel),
-    messages,
+  const cleanHost = settings.ollamaHost.replace(/\/+$/, '');
+  
+  const response = await fetch(`${cleanHost}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: settings.activeModel,
+      messages: messages,
+      stream: true,
+    }),
   });
 
+  if (!response.ok || !response.body) {
+    throw new Error(`Ollama HTTP error! status: ${response.status}`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
   let fullResponse = '';
 
-  for await (const delta of result.textStream) {
-    fullResponse += delta;
-    onChunk(delta);
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+
+    const chunk = decoder.decode(value, { stream: true });
+    const lines = chunk.split('\n');
+
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      try {
+        const parsed = JSON.parse(line);
+        const content = parsed.message?.content || '';
+        if (content) {
+          fullResponse += content;
+          onChunk(content);
+        }
+      } catch {
+        // Skip malformed chunk segments
+      }
+    }
   }
 
   return fullResponse;
