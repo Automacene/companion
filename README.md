@@ -1,11 +1,7 @@
 # Automacene Companion
 
 <p align="center">
-  <img src="public/logo.svg" alt="Automacene Logo" width="220" />
-</p>
-
-<p align="center" style="font-size: 2rem; font-weight: 700; margin-top: 1rem; margin-bottom: 0.5rem;">
-  Automacene Companion
+  <img src="public/logo.svg" alt="Automacene Logo" width="440" />
 </p>
 
 <p align="center" style="font-size: 1.5rem; font-weight: 700; margin: 0.5rem 0;">
@@ -16,7 +12,7 @@
   A <b>data companion</b> for all of your online activities
 </p>
 
-<p align="center" style="font-size: 0.875rem; color: #71717a; margin-top: 0.75rem;">
+<p style="font-size: 0.875rem; color: #71717a; margin-top: 0.75rem;">
   <i>A 100% open-source, privacy-first AI companion for your browser—powered by your local hardware, not subscription fees.</i>
 </p>
 
