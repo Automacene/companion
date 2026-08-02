@@ -6,6 +6,7 @@ import '../../styles/sidepanel.css';
 import { VercelConversation } from '../../lib/conversation';
 import { initGhostOverlay } from '../../lib/anim';
 import { checkOllamaConnection, streamChatResponse } from '../../lib/model';
+import { renderMarkdown } from '../../lib/markdown';
 
 const OLLAMA_HOST = 'http://localhost:11434';
 const MODEL_NAME = 'llama3';
@@ -87,6 +88,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const chatForm = document.getElementById('chat-form') as HTMLFormElement | null;
   const chatInput = document.getElementById('chat-input') as HTMLInputElement | null;
   const runBtn = document.getElementById('run-btn') as HTMLButtonElement | null;
+  const hero = document.querySelector('.brand-hero') as HTMLElement | null;
+  const pulser = document.querySelector('.brand-status-badge') as HTMLElement | null;
 
   if (!statusDot || !statusPill || !chatContainer || !chatForm || !chatInput || !runBtn) {
     console.warn('Missing UI elements in sidepanel');
@@ -123,6 +126,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   await updateConnectionStatus();
 
+  pulser?.addEventListener('click', () => {
+    hero?.classList.remove('is-collapsed');
+  });
+
   // 4. Chat Bubble Rendering Helper
   function appendBubble(role: 'user' | 'assistant', initialText = ''): HTMLDivElement {
     const wrapper = document.createElement('div');
@@ -131,13 +138,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     const bubble = document.createElement('div');
     bubble.className = `chat-bubble ${role}`;
 
-    bubble.innerText = initialText;
+    if (role === 'assistant') {
+      bubble.classList.add('markdown-body');
+      bubble.innerHTML = renderMarkdown(initialText);
+    } else {
+      bubble.innerText = initialText;
+    }
+
     wrapper.appendChild(bubble);
     chatContainer!.appendChild(wrapper);
     chatContainer!.scrollTop = chatContainer!.scrollHeight;
 
     return bubble;
   }
+
+  chatInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && event.shiftKey) {
+      event.preventDefault();
+      const start = chatInput.selectionStart ?? chatInput.value.length;
+      const end = chatInput.selectionEnd ?? chatInput.value.length;
+      const value = chatInput.value;
+      chatInput.value = `${value.slice(0, start)}\n${value.slice(end)}`;
+      const pos = start + 1;
+      chatInput.setSelectionRange(pos, pos);
+    }
+  });
 
   // 5. Send Message & Stream Response using Vercel AI SDK Infrastructure
   chatForm.addEventListener('submit', async (e) => {
@@ -156,6 +181,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       );
       return;
     }
+
+    hero?.classList.add('is-collapsed');
 
     appendBubble('user', prompt);
     conversation.addUser(prompt);
@@ -178,7 +205,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         conversation.getMessages(),
         (textDelta) => {
           accumulatedText += textDelta;
-          aiBubble.innerText = accumulatedText;
+          aiBubble.innerHTML = renderMarkdown(accumulatedText);
           chatContainer!.scrollTop = chatContainer!.scrollHeight;
         }
       );

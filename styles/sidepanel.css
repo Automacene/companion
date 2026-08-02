@@ -33,6 +33,24 @@
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
+  transition: margin 180ms ease, padding 180ms ease, gap 180ms ease;
+}
+
+.brand-hero.is-collapsed {
+  margin: 0;
+  padding: 0;
+  gap: 0;
+}
+
+.brand-hero.is-collapsed + .chat-log-container {
+  margin-top: 2rem;
+  max-height: calc(100vh - 260px);
+}
+
+.brand-hero.is-collapsed .brand-logo,
+.brand-hero.is-collapsed .hero-heading,
+.brand-hero.is-collapsed .hero-subtext {
+  display: none;
 }
 
 .brand-logo-wrap {
@@ -55,13 +73,15 @@
   left: 44.80%;
   width: 1.7rem;
   height: 1.7rem;
+  border: 0;
   border-radius: 0.2rem;
   background-color: var(--orange-primary);
   box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.65);
-  /* Combine translate and rotate in a single transform */
   transform: rotate(45deg);
   animation: pulse-badge 1.8s ease-out infinite;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
+  padding: 0;
 }
 
 @keyframes pulse-badge {
@@ -91,18 +111,18 @@
   margin-top: 0.25rem;
 }
 
-/* Chat Log & Bubbles */
 .chat-log-container {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  max-height: 350px;
   overflow-y: auto;
   padding-right: 0.25rem;
   font-size: 0.75rem;
+  max-height: calc(100vh - 500px); 
 }
 
 .chat-card {
+  flex-shrink: 0;
   background-color: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -150,6 +170,50 @@
   border-radius: 1rem 1rem 1rem 0.75rem;
 }
 
+.chat-bubble.markdown-body {
+  overflow-wrap: anywhere;
+}
+
+.chat-bubble.markdown-body p {
+  margin: 0 0 0.5rem;
+}
+
+.chat-bubble.markdown-body p:last-child {
+  margin-bottom: 0;
+}
+
+.chat-bubble.markdown-body pre {
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background-color: rgba(15, 23, 42, 0.06);
+}
+
+.chat-bubble.markdown-body code {
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.3rem;
+  background-color: rgba(15, 23, 42, 0.06);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.chat-bubble.markdown-body ul,
+.chat-bubble.markdown-body ol {
+  margin: 0.4rem 0 0.4rem 1rem;
+  padding-left: 1rem;
+}
+
+.chat-bubble.markdown-body li + li {
+  margin-top: 0.25rem;
+}
+
+.chat-bubble.markdown-body a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
 .chat-bubble.assistant.error {
   color: #dc2626;
 }
@@ -193,10 +257,11 @@
 }
 
 .app-footer {
+  flex-shrink: 0;
   position: relative;
   z-index: 10;
   padding-top: 1rem;
-  padding-bottom: 0.5rem;
+  padding-bottom: 0rem;
   border-top: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
