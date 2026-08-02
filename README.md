@@ -1,6 +1,24 @@
 # Automacene Companion
 
-> **A 100% open-source, privacy-first AI companion for your browser—powered by your local hardware, not subscription fees.**
+<p align="center">
+  <img src="public/logo.svg" alt="Automacene Logo" width="220" />
+</p>
+
+<p align="center" style="font-size: 2rem; font-weight: 700; margin-top: 1rem; margin-bottom: 0.5rem;">
+  Automacene Companion
+</p>
+
+<p align="center" style="font-size: 1.5rem; font-weight: 700; margin: 0.5rem 0;">
+  Power <span style="color: #ea580c;">your</span> agents with <span style="color: #ea580c;">your data</span>
+</p>
+
+<p align="center" style="font-size: 1rem; margin-top: 0.25rem;">
+  A <b>data companion</b> for all of your online activities
+</p>
+
+<p align="center" style="font-size: 0.875rem; color: #71717a; margin-top: 0.75rem;">
+  <i>A 100% open-source, privacy-first AI companion for your browser—powered by your local hardware, not subscription fees.</i>
+</p>
 
 Automacene Companion is a browser sidepanel extension designed to give you instant, context-aware AI assistance using self-hosted LLMs. By connecting directly to your local **Ollama** instance, Automacene Companion ensures your data stays private, your workflows remain uninterrupted, and you never have to pay a monthly fee to proprietary AI providers.
 
