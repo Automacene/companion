@@ -59,25 +59,34 @@ export class MessageDispatcher {
           case PortAction.GET_HISTORY:
             port.postMessage({
               action: PortAction.HISTORY_RESPONSE,
-              messages: conversation.getMessages(),
+              messages: conversation.getHistory(), // <-- Calls getHistory() instead of getMessages()
             });
             break;
 
-          case ToolAction.SCRAPE_DOM:
-            try {
-              const result = await this.scraperService.scrapeTab(
-                tabId,
-                conversation,
-                msg.processorName
-              );
-              port.postMessage({ action: 'SCRAPE_COMPLETE', result });
-            } catch (err) {
-              port.postMessage({
-                action: 'SCRAPE_ERROR',
-                error: err instanceof Error ? err.message : 'Scrape failed',
+          case ToolAction.SCRAPE_DOM: {
+            const targetTabId = msg.tabId;
+            const session = this.sessionManager.getSession(targetTabId);
+
+            this.scraperService
+              .scrapeTab(targetTabId, session)
+              .then((result) => {
+                port.postMessage({
+                  action: 'SCRAPE_COMPLETE',
+                  result: {
+                    processorName: result.processorName,
+                    contentType: result.contentType,
+                    metadata: result.metadata,
+                  },
+                });
+              })
+              .catch((error) => {
+                port.postMessage({
+                  action: 'SCRAPE_ERROR',
+                  error: error.message || 'Scrape pipeline failed',
+                });
               });
-            }
             break;
+          }
 
           case PortAction.SEND_MESSAGE:
             if (msg.prompt) {

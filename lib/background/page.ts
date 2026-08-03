@@ -7,7 +7,7 @@ import type { VercelConversation } from '../conversation';
 export class ScraperService {
   /**
    * Requests raw DOM payload from the content script on tabId,
-   * routes it through the processing pipeline, and ingests context into conversation state.
+   * routes it through the processing pipeline, and stages it into the session context slot.
    */
   public async scrapeTab(
     tabId: number,
@@ -25,10 +25,9 @@ export class ScraperService {
     const rawPayload = response.data as RawDOMPayload;
     const processedResult = await defaultPipeline.run(processorName, rawPayload);
 
-    // Ingest into conversation using title and url directly from rawPayload
     if (processedResult?.content) {
-      conversation.addContext(
-        rawPayload.title || 'Page',
+      conversation.setContext(
+        rawPayload.title || 'Untitled Page',
         rawPayload.url || '',
         processedResult.content
       );

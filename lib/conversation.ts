@@ -1,11 +1,18 @@
 import { DEFAULT_MAX_CHAR_BUDGET, DEFAULT_SYSTEM_PROMPT, MODEL_NAME, OLLAMA_HOST } from './constants';
 import type { ModelMessage } from 'ai';
 
+export interface PageContextSlot {
+  title: string;
+  url: string;
+  content: string;
+}
+
 export class VercelConversation {
   private messages: ModelMessage[] = [];
   private maxCharBudget: number;
   private hostUrl: string;
   private modelName: string;
+  private contextSlot: PageContextSlot | null = null;
 
   constructor(
     systemPrompt: string = DEFAULT_SYSTEM_PROMPT, 
@@ -27,9 +34,25 @@ export class VercelConversation {
     return this.modelName;
   }
 
-  updateConfig(hostUrl?: string, modelName?: string) {
+  updateConfig(hostUrl?: string, modelName?: string): void {
     if (hostUrl) this.hostUrl = hostUrl;
     if (modelName) this.modelName = modelName;
+  }
+
+  setContext(title: string, url: string, content: string): void {
+    this.contextSlot = { title, url, content };
+  }
+
+  hasContext(): boolean {
+    return this.contextSlot !== null;
+  }
+
+  getContext(): PageContextSlot | null {
+    return this.contextSlot;
+  }
+
+  clearContext(): void {
+    this.contextSlot = null;
   }
 
   private getContentLength(content: ModelMessage['content']): number {
@@ -42,15 +65,33 @@ export class VercelConversation {
     return 0;
   }
 
-  addUser(content: string) {
-    this.messages.push({ role: 'user', content });
+  addUser(content: string): void {
+    let finalPrompt = content;
+
+    if (this.contextSlot) {
+      const { title, url, content: pageContent } = this.contextSlot;
+      const systemLen = this.getContentLength(this.messages[0]?.content || '');
+      const promptLen = content.length;
+      
+      const maxAllowedDomLen = Math.max(1000, this.maxCharBudget - systemLen - promptLen - 3000);
+      
+      let safePageContent = pageContent;
+      if (safePageContent.length > maxAllowedDomLen) {
+        safePageContent = `${safePageContent.slice(0, maxAllowedDomLen)}\n\n... [PAGE CONTEXT TRUNCATED TO FIT MODEL MEMORY BUDGET]`;
+      }
+
+      finalPrompt = `[PAGE CONTEXT INGESTED]\nTitle: ${title}\nURL: ${url}\n\nContent:\n${safePageContent}\n\n[USER PROMPT]\n${content}`;
+      this.clearContext();
+    }
+
+    this.messages.push({ role: 'user', content: finalPrompt });
   }
 
-  addAssistant(content: string) {
+  addAssistant(content: string): void {
     this.messages.push({ role: 'assistant', content });
   }
 
-  updateSystemPrompt(content: string) {
+  updateSystemPrompt(content: string): void {
     if (this.messages.length > 0 && this.messages[0]?.role === 'system') {
       this.messages[0].content = content;
     } else {
@@ -59,27 +100,21 @@ export class VercelConversation {
   }
 
   /**
-   * Injects scraped DOM or external context directly into conversation state.
-   * Marked clearly so the LLM understands it is background context, not user speech.
+   * Returns the FULL un-truncated conversation log for UI rendering.
    */
-  addContext(title: string, url: string, content: string) {
-    const formattedContext = `[PAGE CONTEXT INGESTED]\nTitle: ${title}\nURL: ${url}\n\nContent:\n${content}`;
-    this.messages.push({
-      role: 'user',
-      content: formattedContext,
-    });
-
-    this.messages.push({
-      role: 'assistant',
-      content: `I have received and ingested the page context for "${title}". How can I help you with this page?`,
-    });
+  getHistory(): ModelMessage[] {
+    return [...this.messages];
   }
 
+  /**
+   * Returns the budget-controlled window for Ollama model execution.
+   */
   getMessages(): ModelMessage[] {
     const systemMsg = this.messages[0];
     if (!systemMsg) return [];
 
     const history = this.messages.slice(1);
+    if (history.length === 0) return [systemMsg];
 
     let currentLength = this.getContentLength(systemMsg.content);
     const trimmedHistory: ModelMessage[] = [];
@@ -90,16 +125,23 @@ export class VercelConversation {
 
       const len = this.getContentLength(msg.content);
 
-      if (currentLength + len > this.maxCharBudget) break;
+      if (trimmedHistory.length > 0 && currentLength + len > this.maxCharBudget) {
+        break;
+      }
 
       currentLength += len;
       trimmedHistory.unshift(msg);
     }
 
+    while (trimmedHistory.length > 1 && trimmedHistory[0]?.role === 'assistant') {
+      trimmedHistory.shift();
+    }
+
     return [systemMsg, ...trimmedHistory];
   }
 
-  clear() {
+  clear(): void {
+    this.clearContext();
     const systemMsg = this.messages[0];
     if (systemMsg) {
       this.messages = [systemMsg];

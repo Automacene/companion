@@ -31,6 +31,23 @@ export class ChatUI {
     return bubble;
   }
 
+  /**
+   * Appends a non-message system notification badge in the chat log
+   */
+  public appendSystemNotice(text: string): void {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'chat-bubble-row system-notice';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble system-notice';
+    bubble.style.cssText = 'font-size: 0.75rem; color: #888; font-style: italic; padding: 4px 8px; border: 1px dashed #444; border-radius: 6px; margin: 4px 0;';
+    bubble.innerText = `[System]: ${text}`;
+
+    wrapper.appendChild(bubble);
+    this.chatContainer.appendChild(wrapper);
+    this.scrollToBottom();
+  }
+
   public renderHistory(messages: ModelMessage[]): void {
     this.chatContainer.innerHTML = '';
     const nonSystem = messages.filter((m) => m.role !== 'system');

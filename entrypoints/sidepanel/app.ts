@@ -3,7 +3,7 @@ import {
   OLLAMA_HOST, 
   SIDEPANEL_CONNECTION_NAME 
 } from '../../lib/constants';
-import { PortAction } from '../../types/actions';
+import { PortAction, ToolAction } from '../../types/actions';
 import type { ExtensionSettings } from '../../types/state';
 import type { ChatUI } from '../../lib/sidepanel/ui';
 import type { ConnectionManager } from '../../lib/sidepanel/connection';
@@ -17,6 +17,7 @@ export class SidepanelApp {
     private connectionManager: ConnectionManager,
     private chatForm: HTMLFormElement,
     private chatInput: HTMLTextAreaElement,
+    private scrapeBtn: HTMLButtonElement | null,
     pulser: HTMLElement | null
   ) {
     this.port = browser.runtime.connect({ name: SIDEPANEL_CONNECTION_NAME });
@@ -33,6 +34,7 @@ export class SidepanelApp {
     this.bindPortListeners();
     this.bindTabListeners();
     this.bindFormEvents();
+    this.bindScrapeButton();
 
     this.requestTabHistory(this.currentActiveTabId);
   }
@@ -51,6 +53,12 @@ export class SidepanelApp {
           break;
         case PortAction.STREAM_ERROR:
           this.chatUI.streamError(msg.error);
+          break;
+        case 'SCRAPE_COMPLETE':
+          this.handleScrapeComplete(msg.result);
+          break;
+        case 'SCRAPE_ERROR':
+          this.handleScrapeError(msg.error);
           break;
       }
     });
@@ -110,6 +118,45 @@ export class SidepanelApp {
     });
   }
 
+  private bindScrapeButton(): void {
+    if (!this.scrapeBtn) return;
+
+    this.scrapeBtn.addEventListener('click', async () => {
+      if (this.currentActiveTabId === -1) {
+        alert('No active tab available to scrape.');
+        return;
+      }
+
+      this.scrapeBtn!.disabled = true;
+      this.scrapeBtn!.innerText = 'Scraping...';
+
+      this.port.postMessage({
+        action: ToolAction.SCRAPE_DOM,
+        tabId: this.currentActiveTabId,
+      });
+    });
+  }
+
+  private handleScrapeComplete(result: any): void {
+    if (this.scrapeBtn) {
+      this.scrapeBtn.disabled = false;
+      this.scrapeBtn.innerText = 'Scraped!';
+      setTimeout(() => {
+        if (this.scrapeBtn) this.scrapeBtn.innerText = 'Scrape';
+      }, 2000);
+    }
+    const charCount = result?.metadata?.rawLength || 0;
+    this.chatUI.appendSystemNotice(`Page context staged (${charCount.toLocaleString()} chars). It will attach to your next message.`);
+  }
+
+  private handleScrapeError(error: string): void {
+    if (this.scrapeBtn) {
+      this.scrapeBtn.disabled = false;
+      this.scrapeBtn.innerText = 'Scrape';
+    }
+    alert(`Scrape failed: ${error}`);
+  }
+
   private requestTabHistory(tabId: number): void {
     if (tabId !== -1) {
       this.port.postMessage({
@@ -119,10 +166,6 @@ export class SidepanelApp {
     }
   }
 
-  /**
-   * Triggers the background worker to execute SettingsManager.getSettings(),
-   * which merges saved user settings with default fallback models/hosts.
-   */
   private fetchSettings(): Promise<ExtensionSettings> {
     return new Promise((resolve) => {
       const handleResponse = (msg: any) => {

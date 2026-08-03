@@ -5,13 +5,13 @@ import { ScraperService } from '../lib/background/page';
 import { StreamService } from '../lib/background/stream';
 import { MessageDispatcher } from '../lib/background/dispatch';
 
-// 1. Instantiate immediately at module top-level (runs on script evaluation)
+// Instantiate immediately at module top-level (runs on script evaluation)
 const sessionManager = new SessionManager();
 const settingsManager = new SettingsManager();
 const scraperService = new ScraperService();
 const streamService = new StreamService();
 
-// 2. Attach to global scope immediately
+// Attach to global scope immediately
 const testServices = {
   sessionManager,
   settingsManager,

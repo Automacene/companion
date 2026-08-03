@@ -4,7 +4,6 @@ import '../../styles/anim.css';
 import '../../styles/sidepanel.css';
 
 import { initGhostOverlay } from '../../lib/anim';
-// Standard imports so these classes exist at runtime
 import { ChatUI } from '../../lib/sidepanel/ui';
 import { ConnectionManager } from '../../lib/sidepanel/connection';
 import { SidepanelApp } from './app';
@@ -18,6 +17,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const chatForm = document.getElementById('chat-form') as HTMLFormElement | null;
   const chatInput = document.getElementById('chat-input') as HTMLTextAreaElement | null;
   const runBtn = document.getElementById('run-btn') as HTMLButtonElement | null;
+  const scrapeBtn = document.getElementById('scrape-btn') as HTMLButtonElement | null;
   const hero = document.querySelector('.brand-hero') as HTMLElement | null;
   const pulser = document.querySelector('.brand-status-badge') as HTMLElement | null;
 
@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     connectionManager,
     chatForm,
     chatInput,
+    scrapeBtn,
     pulser
   );
 
