@@ -7,6 +7,7 @@ export const PortAction = {
   CLEAR_HISTORY: 'CLEAR_HISTORY',
   SEND_MESSAGE: 'SEND_MESSAGE',
   SAVE_SETTINGS: 'SAVE_SETTINGS',
+  GET_SETTINGS: 'GET_SETTINGS',
 
   // Responses/Events from Background to Sidepanel
   HISTORY_RESPONSE: 'HISTORY_RESPONSE',
