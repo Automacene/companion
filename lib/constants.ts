@@ -1,0 +1,17 @@
+export const OLLAMA_HOST = 'http://localhost:11434';
+export const MODEL_NAME = 'llama3';
+export const DEFAULT_SYSTEM_PROMPT = 'You are Automacene Companion, an AI sidepanel assistant analyzing webpage context concisely and accurately.';
+export const DEFAULT_ACTIVE_MODEL = 'llama3.2:latest';
+export const DEFAULT_FALLBACK_MODEL = 'qwen3.5:latest';
+export const DEFAULT_CONN_TIMEOUT = 5000;
+export const DEFAULT_KEEP_ALIVE = '5m';
+export const DEFAULT_TEMPERATURE = 0.7;
+export const DEFAULT_NUM_CTX = 8192;
+export const DEFAULT_NUM_PREDICT = 1024;
+export const DEFAULT_TOP_P = 0.9;
+export const DEFAULT_TOP_K = 40;
+export const DEFAULT_REPEAT_PENALTY = 1.1;
+export const DEFAULT_MAX_MEMORY = 12000;
+export const DEFAULT_PROCESSOR_NAME = 'raw';
+export const DEFAULT_MAX_CHAR_BUDGET = 12000;
+export const SIDEPANEL_CONNECTION_NAME = 'sidepanel-connection';

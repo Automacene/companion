@@ -4,14 +4,11 @@ import '../../styles/anim.css';
 import '../../styles/sidepanel.css';
 
 import { initGhostOverlay } from '../../lib/anim';
+import { DEFAULT_CONN_TIMEOUT, DEFAULT_SYSTEM_PROMPT, MODEL_NAME, OLLAMA_HOST, SIDEPANEL_CONNECTION_NAME } from '../../lib/constants';
 import { checkOllamaConnection } from '../../lib/model';
 import { renderMarkdown } from '../../lib/markdown';
 import { PortAction } from '../../types/actions';
 import type { ModelMessage } from 'ai';
-
-const OLLAMA_HOST = 'http://localhost:11434';
-const MODEL_NAME = 'llama3';
-const DEFAULT_SYSTEM_PROMPT = 'You are Automacene Companion, an AI sidepanel assistant analyzing webpage context concisely and accurately.';
 
 interface ExtensionSettings {
   ollamaHost?: string;
@@ -37,7 +34,7 @@ async function loadSettings(): Promise<ExtensionSettings> {
         const s = items?.extensionSettings as ExtensionSettings | undefined;
         resolve({
           ollamaHost: s?.ollamaHost || OLLAMA_HOST,
-          connTimeout: s?.connTimeout || 5000,
+          connTimeout: s?.connTimeout || DEFAULT_CONN_TIMEOUT,
           activeModel: s?.activeModel || MODEL_NAME,
           fallbackModel: s?.fallbackModel || '',
           systemPrompt:
@@ -54,7 +51,7 @@ async function loadSettings(): Promise<ExtensionSettings> {
       const s = JSON.parse(raw) as ExtensionSettings;
       return {
         ollamaHost: s.ollamaHost || OLLAMA_HOST,
-        connTimeout: s.connTimeout || 5000,
+        connTimeout: s.connTimeout || DEFAULT_CONN_TIMEOUT,
         activeModel: s.activeModel || MODEL_NAME,
         fallbackModel: s.fallbackModel || '',
         systemPrompt:
@@ -68,7 +65,7 @@ async function loadSettings(): Promise<ExtensionSettings> {
 
   return {
     ollamaHost: OLLAMA_HOST,
-    connTimeout: 5000,
+    connTimeout: DEFAULT_CONN_TIMEOUT,
     activeModel: MODEL_NAME,
     fallbackModel: '',
     systemPrompt: DEFAULT_SYSTEM_PROMPT,
@@ -105,7 +102,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const settings = await loadSettings();
 
   // Establish port connection to background state
-  const port = browser.runtime.connect({ name: 'sidepanel-connection' });
+  const port = browser.runtime.connect({ name: SIDEPANEL_CONNECTION_NAME });
   let currentActiveTabId = await getCurrentTabId();
   let aiBubble: HTMLDivElement | null = null;
 

@@ -1,10 +1,11 @@
+import { DEFAULT_MAX_CHAR_BUDGET } from './constants';
 import type { ModelMessage } from 'ai';
 
 export class VercelConversation {
   private messages: ModelMessage[] = [];
   private maxCharBudget: number;
 
-  constructor(systemPrompt: string, maxCharBudget = 12000) {
+  constructor(systemPrompt: string, maxCharBudget = DEFAULT_MAX_CHAR_BUDGET) {
     this.messages = [{ role: 'system', content: systemPrompt }];
     this.maxCharBudget = maxCharBudget;
   }

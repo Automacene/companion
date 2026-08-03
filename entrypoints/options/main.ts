@@ -4,6 +4,21 @@ import '../../styles/anim.css';
 import '../../styles/options.css';
 
 import { initGhostOverlay } from '../../lib/anim';
+import {
+  DEFAULT_ACTIVE_MODEL,
+  DEFAULT_CONN_TIMEOUT,
+  DEFAULT_FALLBACK_MODEL,
+  DEFAULT_KEEP_ALIVE,
+  DEFAULT_MAX_MEMORY,
+  DEFAULT_NUM_CTX,
+  DEFAULT_NUM_PREDICT,
+  OLLAMA_HOST,
+  DEFAULT_REPEAT_PENALTY,
+  DEFAULT_SYSTEM_PROMPT,
+  DEFAULT_TEMPERATURE,
+  DEFAULT_TOP_K,
+  DEFAULT_TOP_P,
+} from '../../lib/constants';
 import { checkOllamaConnection, type OllamaModel } from '../../lib/model';
 
 interface ExtensionSettings {
@@ -27,21 +42,20 @@ interface ExtensionSettings {
 }
 
 const DEFAULT_SETTINGS: ExtensionSettings = {
-  ollamaHost: 'http://localhost:11434',
-  connTimeout: 5000,
-  keepAlive: '5m',
-  activeModel: 'llama3.2:latest',
-  fallbackModel: 'qwen3.5:latest',
-  systemPrompt:
-    'You are Automacene Companion, an AI sidepanel assistant analyzing webpage context concisely and accurately.',
+  ollamaHost: OLLAMA_HOST,
+  connTimeout: DEFAULT_CONN_TIMEOUT,
+  keepAlive: DEFAULT_KEEP_ALIVE,
+  activeModel: DEFAULT_ACTIVE_MODEL,
+  fallbackModel: DEFAULT_FALLBACK_MODEL,
+  systemPrompt: DEFAULT_SYSTEM_PROMPT,
   streamResponses: true,
-  temperature: 0.7,
-  numCtx: 8192,
-  numPredict: 1024,
-  topP: 0.9,
-  topK: 40,
-  repeatPenalty: 1.1,
-  maxMemory: 12000,
+  temperature: DEFAULT_TEMPERATURE,
+  numCtx: DEFAULT_NUM_CTX,
+  numPredict: DEFAULT_NUM_PREDICT,
+  topP: DEFAULT_TOP_P,
+  topK: DEFAULT_TOP_K,
+  repeatPenalty: DEFAULT_REPEAT_PENALTY,
+  maxMemory: DEFAULT_MAX_MEMORY,
   stopSeq: '',
   rawMode: false,
   debugMode: false,
@@ -115,17 +129,17 @@ function applySettingsToForm(settings: ExtensionSettings | null | undefined) {
   const rawModeEl = document.getElementById('raw-mode') as HTMLInputElement | null;
   const debugModeEl = document.getElementById('debug-mode') as HTMLInputElement | null;
 
-  if (hostInput) hostInput.value = resolvedSettings.ollamaHost || 'http://localhost:11434';
-  if (timeoutInput) timeoutInput.value = resolvedSettings.connTimeout?.toString() || '5000';
+  if (hostInput) hostInput.value = resolvedSettings.ollamaHost || OLLAMA_HOST;
+  if (timeoutInput) timeoutInput.value = resolvedSettings.connTimeout?.toString() || DEFAULT_CONN_TIMEOUT.toString();
   if (keepAliveInput) keepAliveInput.value = resolvedSettings.keepAlive || '';
   if (systemPrompt) systemPrompt.value = resolvedSettings.systemPrompt || '';
   if (streamResponses) streamResponses.checked = !!resolvedSettings.streamResponses;
 
   if (tempEl) {
-    tempEl.value = resolvedSettings.temperature?.toString() || '0.7';
+    tempEl.value = resolvedSettings.temperature?.toString() || DEFAULT_TEMPERATURE.toString();
   }
   if (tempValEl) {
-    tempValEl.textContent = tempEl?.value || '0.7';
+    tempValEl.textContent = tempEl?.value || DEFAULT_TEMPERATURE.toString();
   }
 
   if (numCtxEl) numCtxEl.value = resolvedSettings.numCtx?.toString() || '';
@@ -221,7 +235,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function runTestConnection(showToast = true) {
     if (!hostInput || !timeoutInput) return { success: false };
-    const host = hostInput.value.trim() || 'http://localhost:11434';
+    const host = hostInput.value.trim() || OLLAMA_HOST;
 
     if (statusDot) statusDot.className = 'status-indicator-dot connecting';
     if (statusPill) {
@@ -295,7 +309,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const settingsData: Record<string, any> = {
       ollamaHost: hostInput.value.trim() || DEFAULT_SETTINGS.ollamaHost,
-      connTimeout: parseInt(timeoutInput.value || '5000', 10),
+      connTimeout: parseInt(timeoutInput.value || DEFAULT_CONN_TIMEOUT.toString(), 10),
       keepAlive: keepAliveInput?.value || '',
       activeModel: primarySelect?.value || '',
       fallbackModel: fallbackSelect?.value || '',
