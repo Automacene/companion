@@ -14,18 +14,18 @@ export class StreamService {
     overrideHost?: string,
     overrideModel?: string
   ): Promise<void> {
-    // 1. Update session config if explicit overrides were passed
+    // Update session config if explicit overrides were passed
     if (overrideHost || overrideModel) {
       conversation.updateConfig(overrideHost, overrideModel);
     }
 
-    // 2. Append user prompt to conversation state
+    // Append user prompt to conversation state
     conversation.addUser(prompt);
 
     try {
       let accumulatedText = '';
 
-      // 3. Initiate stream to host/model configured in conversation
+      // Initiate stream to host/model configured in conversation
       await streamChatResponse(
         {
           ollamaHost: conversation.getHostUrl(),
@@ -41,7 +41,7 @@ export class StreamService {
         }
       );
 
-      // 4. Record assistant response upon stream completion
+      // Record assistant response upon stream completion
       conversation.addAssistant(accumulatedText);
 
       port.postMessage({

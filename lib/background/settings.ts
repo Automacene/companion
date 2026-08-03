@@ -1,8 +1,5 @@
 import { 
-  OLLAMA_HOST, 
-  DEFAULT_ACTIVE_MODEL, 
-  DEFAULT_SYSTEM_PROMPT, 
-  DEFAULT_CONN_TIMEOUT 
+  DEFAULT_SETTINGS
 } from '../constants';
 import type { ExtensionSettings } from '../../types/state';
 
@@ -16,22 +13,26 @@ export class SettingsManager {
       const saved = (result.extensionSettings || {}) as Partial<ExtensionSettings>;
 
       return {
-        ollamaHost: saved.ollamaHost || OLLAMA_HOST,
-        connTimeout: saved.connTimeout || DEFAULT_CONN_TIMEOUT,
-        activeModel: saved.activeModel || DEFAULT_ACTIVE_MODEL,
-        fallbackModel: saved.fallbackModel || '',
-        systemPrompt: saved.systemPrompt || DEFAULT_SYSTEM_PROMPT,
-        streamResponses: saved.streamResponses ?? true,
+        ollamaHost: saved.ollamaHost ?? DEFAULT_SETTINGS.ollamaHost,
+        connTimeout: saved.connTimeout ?? DEFAULT_SETTINGS.connTimeout,
+        keepAlive: saved.keepAlive ?? DEFAULT_SETTINGS.keepAlive,
+        activeModel: saved.activeModel ?? DEFAULT_SETTINGS.activeModel,
+        fallbackModel: saved.fallbackModel ?? DEFAULT_SETTINGS.fallbackModel,
+        systemPrompt: saved.systemPrompt ?? DEFAULT_SETTINGS.systemPrompt,
+        streamResponses: saved.streamResponses ?? DEFAULT_SETTINGS.streamResponses,
+        temperature: saved.temperature ?? DEFAULT_SETTINGS.temperature,
+        numCtx: saved.numCtx ?? DEFAULT_SETTINGS.numCtx,
+        numPredict: saved.numPredict ?? DEFAULT_SETTINGS.numPredict,
+        topP: saved.topP ?? DEFAULT_SETTINGS.topP,
+        topK: saved.topK ?? DEFAULT_SETTINGS.topK,
+        repeatPenalty: saved.repeatPenalty ?? DEFAULT_SETTINGS.repeatPenalty,
+        maxMemory: saved.maxMemory ?? DEFAULT_SETTINGS.maxMemory,
+        stopSeq: saved.stopSeq ?? DEFAULT_SETTINGS.stopSeq,
+        rawMode: saved.rawMode ?? DEFAULT_SETTINGS.rawMode,
+        debugMode: saved.debugMode ?? DEFAULT_SETTINGS.debugMode,
       };
     } catch {
-      return {
-        ollamaHost: OLLAMA_HOST,
-        connTimeout: DEFAULT_CONN_TIMEOUT,
-        activeModel: DEFAULT_ACTIVE_MODEL,
-        fallbackModel: '',
-        systemPrompt: DEFAULT_SYSTEM_PROMPT,
-        streamResponses: true,
-      };
+      return { ...DEFAULT_SETTINGS };
     }
   }
 

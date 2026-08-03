@@ -13,8 +13,7 @@ export const DEFAULT_NUM_PREDICT = 1024;
 export const DEFAULT_TOP_P = 0.9;
 export const DEFAULT_TOP_K = 40;
 export const DEFAULT_REPEAT_PENALTY = 1.1;
-export const DEFAULT_MAX_MEMORY = 12000;
-export const DEFAULT_PROCESSOR_NAME = 'raw';
+export const DEFAULT_PROCESSOR_NAME = 'basic';
 export const DEFAULT_MAX_CHAR_BUDGET = 12000;
 export const SIDEPANEL_CONNECTION_NAME = 'sidepanel-connection';
 export const DEFAULT_SETTINGS: ExtensionSettings = {
@@ -31,7 +30,7 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
   topP: DEFAULT_TOP_P,
   topK: DEFAULT_TOP_K,
   repeatPenalty: DEFAULT_REPEAT_PENALTY,
-  maxMemory: DEFAULT_MAX_MEMORY,
+  maxMemory: DEFAULT_MAX_CHAR_BUDGET,
   stopSeq: '',
   rawMode: false,
   debugMode: false,

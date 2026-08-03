@@ -1,12 +1,14 @@
 import type { PostProcessor, RawDOMPayload, ProcessedResult } from './types';
 import { RawProcessor } from './rawProcessor';
+import { BasicProcessor } from './basicProcessor';
 
 export class ProcessingPipeline {
   private processors = new Map<string, PostProcessor>();
 
   constructor() {
-    // Register baseline default processor
+    // Register baseline default processors
     this.register(new RawProcessor());
+    this.register(new BasicProcessor());
   }
 
   register(processor: PostProcessor): void {
