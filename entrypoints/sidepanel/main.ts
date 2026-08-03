@@ -3,13 +3,15 @@ import '../../styles/global.css';
 import '../../styles/anim.css';
 import '../../styles/sidepanel.css';
 
-import { VercelConversation } from '../../lib/conversation';
 import { initGhostOverlay } from '../../lib/anim';
-import { checkOllamaConnection, streamChatResponse } from '../../lib/model';
+import { checkOllamaConnection } from '../../lib/model';
 import { renderMarkdown } from '../../lib/markdown';
+import { PortAction } from '../../types/actions';
+import type { ModelMessage } from 'ai';
 
 const OLLAMA_HOST = 'http://localhost:11434';
 const MODEL_NAME = 'llama3';
+const DEFAULT_SYSTEM_PROMPT = 'You are Automacene Companion, an AI sidepanel assistant analyzing webpage context concisely and accurately.';
 
 interface ExtensionSettings {
   ollamaHost?: string;
@@ -39,8 +41,7 @@ async function loadSettings(): Promise<ExtensionSettings> {
           activeModel: s?.activeModel || MODEL_NAME,
           fallbackModel: s?.fallbackModel || '',
           systemPrompt:
-            s?.systemPrompt ||
-            'You are Automacene Companion, an AI sidepanel assistant analyzing webpage context concisely and accurately.',
+            s?.systemPrompt || DEFAULT_SYSTEM_PROMPT,
           streamResponses: s?.streamResponses ?? true,
         });
       });
@@ -57,8 +58,7 @@ async function loadSettings(): Promise<ExtensionSettings> {
         activeModel: s.activeModel || MODEL_NAME,
         fallbackModel: s.fallbackModel || '',
         systemPrompt:
-          s.systemPrompt ||
-          'You are Automacene Companion, an AI sidepanel assistant analyzing webpage context concisely and accurately.',
+          s.systemPrompt || DEFAULT_SYSTEM_PROMPT,
         streamResponses: s.streamResponses ?? true,
       };
     } catch {
@@ -71,17 +71,23 @@ async function loadSettings(): Promise<ExtensionSettings> {
     connTimeout: 5000,
     activeModel: MODEL_NAME,
     fallbackModel: '',
-    systemPrompt:
-      'You are Automacene Companion, an AI sidepanel assistant analyzing webpage context concisely and accurately.',
+    systemPrompt: DEFAULT_SYSTEM_PROMPT,
     streamResponses: true,
   };
+}
+
+async function getCurrentTabId(): Promise<number> {
+  try {
+    const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+    return tabs[0]?.id ?? -1;
+  } catch {
+    return -1;
+  }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Initialize background ghost grid animation
   initGhostOverlay('grid-overlay');
-
-  // 1. UI Selectors
   const statusDot = document.getElementById('status-dot') as HTMLElement | null;
   const statusPill = document.getElementById('status-pill') as HTMLElement | null;
   const chatContainer = document.getElementById('chat-container') as HTMLElement | null;
@@ -98,14 +104,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const settings = await loadSettings();
 
-  // 2. Initialize Conversation Manager
-  const conversation = new VercelConversation(
-    settings.systemPrompt ||
-      'You are Automacene Companion, an AI sidepanel assistant analyzing webpage context concisely and accurately.',
-    8000
-  );
+  // Establish port connection to background state
+  const port = browser.runtime.connect({ name: 'sidepanel-connection' });
+  let currentActiveTabId = await getCurrentTabId();
+  let aiBubble: HTMLDivElement | null = null;
 
-  // 3. UI Status Updating Helper
+  // UI Status Updating Helper
   async function updateConnectionStatus(
     hostUrl = settings.ollamaHost || OLLAMA_HOST
   ): Promise<boolean> {
@@ -130,7 +134,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     hero?.classList.remove('is-collapsed');
   });
 
-  // 4. Chat Bubble Rendering Helper
+  // Chat Bubble Rendering Helper
   function appendBubble(role: 'user' | 'assistant', initialText = ''): HTMLDivElement {
     const wrapper = document.createElement('div');
     wrapper.className = `chat-bubble-row ${role}`;
@@ -152,6 +156,69 @@ document.addEventListener('DOMContentLoaded', async () => {
     return bubble;
   }
 
+  function renderHistory(messages: ModelMessage[]) {
+    chatContainer!.innerHTML = '';
+    const nonSystem = messages.filter((m) => m.role !== 'system');
+
+    if (nonSystem.length > 0) {
+      hero?.classList.add('is-collapsed');
+    }
+
+    for (const msg of nonSystem) {
+      const text = typeof msg.content === 'string' ? msg.content : '';
+      if (msg.role === 'user' || msg.role === 'assistant') {
+        appendBubble(msg.role, text);
+      }
+    }
+  }
+
+  // Handle Port Stream Responses from Background
+  port.onMessage.addListener((msg) => {
+    if (msg.action === PortAction.HISTORY_RESPONSE) {
+      renderHistory(msg.messages);
+    }
+
+    if (msg.action === PortAction.STREAM_CHUNK) {
+      if (aiBubble) {
+        aiBubble.innerHTML = renderMarkdown(msg.fullText);
+        chatContainer!.scrollTop = chatContainer!.scrollHeight;
+      }
+    }
+
+    if (msg.action === PortAction.STREAM_COMPLETE) {
+      runBtn.disabled = false;
+      runBtn.innerText = 'Run →';
+      aiBubble = null;
+    }
+
+    if (msg.action === PortAction.STREAM_ERROR) {
+      if (aiBubble) {
+        aiBubble.innerText = `Error: ${msg.error}`;
+        aiBubble.classList.add('text-rose-600');
+      }
+      runBtn.disabled = false;
+      runBtn.innerText = 'Run →';
+      aiBubble = null;
+    }
+  });
+
+  // Load initial history for active tab
+  port.postMessage({
+    action: PortAction.GET_HISTORY,
+    tabId: currentActiveTabId,
+    systemPrompt: settings.systemPrompt,
+  });
+
+  // Switch conversation view when browser active tab changes
+  browser.tabs.onActivated.addListener(async (activeInfo) => {
+    currentActiveTabId = activeInfo.tabId;
+    port.postMessage({
+      action: PortAction.GET_HISTORY,
+      tabId: currentActiveTabId,
+      systemPrompt: settings.systemPrompt,
+    });
+  });
+
   chatInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' && event.shiftKey) {
       event.preventDefault();
@@ -164,7 +231,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // 5. Send Message & Stream Response using Vercel AI SDK Infrastructure
+  // Send Message & Stream Response via Background Process
   chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const prompt = chatInput.value.trim();
@@ -185,40 +252,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     hero?.classList.add('is-collapsed');
 
     appendBubble('user', prompt);
-    conversation.addUser(prompt);
     chatInput.value = '';
 
     runBtn.disabled = true;
     runBtn.innerText = 'Running...';
 
-    const aiBubble = appendBubble('assistant', '');
+    aiBubble = appendBubble('assistant', '');
 
-    try {
-      // Delegate streaming logic to lib/model.ts via Vercel streamText
-      let accumulatedText = '';
-
-      await streamChatResponse(
-        {
-          ollamaHost: hostUrl,
-          activeModel: modelName,
-        },
-        conversation.getMessages(),
-        (textDelta) => {
-          accumulatedText += textDelta;
-          aiBubble.innerHTML = renderMarkdown(accumulatedText);
-          chatContainer!.scrollTop = chatContainer!.scrollHeight;
-        }
-      );
-
-      // Store final assistant message in conversation context
-      conversation.addAssistant(accumulatedText);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      aiBubble.innerText = `Error: ${message}`;
-      aiBubble.classList.add('text-rose-600');
-    } finally {
-      runBtn.disabled = false;
-      runBtn.innerText = 'Run →';
-    }
+    // Send prompt to background worker
+    port.postMessage({
+      action: PortAction.SEND_MESSAGE,
+      tabId: currentActiveTabId,
+      prompt,
+      hostUrl,
+      modelName,
+      systemPrompt: currentSettings.systemPrompt,
+    });
   });
 });
