@@ -4,14 +4,14 @@ import { streamChatResponse } from '../lib/model';
 import { defaultPipeline } from '../lib/processors/pipeline';
 import type { RawDOMPayload, ProcessedResult } from '../lib/processors/types';
 import { PortAction, ToolAction } from '../types/actions';
+import type { ExtensionSettings } from '../types/state';
 
 const tabSessions = new Map<number, VercelConversation>();
 
-function getSession(tabId: number, systemPrompt?: string): VercelConversation {
+function getSession(tabId: number): VercelConversation {
   let conversation = tabSessions.get(tabId);
   if (!conversation) {
-    const prompt = systemPrompt || DEFAULT_SYSTEM_PROMPT;
-    conversation = new VercelConversation(prompt, 8000);
+    conversation = new VercelConversation();
     tabSessions.set(tabId, conversation);
   }
   return conversation;
@@ -45,18 +45,64 @@ export default defineBackground(() => {
     tabSessions.delete(tabId);
   });
 
+  // Listen for changes to extension settings
+  browser.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === 'local' && changes.extensionSettings) {
+      const newSettings = changes.extensionSettings.newValue as {
+        systemPrompt?: string;
+        ollamaHost?: string;
+        activeModel?: string;
+      };
+      
+      if (newSettings) {
+        for (const conversation of tabSessions.values()) {
+          if (newSettings.systemPrompt) {
+            conversation.updateSystemPrompt(newSettings.systemPrompt);
+          }
+          if (newSettings.ollamaHost || newSettings.activeModel) {
+            conversation.updateConfig(newSettings.ollamaHost, newSettings.activeModel);
+          }
+        }
+      }
+    }
+  });
+
   browser.runtime.onConnect.addListener((port) => {
     if (port.name !== SIDEPANEL_CONNECTION_NAME) return;
 
     port.onMessage.addListener(async (msg) => {
       const tabId = msg.tabId ?? -1;
-      const conversation = getSession(tabId, msg.systemPrompt);
+      const conversation = getSession(tabId);
 
       if (msg.action === PortAction.GET_HISTORY) {
         port.postMessage({
           action: PortAction.HISTORY_RESPONSE,
           messages: conversation.getMessages(),
         });
+      }
+
+      if (msg.action === PortAction.SAVE_SETTINGS) {
+        try {
+          const newSettings = msg.settings as ExtensionSettings;
+
+          // 1. Update browser storage directly
+          await browser.storage.local.set({ extensionSettings: newSettings });
+
+          // 2. Update all active conversation session instances in memory immediately
+          for (const conversation of tabSessions.values()) {
+            if (newSettings.systemPrompt) {
+              conversation.updateSystemPrompt(newSettings.systemPrompt);
+            }
+            if (newSettings.ollamaHost || newSettings.activeModel) {
+              conversation.updateConfig(newSettings.ollamaHost, newSettings.activeModel);
+            }
+          }
+
+          port.postMessage({ success: true });
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : 'Failed to save settings';
+          port.postMessage({ success: false, error: errorMessage });
+        }
       }
 
       // DOM Extraction Action
@@ -79,7 +125,7 @@ export default defineBackground(() => {
       }
 
       if (msg.action === PortAction.SEND_MESSAGE) {
-        const { prompt, hostUrl, modelName } = msg;
+        const { prompt } = msg;
 
         conversation.addUser(prompt);
 
@@ -88,8 +134,8 @@ export default defineBackground(() => {
 
           await streamChatResponse(
             {
-              ollamaHost: hostUrl || OLLAMA_HOST,
-              activeModel: modelName || MODEL_NAME,
+              ollamaHost: conversation.getHostUrl(),
+              activeModel: conversation.getModelName(),
             },
             conversation.getMessages(),
             (textDelta) => {
@@ -116,5 +162,32 @@ export default defineBackground(() => {
         }
       }
     });
+  });
+
+  browser.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+    console.log("ALL YOUR BASE")
+    if (msg.action === PortAction.SAVE_SETTINGS) {
+      (async () => {
+        try {
+          const newSettings = msg.settings as ExtensionSettings;
+          await browser.storage.local.set({ extensionSettings: newSettings });
+
+          for (const conversation of tabSessions.values()) {
+            if (newSettings.systemPrompt) {
+              conversation.updateSystemPrompt(newSettings.systemPrompt);
+            }
+            if (newSettings.ollamaHost || newSettings.activeModel) {
+              conversation.updateConfig(newSettings.ollamaHost, newSettings.activeModel);
+            }
+          }
+
+          sendResponse({ success: true });
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : 'Failed to save settings';
+          sendResponse({ success: false, error: errorMessage });
+        }
+      })();
+      return true; // Keeps the message channel open for async sendResponse
+    }
   });
 });

@@ -202,8 +202,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Load initial history for active tab
   port.postMessage({
     action: PortAction.GET_HISTORY,
-    tabId: currentActiveTabId,
-    systemPrompt: settings.systemPrompt,
+    tabId: currentActiveTabId
   });
 
   // Switch conversation view when browser active tab changes
@@ -211,8 +210,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     currentActiveTabId = activeInfo.tabId;
     port.postMessage({
       action: PortAction.GET_HISTORY,
-      tabId: currentActiveTabId,
-      systemPrompt: settings.systemPrompt,
+      tabId: currentActiveTabId
     });
   });
 
@@ -262,8 +260,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       tabId: currentActiveTabId,
       prompt,
       hostUrl,
-      modelName,
-      systemPrompt: currentSettings.systemPrompt,
+      modelName
     });
   });
 });

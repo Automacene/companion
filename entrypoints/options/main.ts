@@ -4,62 +4,15 @@ import '../../styles/anim.css';
 import '../../styles/options.css';
 
 import { initGhostOverlay } from '../../lib/anim';
+import { PortAction } from '@/types/actions';
+import type { ExtensionSettings } from '../../types/state'; 
 import {
-  DEFAULT_ACTIVE_MODEL,
   DEFAULT_CONN_TIMEOUT,
-  DEFAULT_FALLBACK_MODEL,
-  DEFAULT_KEEP_ALIVE,
-  DEFAULT_MAX_MEMORY,
-  DEFAULT_NUM_CTX,
-  DEFAULT_NUM_PREDICT,
   OLLAMA_HOST,
-  DEFAULT_REPEAT_PENALTY,
-  DEFAULT_SYSTEM_PROMPT,
   DEFAULT_TEMPERATURE,
-  DEFAULT_TOP_K,
-  DEFAULT_TOP_P,
+  DEFAULT_SETTINGS
 } from '../../lib/constants';
 import { checkOllamaConnection, type OllamaModel } from '../../lib/model';
-
-interface ExtensionSettings {
-  ollamaHost?: string;
-  connTimeout?: number;
-  keepAlive?: string;
-  activeModel?: string;
-  fallbackModel?: string;
-  systemPrompt?: string;
-  streamResponses?: boolean;
-  temperature?: string | number;
-  numCtx?: number;
-  numPredict?: number;
-  topP?: number;
-  topK?: number;
-  repeatPenalty?: number;
-  maxMemory?: number;
-  stopSeq?: string;
-  rawMode?: boolean;
-  debugMode?: boolean;
-}
-
-const DEFAULT_SETTINGS: ExtensionSettings = {
-  ollamaHost: OLLAMA_HOST,
-  connTimeout: DEFAULT_CONN_TIMEOUT,
-  keepAlive: DEFAULT_KEEP_ALIVE,
-  activeModel: DEFAULT_ACTIVE_MODEL,
-  fallbackModel: DEFAULT_FALLBACK_MODEL,
-  systemPrompt: DEFAULT_SYSTEM_PROMPT,
-  streamResponses: true,
-  temperature: DEFAULT_TEMPERATURE,
-  numCtx: DEFAULT_NUM_CTX,
-  numPredict: DEFAULT_NUM_PREDICT,
-  topP: DEFAULT_TOP_P,
-  topK: DEFAULT_TOP_K,
-  repeatPenalty: DEFAULT_REPEAT_PENALTY,
-  maxMemory: DEFAULT_MAX_MEMORY,
-  stopSeq: '',
-  rawMode: false,
-  debugMode: false,
-};
 
 function getStorage() {
   // Prefer chrome.storage.local when available (extension), otherwise fallback to localStorage
@@ -195,23 +148,6 @@ async function saveSettingsToStorage(settingsData: Record<string, any>) {
   localStorage.setItem('extensionSettings', JSON.stringify(settingsData));
 }
 
-async function preloadModelToVRAM(
-  hostUrl: string,
-  modelName: string,
-  keepAlive: string,
-  numCtx: number
-) {
-  if (!keepAlive) return;
-  try {
-    await fetch(`${hostUrl.replace(/\/$/, '')}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: modelName, keep_alive: keepAlive, options: { num_ctx: numCtx } }),
-    });
-  } catch (err) {
-    console.warn('VRAM Preload failed:', err);
-  }
-}
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Initialize background ghost grid animation
@@ -220,11 +156,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const hostInput = document.getElementById('ollama-host') as HTMLInputElement | null;
   const testBtn = document.getElementById('test-conn-btn') as HTMLButtonElement | null;
   const timeoutInput = document.getElementById('conn-timeout') as HTMLInputElement | null;
-  const keepAliveInput = document.getElementById('keep-alive') as HTMLInputElement | null;
-  const primarySelect = document.getElementById('active-model') as HTMLSelectElement | null;
-  const fallbackSelect = document.getElementById('fallback-model') as HTMLSelectElement | null;
-  const systemPrompt = document.getElementById('system-prompt') as HTMLTextAreaElement | null;
-  const streamResponses = document.getElementById('stream-responses') as HTMLInputElement | null;
   const settingsForm = document.getElementById('settings-form') as HTMLFormElement | null;
   const resetBtn = document.getElementById('reset-settings-btn') as HTMLButtonElement | null;
   const saveToast = document.getElementById('save-toast') as HTMLElement | null;
@@ -304,54 +235,93 @@ document.addEventListener('DOMContentLoaded', async () => {
   // On load, attempt to populate models from default host
   await runTestConnection(false);
 
-  async function saveCurrentFormSettings() {
-    if (!hostInput || !timeoutInput) return;
+  function getSettingsFromForm(): ExtensionSettings {
+    const hostInput = document.getElementById('ollama-host') as HTMLInputElement | null;
+    const timeoutInput = document.getElementById('conn-timeout') as HTMLInputElement | null;
+    const keepAliveInput = document.getElementById('keep-alive') as HTMLInputElement | null;
+    const primarySelect = document.getElementById('active-model') as HTMLSelectElement | null;
+    const fallbackSelect = document.getElementById('fallback-model') as HTMLSelectElement | null;
+    const systemPrompt = document.getElementById('system-prompt') as HTMLTextAreaElement | null;
+    const streamResponses = document.getElementById('stream-responses') as HTMLInputElement | null;
+    const tempEl = document.getElementById('temperature') as HTMLInputElement | null;
+    const numCtxEl = document.getElementById('num-ctx') as HTMLInputElement | null;
+    const numPredictEl = document.getElementById('num-predict') as HTMLInputElement | null;
+    const topPEl = document.getElementById('top-p') as HTMLInputElement | null;
+    const topKEl = document.getElementById('top-k') as HTMLInputElement | null;
+    const repeatPenaltyEl = document.getElementById('repeat-penalty') as HTMLInputElement | null;
+    const maxMemoryEl = document.getElementById('max-memory') as HTMLInputElement | null;
+    const stopSeqEl = document.getElementById('stop-seq') as HTMLInputElement | null;
+    const rawModeEl = document.getElementById('raw-mode') as HTMLInputElement | null;
+    const debugModeEl = document.getElementById('debug-mode') as HTMLInputElement | null;
 
-    const settingsData: Record<string, any> = {
-      ollamaHost: hostInput.value.trim() || DEFAULT_SETTINGS.ollamaHost,
-      connTimeout: parseInt(timeoutInput.value || DEFAULT_CONN_TIMEOUT.toString(), 10),
+    return {
+      ollamaHost: hostInput?.value.trim() || OLLAMA_HOST,
+      connTimeout: parseInt(timeoutInput?.value || '', 10) || DEFAULT_CONN_TIMEOUT,
       keepAlive: keepAliveInput?.value || '',
       activeModel: primarySelect?.value || '',
       fallbackModel: fallbackSelect?.value || '',
       systemPrompt: systemPrompt?.value || '',
-      streamResponses: streamResponses?.checked || false,
-      temperature: (document.getElementById('temperature') as HTMLInputElement).value,
-      numCtx: parseInt((document.getElementById('num-ctx') as HTMLInputElement).value || '0', 10) || 0,
-      numPredict: parseInt((document.getElementById('num-predict') as HTMLInputElement).value || '0', 10) || 0,
-      topP: parseFloat((document.getElementById('top-p') as HTMLInputElement).value || '0') || 0,
-      topK: parseInt((document.getElementById('top-k') as HTMLInputElement).value || '0', 10) || 0,
-      repeatPenalty: parseFloat((document.getElementById('repeat-penalty') as HTMLInputElement).value || '0') || 0,
-      maxMemory: parseInt((document.getElementById('max-memory') as HTMLInputElement).value || '0', 10) || 0,
-      stopSeq: (document.getElementById('stop-seq') as HTMLInputElement).value || '',
-      rawMode: (document.getElementById('raw-mode') as HTMLInputElement).checked,
-      debugMode: (document.getElementById('debug-mode') as HTMLInputElement).checked,
+      streamResponses: streamResponses ? streamResponses.checked : true,
+      temperature: tempEl?.value || '',
+      numCtx: parseInt(numCtxEl?.value || '', 10) || 0,
+      numPredict: parseInt(numPredictEl?.value || '', 10) || 0,
+      topP: parseFloat(topPEl?.value || '') || 0,
+      topK: parseInt(topKEl?.value || '', 10) || 0,
+      repeatPenalty: parseFloat(repeatPenaltyEl?.value || '') || 0,
+      maxMemory: parseInt(maxMemoryEl?.value || '', 10) || 0,
+      stopSeq: stopSeqEl?.value || '',
+      rawMode: rawModeEl ? rawModeEl.checked : false,
+      debugMode: debugModeEl ? debugModeEl.checked : false,
     };
+  }
+
+  settingsForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const settingsData = getSettingsFromForm();
 
     try {
-      await saveSettingsToStorage(settingsData);
-      if (saveToast) {
-        saveToast.textContent = '✓ Settings saved successfully';
-        saveToast.classList.remove('opacity-0');
-        setTimeout(() => saveToast.classList.add('opacity-0'), 1400);
+      const response = await browser.runtime.sendMessage({
+        action: PortAction.SAVE_SETTINGS,
+        settings: settingsData
+      });
+
+      if (response?.success) {
+        if (saveToast) {
+          saveToast.textContent = '✓ Settings saved successfully';
+          saveToast.classList.remove('opacity-0');
+          setTimeout(() => saveToast.classList.add('opacity-0'), 1400);
+        }
+      } else {
+        throw new Error(response?.error || 'Unknown save error');
       }
     } catch (err) {
       console.error('Failed saving settings', err);
       alert('Failed to save settings');
     }
-  }
-
-  settingsForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    await saveCurrentFormSettings();
   });
 
   resetBtn?.addEventListener('click', async () => {
     applySettingsToForm(DEFAULT_SETTINGS);
-    await saveCurrentFormSettings();
-    if (saveToast) {
-      saveToast.textContent = '✓ Defaults restored';
-      saveToast.classList.remove('opacity-0');
-      setTimeout(() => saveToast.classList.add('opacity-0'), 1400);
+
+    try {
+      const response = await browser.runtime.sendMessage({
+        action: PortAction.SAVE_SETTINGS,
+        settings: DEFAULT_SETTINGS
+      });
+
+      if (response?.success) {
+        if (saveToast) {
+          saveToast.textContent = '✓ Defaults restored';
+          saveToast.classList.remove('opacity-0');
+          setTimeout(() => saveToast.classList.add('opacity-0'), 1400);
+        }
+      } else {
+        throw new Error(response?.error || 'Unknown reset error');
+      }
+    } catch (err) {
+      console.error('Failed resetting settings', err);
+      alert('Failed to reset settings');
     }
   });
 });

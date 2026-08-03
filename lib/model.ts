@@ -56,10 +56,12 @@ function normalizeMessages(messages: ModelMessage[]) {
 
     return {
       role: message.role,
-      content: message.content
-        .filter((part) => part.type === 'text')
-        .map((part) => part.text)
-        .join(''),
+      content: Array.isArray(message.content)
+        ? message.content
+            .filter((part) => part && part.type === 'text')
+            .map((part) => part.text)
+            .join('')
+        : String(message.content || ''),
     };
   });
 }

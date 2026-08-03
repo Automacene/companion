@@ -1,3 +1,5 @@
+import type { ExtensionSettings } from '../types/state';
+
 export const OLLAMA_HOST = 'http://localhost:11434';
 export const MODEL_NAME = 'llama3';
 export const DEFAULT_SYSTEM_PROMPT = 'You are Automacene Companion, an AI sidepanel assistant analyzing webpage context concisely and accurately.';
@@ -15,3 +17,22 @@ export const DEFAULT_MAX_MEMORY = 12000;
 export const DEFAULT_PROCESSOR_NAME = 'raw';
 export const DEFAULT_MAX_CHAR_BUDGET = 12000;
 export const SIDEPANEL_CONNECTION_NAME = 'sidepanel-connection';
+export const DEFAULT_SETTINGS: ExtensionSettings = {
+  ollamaHost: OLLAMA_HOST,
+  connTimeout: DEFAULT_CONN_TIMEOUT,
+  keepAlive: DEFAULT_KEEP_ALIVE,
+  activeModel: DEFAULT_ACTIVE_MODEL,
+  fallbackModel: DEFAULT_FALLBACK_MODEL,
+  systemPrompt: DEFAULT_SYSTEM_PROMPT,
+  streamResponses: true,
+  temperature: DEFAULT_TEMPERATURE,
+  numCtx: DEFAULT_NUM_CTX,
+  numPredict: DEFAULT_NUM_PREDICT,
+  topP: DEFAULT_TOP_P,
+  topK: DEFAULT_TOP_K,
+  repeatPenalty: DEFAULT_REPEAT_PENALTY,
+  maxMemory: DEFAULT_MAX_MEMORY,
+  stopSeq: '',
+  rawMode: false,
+  debugMode: false,
+};

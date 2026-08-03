@@ -6,12 +6,16 @@ export const PortAction = {
   GET_HISTORY: 'GET_HISTORY',
   CLEAR_HISTORY: 'CLEAR_HISTORY',
   SEND_MESSAGE: 'SEND_MESSAGE',
+  SAVE_SETTINGS: 'SAVE_SETTINGS',
 
   // Responses/Events from Background to Sidepanel
   HISTORY_RESPONSE: 'HISTORY_RESPONSE',
   STREAM_CHUNK: 'STREAM_CHUNK',
   STREAM_COMPLETE: 'STREAM_COMPLETE',
   STREAM_ERROR: 'STREAM_ERROR',
+  SCRAPE_COMPLETE: 'SCRAPE_COMPLETE', 
+  MAP_COMPLETE: 'MAP_COMPLETE',       
+  SCRAPE_ERROR: 'SCRAPE_ERROR',       
 } as const;
 
 export type PortAction = (typeof PortAction)[keyof typeof PortAction];
