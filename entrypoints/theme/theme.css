@@ -1,0 +1,327 @@
+/* =============================================================
+   SURFACE — Appearance page
+
+   Layout only. No colour, radius, shadow, or spacing literal appears
+   here; every value comes from a token, which is what lets this page
+   restyle itself while you are using it.
+============================================================= */
+
+.theme-page {
+  min-height: 100vh;
+  padding: var(--ac-space-7) var(--ac-space-6) var(--ac-space-9);
+}
+
+.theme-page__content {
+  max-width: 76rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-7);
+}
+
+/* ---- Header ---- */
+.theme-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--ac-space-5);
+  padding-bottom: var(--ac-space-6);
+  border-bottom: 1px solid var(--ac-color-border);
+}
+
+.theme-page__title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--ac-space-4);
+  font-size: var(--ac-text-lg);
+  font-weight: var(--ac-weight-bold);
+  letter-spacing: var(--ac-tracking-tight);
+}
+
+.theme-page__subtitle {
+  margin: var(--ac-space-2) 0 0;
+  font-family: var(--ac-font-mono);
+  font-size: var(--ac-text-xs);
+  color: var(--ac-color-text-subtle);
+  max-width: 60ch;
+}
+
+.theme-page__nav {
+  display: flex;
+  gap: var(--ac-space-4);
+}
+
+/* ---- Two columns, stacking on narrow windows ---- */
+.theme-page__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ac-space-7);
+  align-items: start;
+}
+
+@media (min-width: 60rem) {
+  .theme-page__grid {
+    grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+  }
+}
+
+.theme-page__column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-6);
+  min-width: 0;
+}
+
+.theme-page__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-4);
+}
+
+/* ---- Disclosure, for the tuning nobody needs by default ---- */
+.theme-page__disclosure {
+  border: 1px solid var(--ac-color-border-subtle);
+  border-radius: var(--ac-radius-md);
+}
+
+.theme-page__disclosure-summary {
+  cursor: pointer;
+  padding: var(--ac-space-4) var(--ac-space-5);
+  font-family: var(--ac-font-mono);
+  font-size: var(--ac-text-2xs);
+  font-weight: var(--ac-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--ac-tracking-wide);
+  color: var(--ac-color-text-subtle);
+  list-style: none;
+}
+
+.theme-page__disclosure-summary::-webkit-details-marker {
+  display: none;
+}
+
+.theme-page__disclosure-summary::before {
+  content: "▸ ";
+}
+
+.theme-page__disclosure[open] > .theme-page__disclosure-summary::before {
+  content: "▾ ";
+}
+
+.theme-page__disclosure-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-5);
+  padding: 0 var(--ac-space-5) var(--ac-space-5);
+  border-top: 1px solid var(--ac-color-border-subtle);
+}
+
+/* ---- Custom character ramp ----
+   Indented and ruled so it reads as belonging to the select above it
+   rather than as another field in the stack. */
+.theme-page__custom-ramp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-2);
+  margin-top: var(--ac-space-3);
+  padding-left: var(--ac-space-5);
+  border-left: 2px solid var(--ac-color-accent-border);
+}
+
+.theme-page__custom-ramp .ac-input.is-invalid {
+  border-color: var(--ac-color-danger);
+}
+
+/* ---- Sliders ---- */
+.theme-page__sliders {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-5);
+}
+
+.theme-page__slider-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ac-space-4);
+}
+
+.theme-page__slider-value {
+  font-size: var(--ac-text-xs);
+  font-weight: var(--ac-weight-bold);
+  color: var(--ac-color-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Token editor ---- */
+.theme-page__tokens {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-3);
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: var(--ac-space-3);
+}
+
+.theme-page__token-group {
+  border: 1px solid var(--ac-color-border-subtle);
+  border-radius: var(--ac-radius-md);
+}
+
+.theme-page__token-summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ac-space-4);
+  padding: var(--ac-space-4) var(--ac-space-5);
+  font-size: var(--ac-text-sm);
+  font-weight: var(--ac-weight-semibold);
+  list-style: none;
+}
+
+.theme-page__token-summary::-webkit-details-marker {
+  display: none;
+}
+
+.theme-page__token-meta {
+  font-size: var(--ac-text-2xs);
+  color: var(--ac-color-text-subtle);
+}
+
+/* One token: label, its custom property name, then the controls. */
+.theme-page__token {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ac-space-2);
+  padding: var(--ac-space-4) var(--ac-space-5);
+  border-top: 1px solid var(--ac-color-border-subtle);
+}
+
+/* A changed token is marked on its edge rather than by colouring the text,
+   which would fight whatever colour the user just chose. */
+.theme-page__token.is-changed {
+  border-left: 2px solid var(--ac-color-accent);
+  background: var(--ac-color-accent-soft);
+}
+
+.theme-page__token-label {
+  font-size: var(--ac-text-sm);
+  font-weight: var(--ac-weight-medium);
+}
+
+.theme-page__token-name {
+  font-family: var(--ac-font-mono);
+  font-size: var(--ac-text-2xs);
+  color: var(--ac-color-text-subtle);
+  overflow-wrap: anywhere;
+}
+
+.theme-page__token-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--ac-space-3);
+  margin-top: var(--ac-space-2);
+}
+
+/* ---- The exact-value escape hatch ----
+   Full width on its own line, so opening it pushes nothing sideways. */
+.theme-page__token-advanced {
+  flex-basis: 100%;
+  order: 10;
+}
+
+.theme-page__token-advanced-summary {
+  cursor: pointer;
+  list-style: none;
+  padding: var(--ac-space-1) 0;
+
+  font-family: var(--ac-font-mono);
+  font-size: var(--ac-text-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--ac-tracking-wide);
+  color: var(--ac-color-text-subtle);
+}
+
+.theme-page__token-advanced-summary::-webkit-details-marker {
+  display: none;
+}
+
+.theme-page__token-advanced-summary::before {
+  content: "▸ ";
+}
+
+.theme-page__token-advanced[open] > .theme-page__token-advanced-summary::before {
+  content: "▾ ";
+}
+
+.theme-page__token-advanced-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-2);
+  padding: var(--ac-space-2) 0 var(--ac-space-3);
+}
+
+/* A row with no friendly control keeps the text box as its main control,
+   so it should not look like a row whose control failed to load. */
+.theme-page__token--raw .theme-page__token-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.theme-page__token-input {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--ac-text-xs);
+}
+
+.theme-page__token-input.is-invalid {
+  border-color: var(--ac-color-danger);
+}
+
+.theme-page__token-revert {
+  flex-shrink: 0;
+  font-size: var(--ac-text-2xs);
+}
+
+/* Native colour inputs carry heavy platform chrome; this strips it back to
+   the swatch itself. */
+.theme-page__swatch {
+  flex-shrink: 0;
+  inline-size: var(--ac-space-7);
+  block-size: var(--ac-space-7);
+  padding: 0;
+  border: 1px solid var(--ac-color-border);
+  border-radius: var(--ac-radius-sm);
+  background: none;
+  cursor: pointer;
+}
+
+.theme-page__swatch::-webkit-color-swatch-wrapper {
+  padding: var(--ac-space-1);
+}
+
+.theme-page__swatch::-webkit-color-swatch {
+  border: none;
+  border-radius: var(--ac-radius-xs);
+}
+
+/* ---- Share ---- */
+.theme-page__json {
+  font-size: var(--ac-text-2xs);
+  resize: vertical;
+}
+
+/* ---- Footer ---- */
+.theme-page__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ac-space-5);
+  padding-top: var(--ac-space-6);
+  border-top: 1px solid var(--ac-color-border);
+}

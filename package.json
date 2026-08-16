@@ -9,7 +9,11 @@
     "build": "wxt build",
     "zip": "wxt zip",
     "compile": "tsc --noEmit",
-    "postinstall": "wxt prepare"
+    "postinstall": "wxt prepare",
+    "generate:tokens": "node scripts/generate-token-manifest.mjs",
+    "predev": "npm run generate:tokens",
+    "prebuild": "npm run generate:tokens",
+    "precompile": "npm run generate:tokens"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",

@@ -15,6 +15,20 @@
 [data-theme="light"] {
   color-scheme: light;
 
+  /* ---- Accent ----
+     The mark's own orange, #ff5500, taken straight from `public/logo.svg`.
+     Everything below is that hue at a different lightness rather than a
+     separate colour, so the whole set moves together if the brand ever does.
+
+     `soft` is the tinted fill behind accent text, `border` the hairline around
+     it, `glow` the expanding ring on the logo badge. Keeping all four means an
+     accent element never has to compose a colour inline. */
+  --ac-color-accent: #ff5500;
+  --ac-color-accent-hover: #d64700;
+  --ac-color-accent-soft: #ffe7db;
+  --ac-color-accent-border: rgba(255, 85, 0, 0.32);
+  --ac-color-accent-glow: rgba(255, 85, 0, 0.6);
+
   /* ---- Surfaces ----
      `base` is the page. `raised` is a panel sitting on it.
      `overlay` is translucent and expects a backdrop-filter. */
@@ -36,38 +50,28 @@
   --ac-color-border-subtle: rgba(0, 0, 0, 0.05);
   --ac-color-border-strong: rgba(0, 0, 0, 0.24);
 
-  /* ---- Accent ----
-     `soft` is the tinted fill behind accent text, `border` the
-     hairline around it. Keeping all four means an accent element
-     never has to compose a color inline. */
-  --ac-color-accent: #ea580c;
-  --ac-color-accent-hover: #c2410c;
-  --ac-color-accent-soft: #fff7ed;
-  --ac-color-accent-border: rgba(234, 88, 12, 0.24);
-  --ac-color-accent-glow: rgba(234, 88, 12, 0.65);
 
   /* ---- Status ----
      Each state carries the same three parts as the accent so
      badges, dots, and toasts all read from one place. */
   --ac-color-success: #059669;
-  --ac-color-success-soft: #ecfdf5;
-  --ac-color-success-border: #6ee7b7;
+  --ac-color-success-soft: #dcfef3;
+  --ac-color-success-border: #a6fce1;
 
   --ac-color-warning: #d97706;
-  --ac-color-warning-soft: #fffbeb;
-  --ac-color-warning-border: #fcd34d;
+  --ac-color-warning-soft: #feeedc;
+  --ac-color-warning-border: #fdd4a5;
 
   --ac-color-danger: #dc2626;
-  --ac-color-danger-soft: #fef2f2;
-  --ac-color-danger-border: #fecaca;
+  --ac-color-danger-soft: #fae0e0;
+  --ac-color-danger-border: #f2b0b0;
 
   --ac-color-info: #2563eb;
-  --ac-color-info-soft: #eff6ff;
-  --ac-color-info-border: #bfdbfe;
+  --ac-color-info-soft: #dee8fc;
+  --ac-color-info-border: #abc3f7;
 
   /* ---- Backdrop grid ---- */
   --ac-color-grid-line: rgba(0, 0, 0, 0.05);
-  --ac-color-grid-ghost: rgba(120, 120, 120, 0.18);
 
   /* ---- Shadows ----
      Part of the palette rather than the structure layer, because a

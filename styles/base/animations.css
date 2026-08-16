@@ -48,23 +48,6 @@
   }
 }
 
-/* Ghost squares drifting across the backdrop grid. */
-@keyframes ac-ghost-fade {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.5);
-  }
-  20%,
-  80% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(1.1);
-  }
-}
-
 /* The standard entrance for anything appended to a live list —
    chat messages, toasts, notices. */
 @keyframes ac-fade-slide-in {

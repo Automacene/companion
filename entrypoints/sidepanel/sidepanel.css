@@ -35,10 +35,24 @@
   border-bottom: 1px solid var(--ac-color-border);
 }
 
+/* Status badge and the two page buttons. `min-width: 0` on the title lets
+   the name truncate before this group is squeezed, since a panel can be
+   dragged narrower than the header wants to be. */
+.sidepanel__header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--ac-space-2);
+  flex-shrink: 0;
+}
+
 .sidepanel__header-title {
   display: flex;
   align-items: center;
   gap: var(--ac-space-4);
+
+  /* Lets the name truncate before the action group is squeezed, since the
+     panel can be dragged narrower than the header wants to be. */
+  min-width: 0;
 }
 
 /* ---- Hero ----

@@ -16,6 +16,17 @@
 [data-theme="dark"] {
   color-scheme: dark;
 
+  /* ---- Accent ----
+     The same #ff5500 as the mark, lifted two steps in lightness. At full
+     strength it reads hot but thin against #111113, and small text set in it
+     loses legibility — so the hue and saturation are held and only the
+     lightness moves. */
+  --ac-color-accent: #ff7029;
+  --ac-color-accent-hover: #ff8b52;
+  --ac-color-accent-soft: rgba(255, 85, 0, 0.16);
+  --ac-color-accent-border: rgba(255, 112, 41, 0.4);
+  --ac-color-accent-glow: rgba(255, 112, 41, 0.55);
+
   /* ---- Surfaces ---- */
   --ac-color-base: #111113;
   --ac-color-raised: #1a1a1d;
@@ -33,15 +44,6 @@
   --ac-color-border-subtle: rgba(255, 255, 255, 0.06);
   --ac-color-border-strong: rgba(255, 255, 255, 0.28);
 
-  /* ---- Accent ----
-     Lifted from the light theme's #ea580c: the same orange goes
-     muddy against a dark surface, so it is brightened rather than
-     reused, while the soft fill drops to a low-alpha wash. */
-  --ac-color-accent: #fb7137;
-  --ac-color-accent-hover: #fd8a58;
-  --ac-color-accent-soft: rgba(234, 88, 12, 0.14);
-  --ac-color-accent-border: rgba(251, 113, 55, 0.36);
-  --ac-color-accent-glow: rgba(251, 113, 55, 0.55);
 
   /* ---- Status ---- */
   --ac-color-success: #34d399;
@@ -62,7 +64,6 @@
 
   /* ---- Backdrop grid ---- */
   --ac-color-grid-line: rgba(255, 255, 255, 0.05);
-  --ac-color-grid-ghost: rgba(200, 200, 210, 0.14);
 
   /* ---- Shadows ----
      Heavier than the light theme's. A 5% black shadow is invisible

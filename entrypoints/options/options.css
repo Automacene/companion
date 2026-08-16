@@ -1,108 +1,161 @@
 /* =============================================================
-   SURFACE — Options layout
+   SURFACE — Settings hub
 
-   Layout only, same rule as the sidepanel: no color, shadow, or
-   radius literal. The panels themselves are `.ac-card`, the
-   controls are `.ac-field` and `.ac-input`, so this file only
-   decides the page shape.
+   Layout only. No colour, radius, shadow, or spacing literal here;
+   every value comes from a token.
 ============================================================= */
 
-.options {
+.hub {
   min-height: 100vh;
-  padding: var(--ac-space-7);
-
   display: flex;
-  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  padding: var(--ac-space-7) var(--ac-space-6);
 }
 
-/* The page widens on a real screen. The panel itself stays capped
-   so line lengths remain readable at any window size. */
-@media (min-width: 768px) {
-  .options {
-    padding: var(--ac-space-9);
-  }
-}
-
-@media (min-width: 1024px) {
-  .options {
-    padding: var(--ac-space-10);
-  }
-}
-
-.options__main {
+.hub__content {
   width: 100%;
-  max-width: 64rem;
-
+  max-width: 46rem;
   display: flex;
   flex-direction: column;
   gap: var(--ac-space-7);
 }
 
 /* ---- Header ---- */
-.options__header {
+.hub__header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--ac-space-4);
-
+  gap: var(--ac-space-5);
   padding-bottom: var(--ac-space-6);
   border-bottom: 1px solid var(--ac-color-border);
 }
 
-.options__title {
+.hub__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--ac-space-5);
+  min-width: 0;
+}
+
+.hub__logo {
+  width: var(--ac-space-9);
+  height: auto;
+  flex-shrink: 0;
+}
+
+.hub__title {
+  margin: 0;
   display: flex;
   align-items: center;
   gap: var(--ac-space-4);
+  font-size: var(--ac-text-md);
+  font-weight: var(--ac-weight-bold);
+  letter-spacing: var(--ac-tracking-tight);
 }
 
-.options__subtitle {
-  margin-top: var(--ac-space-2);
+.hub__subtitle {
+  margin: var(--ac-space-1) 0 0;
   font-family: var(--ac-font-mono);
-  font-size: var(--ac-text-xs);
+  font-size: var(--ac-text-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--ac-tracking-wide);
   color: var(--ac-color-text-subtle);
 }
 
-/* ---- Form ---- */
-.options__form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ac-space-7);
-}
-
-/* Two columns once there is room. Each column is its own stack, so
-   a section added to one side does not shift the other.
-
-   An addon contributing a settings section appends an `.ac-card`
-   into one of these columns; nothing about this layout has to know
-   how many sections exist. */
-.options__grid {
+/* ---- The two doors ---- */
+.hub__cards {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--ac-space-7);
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ac-space-5);
 }
 
-@media (min-width: 768px) {
-  .options__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-.options__column {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ac-space-7);
-  align-content: start;
-}
-
-/* ---- Footer ---- */
-.options__footer {
-  display: flex;
+.hub__card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: var(--ac-space-6);
 
-  margin-top: var(--ac-space-8);
-  padding-top: var(--ac-space-7);
-  border-top: 1px solid var(--ac-color-border);
+  padding: var(--ac-space-6);
+  border: 1px solid var(--ac-color-border);
+  border-radius: var(--ac-radius-xl);
+  background: var(--ac-color-overlay);
+  backdrop-filter: var(--ac-blur-md);
+  box-shadow: var(--ac-shadow-sm);
+
+  color: inherit;
+  text-decoration: none;
+
+  transition:
+    border-color var(--ac-transition-fast),
+    box-shadow var(--ac-transition-fast),
+    transform var(--ac-transition-fast);
+}
+
+.hub__card:hover {
+  border-color: var(--ac-color-accent-border);
+  box-shadow: var(--ac-shadow-md);
+  transform: translateY(-1px);
+  text-decoration: none;
+}
+
+.hub__card-mark {
+  font-size: var(--ac-text-xl);
+  line-height: 1;
+  color: var(--ac-color-accent);
+}
+
+.hub__card-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-2);
+  min-width: 0;
+}
+
+.hub__card-title {
+  font-size: var(--ac-text-md);
+  font-weight: var(--ac-weight-bold);
+}
+
+.hub__card-text {
+  font-size: var(--ac-text-sm);
+  color: var(--ac-color-text-muted);
+  line-height: var(--ac-leading-normal);
+}
+
+/* The live summary. Truncates rather than wrapping, because a long host URL
+   would otherwise push the card taller than its neighbour. */
+.hub__card-meta {
+  font-size: var(--ac-text-2xs);
+  color: var(--ac-color-text-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hub__card-go {
+  font-size: var(--ac-text-lg);
+  color: var(--ac-color-text-subtle);
+  transition: color var(--ac-transition-fast), transform var(--ac-transition-fast);
+}
+
+.hub__card:hover .hub__card-go {
+  color: var(--ac-color-accent);
+  transform: translateX(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hub__card,
+  .hub__card-go {
+    transition: none;
+  }
+
+  .hub__card:hover {
+    transform: none;
+  }
+
+  .hub__card:hover .hub__card-go {
+    transform: none;
+  }
 }

@@ -6,7 +6,14 @@ export const PortAction = {
   GET_HISTORY: 'GET_HISTORY',
   CLEAR_HISTORY: 'CLEAR_HISTORY',
   SEND_MESSAGE: 'SEND_MESSAGE',
+  /** Replace the whole settings object. Used by "reset to defaults". */
   SAVE_SETTINGS: 'SAVE_SETTINGS',
+  /**
+   * Merge a partial update. The normal path, because settings are edited from
+   * two pages that each only know their own half — a full write from either
+   * would erase the other's fields.
+   */
+  PATCH_SETTINGS: 'PATCH_SETTINGS',
   GET_SETTINGS: 'GET_SETTINGS',
 
   // Responses/Events from Background to Sidepanel

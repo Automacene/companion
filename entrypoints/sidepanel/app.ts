@@ -7,6 +7,7 @@ import { PortAction, ToolAction } from '../../types/actions';
 import type { ExtensionSettings } from '../../types/state';
 import type { ChatUI } from '../../lib/sidepanel/ui';
 import type { ConnectionManager } from '../../lib/sidepanel/connection';
+import type { BackdropHandle } from '../../lib/backdrop';
 
 export class SidepanelApp {
   private port: Browser.runtime.Port;
@@ -18,11 +19,16 @@ export class SidepanelApp {
     private chatForm: HTMLFormElement,
     private chatInput: HTMLTextAreaElement,
     private scrapeBtn: HTMLButtonElement | null,
-    pulser: HTMLElement | null
+    pulser: HTMLElement | null,
+    private backdrop: BackdropHandle
   ) {
     this.port = browser.runtime.connect({ name: SIDEPANEL_CONNECTION_NAME });
 
     pulser?.addEventListener('click', () => this.chatUI.expandHero());
+
+    // Typing counts as activity, so the field does not downshift to its idle
+    // rate while somebody is composing a long prompt.
+    this.chatInput.addEventListener('input', () => this.backdrop.markActive());
   }
 
   public async init(): Promise<void> {
@@ -50,9 +56,11 @@ export class SidepanelApp {
           break;
         case PortAction.STREAM_COMPLETE:
           this.chatUI.completeStream();
+          this.backdrop.setStreaming(false);
           break;
         case PortAction.STREAM_ERROR:
           this.chatUI.streamError(msg.error);
+          this.backdrop.setStreaming(false);
           break;
         case 'SCRAPE_COMPLETE':
           this.handleScrapeComplete(msg.result);
@@ -107,6 +115,7 @@ export class SidepanelApp {
       this.chatUI.appendBubble('user', prompt);
       this.chatInput.value = '';
       this.chatUI.startStream();
+      this.backdrop.setStreaming(true);
 
       this.port.postMessage({
         action: PortAction.SEND_MESSAGE,
@@ -138,6 +147,10 @@ export class SidepanelApp {
   }
 
   private handleScrapeComplete(result: any): void {
+    // Context landed. The field brightens for a moment, which is the one place
+    // the backdrop reports something instead of only decorating.
+    this.backdrop.pulse();
+
     if (this.scrapeBtn) {
       this.scrapeBtn.disabled = false;
       this.scrapeBtn.innerText = 'Scraped!';

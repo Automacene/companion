@@ -30,7 +30,7 @@ export default defineConfig({
       extension_pages: "script-src 'self'; object-src 'self';"
     },
     action: {
-      default_title: 'Open Automacene Sidepanel', 
+      default_title: 'Open Automacene Sidepanel',
     },
   },
 });

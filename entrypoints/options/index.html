@@ -3,225 +3,66 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Automacene Settings</title>
+    <title>Automacene Companion</title>
+
+    <!--
+      Open as a real tab rather than Chrome's embedded options modal.
+
+      The modal is a constrained overlay on chrome://extensions: a link from
+      inside it to another extension page does not navigate, which is exactly
+      what this page is made of. It is also far too short to be useful.
+
+      WXT reads entrypoint options from meta tags here, not from wxt.config.ts —
+      a manifest override for `options_ui` in the config is discarded.
+    -->
+    <meta name="manifest.open_in_tab" content="true" />
   </head>
   <body>
-    <div class="options ac-backdrop">
+    <div class="hub ac-backdrop">
       <div id="backdrop-layer" class="ac-backdrop__layer"></div>
 
-      <main class="options__main ac-backdrop__content">
-        <!-- Header -->
-        <header class="options__header">
-          <div>
-            <h1 class="ac-heading options__title">
-              <span id="status-dot" class="ac-status-dot"></span>
-              COMPANION SETTINGS
-            </h1>
-            <p class="options__subtitle">Extension Configuration &amp; LLM Options</p>
+      <main class="hub__content ac-backdrop__content">
+        <header class="hub__header">
+          <div class="hub__brand">
+            <img src="/logo.svg" alt="" class="hub__logo" />
+            <div>
+              <h1 class="hub__title">
+                <span id="status-dot" class="ac-status-dot"></span>
+                AUTOMACENE COMPANION
+              </h1>
+              <p class="hub__subtitle">Settings</p>
+            </div>
           </div>
           <span id="status-pill" class="ac-badge">[ CHECKING... ]</span>
         </header>
 
-        <form id="settings-form" class="options__form">
-          <div class="options__grid">
-            <!-- LEFT COLUMN -->
-            <div class="options__column">
-              <!-- Server & Connection -->
-              <section class="ac-card ac-card--stack">
-                <h2 class="ac-card__title">1. Server &amp; Connection</h2>
-
-                <div class="ac-field">
-                  <label for="ollama-host" class="ac-field__label">Ollama Host URL</label>
-                  <div class="ac-field-attached">
-                    <input
-                      id="ollama-host"
-                      type="text"
-                      class="ac-input ac-input--mono"
-                      placeholder="http://localhost:11434"
-                    />
-                    <button id="test-conn-btn" type="button" class="ac-btn ac-btn--secondary">
-                      Test Connection
-                    </button>
-                  </div>
-                </div>
-
-                <div class="ac-field-row ac-field-row--2">
-                  <div class="ac-field">
-                    <label for="conn-timeout" class="ac-field__label">Connection Timeout (ms)</label>
-                    <input id="conn-timeout" type="number" class="ac-input ac-input--mono" />
-                  </div>
-                  <div class="ac-field">
-                    <label for="keep-alive" class="ac-field__label">VRAM Keep Alive</label>
-                    <input
-                      id="keep-alive"
-                      type="text"
-                      placeholder="5m, 15m, -1"
-                      class="ac-input ac-input--mono"
-                    />
-                  </div>
-                </div>
-              </section>
-
-              <!-- Appearance -->
-              <section class="ac-card ac-card--stack">
-                <h2 class="ac-card__title">2. Appearance</h2>
-
-                <div class="ac-field">
-                  <label for="theme" class="ac-field__label">Theme</label>
-                  <select id="theme" class="ac-input">
-                    <option value="system">Follow system</option>
-                    <option value="light">Light</option>
-                    <option value="dark">Dark</option>
-                  </select>
-                  <span class="ac-field__hint">
-                    Applies to the sidepanel and this page.
-                  </span>
-                </div>
-              </section>
-
-              <!-- Model & Prompts -->
-              <section class="ac-card ac-card--stack">
-                <h2 class="ac-card__title">3. Model &amp; Assistant Rules</h2>
-
-                <div class="ac-field-row ac-field-row--2">
-                  <div class="ac-field">
-                    <label for="active-model" class="ac-field__label">Primary Model</label>
-                    <select id="active-model" class="ac-input ac-input--mono">
-                      <option value="llama3">llama3 (Default)</option>
-                    </select>
-                  </div>
-                  <div class="ac-field">
-                    <label for="fallback-model" class="ac-field__label">Fallback Model</label>
-                    <select id="fallback-model" class="ac-input ac-input--mono">
-                      <option value="">None</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div class="ac-field">
-                  <label for="system-prompt" class="ac-field__label">System Prompt</label>
-                  <textarea
-                    id="system-prompt"
-                    rows="3"
-                    class="ac-input ac-input--textarea"
-                  ></textarea>
-                </div>
-
-                <div class="ac-field ac-field--inline">
-                  <label for="stream-responses" class="ac-field__label">
-                    Stream Token Responses
-                  </label>
-                  <input id="stream-responses" type="checkbox" class="ac-checkbox" />
-                </div>
-              </section>
-            </div>
-
-            <!-- RIGHT COLUMN -->
-            <div class="options__column">
-              <!-- Hyperparameters -->
-              <section class="ac-card ac-card--stack">
-                <h2 class="ac-card__title">4. Hyperparameters</h2>
-
-                <div class="ac-field">
-                  <div class="ac-field__label-row">
-                    <label for="temperature" class="ac-field__label">Temperature</label>
-                    <span id="temp-val" class="ac-field__value">0.7</span>
-                  </div>
-                  <input
-                    id="temperature"
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                    class="ac-range"
-                  />
-                </div>
-
-                <div class="ac-field-row ac-field-row--2">
-                  <div class="ac-field">
-                    <label for="num-ctx" class="ac-field__label">
-                      Context Length (<code>num_ctx</code>)
-                    </label>
-                    <input id="num-ctx" type="number" class="ac-input ac-input--mono" />
-                  </div>
-                  <div class="ac-field">
-                    <label for="num-predict" class="ac-field__label">
-                      Max Predict Tokens (<code>num_predict</code>)
-                    </label>
-                    <input id="num-predict" type="number" class="ac-input ac-input--mono" />
-                  </div>
-                </div>
-
-                <div class="ac-field-row ac-field-row--3">
-                  <div class="ac-field">
-                    <label for="top-p" class="ac-field__label">Top-P</label>
-                    <input id="top-p" type="number" step="0.05" class="ac-input ac-input--mono" />
-                  </div>
-                  <div class="ac-field">
-                    <label for="top-k" class="ac-field__label">Top-K</label>
-                    <input id="top-k" type="number" class="ac-input ac-input--mono" />
-                  </div>
-                  <div class="ac-field">
-                    <label for="repeat-penalty" class="ac-field__label">Repeat Penalty</label>
-                    <input
-                      id="repeat-penalty"
-                      type="number"
-                      step="0.05"
-                      class="ac-input ac-input--mono"
-                    />
-                  </div>
-                </div>
-              </section>
-
-              <!-- Memory & Developer -->
-              <section class="ac-card ac-card--stack">
-                <h2 class="ac-card__title">5. Memory &amp; Developer</h2>
-
-                <div class="ac-field">
-                  <label for="max-memory" class="ac-field__label">
-                    Max Character Memory Budget
-                  </label>
-                  <input id="max-memory" type="number" class="ac-input ac-input--mono" />
-                </div>
-
-                <div class="ac-field">
-                  <label for="stop-seq" class="ac-field__label">
-                    Custom Stop Sequences (comma separated)
-                  </label>
-                  <input
-                    id="stop-seq"
-                    type="text"
-                    placeholder="e.g. USER:, END"
-                    class="ac-input ac-input--mono"
-                  />
-                </div>
-
-                <div class="ac-field ac-field--inline">
-                  <label for="raw-mode" class="ac-field__label">Raw Mode</label>
-                  <input id="raw-mode" type="checkbox" class="ac-checkbox" />
-                </div>
-
-                <div class="ac-field ac-field--inline">
-                  <label for="debug-mode" class="ac-field__label">Debug Console Logging</label>
-                  <input id="debug-mode" type="checkbox" class="ac-checkbox" />
-                </div>
-              </section>
-            </div>
-          </div>
-
-          <!-- Save controls -->
-          <div class="options__footer">
-            <span id="save-toast" class="ac-toast ac-toast--success">
-              ✓ Settings saved successfully
+        <div class="hub__cards">
+          <a id="open-model" class="hub__card" href="#">
+            <span class="hub__card-mark" aria-hidden="true">⚙</span>
+            <span class="hub__card-body">
+              <span class="hub__card-title">Model</span>
+              <span class="hub__card-text">
+                Where Ollama is, which model answers, and how it samples. Connection,
+                prompts, hyperparameters, and the memory budget.
+              </span>
+              <span id="model-summary" class="hub__card-meta ac-mono"></span>
             </span>
-            <div class="ac-btn-group">
-              <button id="reset-settings-btn" type="button" class="ac-btn ac-btn--secondary">
-                Reset Defaults
-              </button>
-              <button type="submit" class="ac-btn ac-btn--primary">Save Settings</button>
-            </div>
-          </div>
-        </form>
+            <span class="hub__card-go" aria-hidden="true">→</span>
+          </a>
+
+          <a id="open-theme" class="hub__card" href="#">
+            <span class="hub__card-mark" aria-hidden="true">◐</span>
+            <span class="hub__card-body">
+              <span class="hub__card-title">Appearance</span>
+              <span class="hub__card-text">
+                Theme, every colour and measurement the interface is built from, and the
+                animated backdrop. Changes preview live in the open sidepanel.
+              </span>
+              <span id="theme-summary" class="hub__card-meta ac-mono"></span>
+            </span>
+            <span class="hub__card-go" aria-hidden="true">→</span>
+          </a>
+        </div>
       </main>
     </div>
 

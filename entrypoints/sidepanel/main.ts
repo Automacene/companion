@@ -8,18 +8,20 @@
 import '../../styles/index.css';
 import './sidepanel.css';
 
-import { initGhostOverlay } from '../../lib/anim';
-import { watchTheme } from '../../lib/theme';
+import { startAppearance } from '../../lib/appearance';
+import { readSettings } from '../../lib/settings-client';
 import { ChatUI } from '../../lib/sidepanel/ui';
 import { ConnectionManager } from '../../lib/sidepanel/connection';
 import { SidepanelApp } from './app';
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // Before anything paints, so the panel never flashes the wrong palette.
-  // Reads the stored preference once the app has it; `system` until then.
-  watchTheme('system');
+  // Appearance first, and awaited, so the panel never paints the wrong palette.
+  // Every token is a custom property, so one write to the root settles it.
+  const settings = await readSettings();
 
-  initGhostOverlay('backdrop-layer');
+  const appearance = startAppearance(settings, {
+    backdropContainer: document.getElementById('backdrop-layer'),
+  });
 
   const statusDot = document.getElementById('status-dot');
   const statusPill = document.getElementById('status-pill');
@@ -36,6 +38,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
+  // Both settings pages open in a tab. `browser.runtime.getURL` is the only
+  // way to know an extension page's URL from inside the extension, and WXT
+  // types its argument as the set of pages that actually got built — so a
+  // typo here is a compile error rather than a dead button.
+  const openPage = (url: string) => () => {
+    void browser.tabs.create({ url });
+  };
+
+  document
+    .getElementById('appearance-btn')
+    ?.addEventListener('click', openPage(browser.runtime.getURL('/theme.html')));
+
+  document
+    .getElementById('settings-btn')
+    ?.addEventListener('click', openPage(browser.runtime.getURL('/options.html')));
+
   const connectionManager = new ConnectionManager(statusDot, statusPill);
   const chatUI = new ChatUI(chatContainer, runBtn, hero);
   const app = new SidepanelApp(
@@ -44,7 +62,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     chatForm,
     chatInput,
     scrapeBtn,
-    heroBadge
+    heroBadge,
+    appearance.backdrop
   );
 
   await app.init();

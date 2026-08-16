@@ -103,23 +103,34 @@ export class MessageDispatcher {
       });
     });
 
-    // One-off runtime messages (browser.runtime.sendMessage)
+    // One-off runtime messages (browser.runtime.sendMessage). Both settings
+    // pages use this rather than a port, since neither is tab-scoped.
     browser.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-      if (msg.action === PortAction.SAVE_SETTINGS) {
-        this.settingsManager
-          .saveSettings(msg.settings)
-          .then(() => {
-            this.sessionManager.applySettingsToAll(msg.settings);
-            sendResponse({ success: true });
-          })
-          .catch((err) => {
-            sendResponse({
-              success: false,
-              error: err instanceof Error ? err.message : 'Failed to save settings',
-            });
+      const isReplace = msg.action === PortAction.SAVE_SETTINGS;
+      const isPatch = msg.action === PortAction.PATCH_SETTINGS;
+      if (!isReplace && !isPatch) return;
+
+      // A patch merges and returns the merged result, so live sessions are
+      // updated with the complete settings rather than only the changed keys.
+      const write = isPatch
+        ? this.settingsManager.patchSettings(msg.settings)
+        : this.settingsManager
+            .replaceSettings(msg.settings)
+            .then(() => msg.settings as typeof msg.settings);
+
+      write
+        .then((settings) => {
+          this.sessionManager.applySettingsToAll(settings);
+          sendResponse({ success: true, settings });
+        })
+        .catch((err) => {
+          sendResponse({
+            success: false,
+            error: err instanceof Error ? err.message : 'Failed to save settings',
           });
-        return true; // Keeps channel open for async sendResponse
-      }
+        });
+
+      return true; // Keeps channel open for async sendResponse
     });
   }
 }
