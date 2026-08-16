@@ -39,9 +39,11 @@
   min-width: 0;
 }
 
+/* Height-driven, matching the sidepanel. The component carries the artwork's
+   aspect ratio, so `height: auto` here would leave the box with no size at
+   all now that width is no longer the driving dimension. */
 .hub__logo {
-  width: var(--ac-space-9);
-  height: auto;
+  block-size: var(--ac-space-8);
   flex-shrink: 0;
 }
 

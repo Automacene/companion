@@ -4,7 +4,7 @@
  * Written by `scripts/generate-token-manifest.mjs` from the CSS in
  * `styles/tokens/`. Change a token there and re-run `npm run generate:tokens`.
  *
- * 88 tokens across 2 themes.
+ * 89 tokens across 2 themes.
  */
 
 /** The control the theme editor shows for a token. */
@@ -703,6 +703,18 @@ export const TOKENS: TokenDefinition[] = [
     "editable": false,
     "values": {
       "_": "200"
+    }
+  },
+  {
+    "name": "--ac-logo-mark-size",
+    "label": "Mark size",
+    "description": null,
+    "kind": "length",
+    "group": "Spacing",
+    "themed": false,
+    "editable": true,
+    "values": {
+      "_": "2.23rem"
     }
   },
   {

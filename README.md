@@ -1,7 +1,7 @@
 # Automacene Companion
 
 <p align="center">
-  <img src="public/logo.svg" alt="Automacene Logo" width="440" />
+  <img src="assets/logo.svg" alt="Automacene Logo" width="440" />
 </p>
 
 <p align="center" style="font-size: 1.5rem; font-weight: 700; margin: 0.5rem 0;">

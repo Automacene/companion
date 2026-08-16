@@ -96,6 +96,18 @@
   --ac-z-modal: 100;
   --ac-z-toast: 200;
 
+  /* ---- Logo ----
+     How big the mark is when it stands alone, which is what the sidepanel
+     shows once the hero collapses. Held equal to the square's rendered size
+     inside the full artwork, so switching between the two does not resize it.
+
+     Derived, not guessed. The hero draws the logo at 12rem tall; the viewBox
+     is 390 x 290, so it is 258px wide and one unit is 258/390 = 0.6615px. The
+     square's bounding box is 38 x sqrt(2) = 53.74 units, landing at 35.55px.
+     The standalone frame is 54 units, so the host has to be
+     54/53.74 x 35.55 = 35.7px to draw the square at that same size. */
+  --ac-logo-mark-size: 2.23rem;
+
   /* ---- Backdrop grid ----
      Consumed by `.ac-backdrop` and by the ghost overlay in
      `lib/anim.ts`, which reads the cell size back out of CSS. */

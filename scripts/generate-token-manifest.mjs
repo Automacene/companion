@@ -44,6 +44,7 @@ const KIND_BY_PREFIX = [
   ['--ac-space-', 'length'],
   ['--ac-radius-', 'length'],
   ['--ac-grid-', 'length'],
+  ['--ac-logo-', 'length'],
   ['--ac-duration-', 'duration'],
   ['--ac-transition-', 'duration'],
   ['--ac-ease-', 'easing'],
@@ -95,6 +96,7 @@ const GROUP_LABELS = {
 
   space: 'Spacing',
   grid: 'Spacing',
+  logo: 'Spacing',
 
   duration: 'Motion',
   transition: 'Motion',

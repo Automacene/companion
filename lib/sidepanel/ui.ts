@@ -1,4 +1,5 @@
 import { renderMarkdown } from '../markdown';
+import { setLogoMode } from '../logo';
 import type { ModelMessage } from 'ai';
 
 /**
@@ -14,7 +15,12 @@ export class ChatUI {
   constructor(
     private chatContainer: HTMLElement,
     private runBtn: HTMLButtonElement,
-    private hero: HTMLElement | null
+    private hero: HTMLElement | null,
+    /**
+     * The mark. Collapsing the hero reduces it to the pulsing square, which
+     * stays clickable and is the way back.
+     */
+    private logo: HTMLElement | null = null
   ) {}
 
   /**
@@ -107,10 +113,12 @@ export class ChatUI {
 
   public collapseHero(): void {
     this.hero?.classList.add('is-collapsed');
+    setLogoMode(this.logo, 'mark');
   }
 
   public expandHero(): void {
     this.hero?.classList.remove('is-collapsed');
+    setLogoMode(this.logo, 'full');
   }
 
   private resetSubmitButton(): void {

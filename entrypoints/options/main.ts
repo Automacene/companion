@@ -14,6 +14,7 @@ import './options.css';
 
 import { startAppearance } from '../../lib/appearance';
 import { readSettings } from '../../lib/settings-client';
+import { mountLogo } from '../../lib/logo';
 import { checkOllamaConnection } from '../../lib/model';
 import { getPreset } from '../../lib/backdrop';
 import { OLLAMA_HOST } from '../../lib/constants';
@@ -24,6 +25,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   startAppearance(settings, {
     backdropContainer: document.getElementById('backdrop-layer'),
   });
+
+  mountLogo('.hub__logo');
 
   // Extension page URLs are only knowable from inside the extension.
   const modelLink = document.getElementById('open-model') as HTMLAnchorElement | null;

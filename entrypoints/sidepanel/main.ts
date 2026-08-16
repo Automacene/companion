@@ -9,6 +9,7 @@ import '../../styles/index.css';
 import './sidepanel.css';
 
 import { startAppearance } from '../../lib/appearance';
+import { mountLogo } from '../../lib/logo';
 import { readSettings } from '../../lib/settings-client';
 import { ChatUI } from '../../lib/sidepanel/ui';
 import { ConnectionManager } from '../../lib/sidepanel/connection';
@@ -31,7 +32,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   const runBtn = document.getElementById('run-btn') as HTMLButtonElement | null;
   const scrapeBtn = document.getElementById('scrape-btn') as HTMLButtonElement | null;
   const hero = document.querySelector<HTMLElement>('.sidepanel__hero');
-  const heroBadge = document.querySelector<HTMLElement>('.sidepanel__logo-badge');
+
+  // The mark is the control that brings the collapsed hero back, so it is a
+  // button. The old separate badge could never do that job: it lived inside
+  // `.sidepanel__logo-wrap`, which `is-collapsed` set to `display: none` — it
+  // was hidden at exactly the moment expanding became possible.
+  const heroBadge = mountLogo('.sidepanel__logo', {
+    interactive: true,
+    label: 'Show introduction',
+  });
 
   if (!statusDot || !statusPill || !chatContainer || !chatForm || !chatInput || !runBtn) {
     console.warn('[Sidepanel] Missing required UI elements, aborting boot');
@@ -55,7 +64,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     ?.addEventListener('click', openPage(browser.runtime.getURL('/options.html')));
 
   const connectionManager = new ConnectionManager(statusDot, statusPill);
-  const chatUI = new ChatUI(chatContainer, runBtn, hero);
+  const chatUI = new ChatUI(chatContainer, runBtn, hero, heroBadge);
   const app = new SidepanelApp(
     chatUI,
     connectionManager,

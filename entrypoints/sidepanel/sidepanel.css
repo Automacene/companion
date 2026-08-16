@@ -56,9 +56,9 @@
 }
 
 /* ---- Hero ----
-   Collapses once the conversation starts. Height and gap animate;
-   the contents are hidden outright so they cannot be tabbed to
-   while collapsed. */
+   Collapses once the conversation starts: the wording is hidden and
+   the mark reduces to just its pulsing square, which keeps its size
+   and stays clickable as the way back. */
 .sidepanel__hero {
   display: flex;
   flex-direction: column;
@@ -77,43 +77,25 @@
   gap: 0;
 }
 
-.sidepanel__hero.is-collapsed .sidepanel__logo-wrap,
 .sidepanel__hero.is-collapsed .sidepanel__hero-heading,
 .sidepanel__hero.is-collapsed .sidepanel__hero-subtext {
   display: none;
 }
 
-.sidepanel__logo-wrap {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
+/* Collapsing does NOT resize the mark.
 
+   `lib/logo.ts` reframes the SVG onto the core square and hides the rest, so
+   what remains is the pulsing square at the size it already had. The size
+   itself comes from `.ac-logo--mark`, which is why there is no rule for it
+   here — a width set at this level would fight it. */
+
+/* Height, not width. The component supplies the artwork's aspect ratio, so
+   this reproduces the original `height: 12rem; width: auto`. */
 .sidepanel__logo {
-  height: 12rem;
-  width: auto;
+  block-size: 12rem;
+  max-inline-size: 100%;
 }
 
-/* The pulsing diamond pinned over the logo mark. Percentages are
-   tuned to the artwork in public/logo.svg. */
-.sidepanel__logo-badge {
-  position: absolute;
-  top: 24%;
-  left: 44.8%;
-
-  width: 1.7rem;
-  height: 1.7rem;
-  padding: 0;
-
-  background-color: var(--ac-color-accent);
-  border: 0;
-  border-radius: var(--ac-radius-xs);
-
-  transform: rotate(45deg);
-  animation: ac-pulse-ring 1.8s var(--ac-ease-out) infinite;
-  cursor: pointer;
-}
 
 .sidepanel__hero-subtext {
   margin-top: var(--ac-space-2);
