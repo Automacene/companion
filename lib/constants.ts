@@ -1,4 +1,5 @@
 import type { ExtensionSettings } from '../types/state';
+import { DEFAULT_THEME_PREFERENCE } from './theme';
 
 export const OLLAMA_HOST = 'http://localhost:11434';
 export const MODEL_NAME = 'llama3';
@@ -17,6 +18,7 @@ export const DEFAULT_PROCESSOR_NAME = 'basic';
 export const DEFAULT_MAX_CHAR_BUDGET = 12000;
 export const SIDEPANEL_CONNECTION_NAME = 'sidepanel-connection';
 export const DEFAULT_SETTINGS: ExtensionSettings = {
+  theme: DEFAULT_THEME_PREFERENCE,
   ollamaHost: OLLAMA_HOST,
   connTimeout: DEFAULT_CONN_TIMEOUT,
   keepAlive: DEFAULT_KEEP_ALIVE,

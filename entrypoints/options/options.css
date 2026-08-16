@@ -1,0 +1,108 @@
+/* =============================================================
+   SURFACE — Options layout
+
+   Layout only, same rule as the sidepanel: no color, shadow, or
+   radius literal. The panels themselves are `.ac-card`, the
+   controls are `.ac-field` and `.ac-input`, so this file only
+   decides the page shape.
+============================================================= */
+
+.options {
+  min-height: 100vh;
+  padding: var(--ac-space-7);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* The page widens on a real screen. The panel itself stays capped
+   so line lengths remain readable at any window size. */
+@media (min-width: 768px) {
+  .options {
+    padding: var(--ac-space-9);
+  }
+}
+
+@media (min-width: 1024px) {
+  .options {
+    padding: var(--ac-space-10);
+  }
+}
+
+.options__main {
+  width: 100%;
+  max-width: 64rem;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-7);
+}
+
+/* ---- Header ---- */
+.options__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ac-space-4);
+
+  padding-bottom: var(--ac-space-6);
+  border-bottom: 1px solid var(--ac-color-border);
+}
+
+.options__title {
+  display: flex;
+  align-items: center;
+  gap: var(--ac-space-4);
+}
+
+.options__subtitle {
+  margin-top: var(--ac-space-2);
+  font-family: var(--ac-font-mono);
+  font-size: var(--ac-text-xs);
+  color: var(--ac-color-text-subtle);
+}
+
+/* ---- Form ---- */
+.options__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-7);
+}
+
+/* Two columns once there is room. Each column is its own stack, so
+   a section added to one side does not shift the other.
+
+   An addon contributing a settings section appends an `.ac-card`
+   into one of these columns; nothing about this layout has to know
+   how many sections exist. */
+.options__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--ac-space-7);
+}
+
+@media (min-width: 768px) {
+  .options__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.options__column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-7);
+  align-content: start;
+}
+
+/* ---- Footer ---- */
+.options__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ac-space-6);
+
+  margin-top: var(--ac-space-8);
+  padding-top: var(--ac-space-7);
+  border-top: 1px solid var(--ac-color-border);
+}

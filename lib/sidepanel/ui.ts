@@ -1,6 +1,13 @@
 import { renderMarkdown } from '../markdown';
 import type { ModelMessage } from 'ai';
 
+/**
+ * Renders the conversation into the message list.
+ *
+ * NOTE: the conversation layer is being replaced, so treat this as the least
+ * settled file here. It is included in the reorganization so nothing is left
+ * referencing the old class names.
+ */
 export class ChatUI {
   private activeAiBubble: HTMLDivElement | null = null;
 
@@ -10,53 +17,58 @@ export class ChatUI {
     private hero: HTMLElement | null
   ) {}
 
+  /**
+   * Append a bubble and return the element its content lives in.
+   */
   public appendBubble(role: 'user' | 'assistant', initialText = ''): HTMLDivElement {
-    const wrapper = document.createElement('div');
-    wrapper.className = `chat-bubble-row ${role}`;
+    const row = document.createElement('div');
+    row.className = `ac-message ac-message--${role}`;
 
-    const bubble = document.createElement('div');
-    bubble.className = `chat-bubble ${role}`;
+    const body = document.createElement('div');
+    body.className = 'ac-message__body';
+
+    const content = document.createElement('div');
+    content.className = 'ac-message__content';
 
     if (role === 'assistant') {
-      bubble.classList.add('markdown-body');
-      bubble.innerHTML = renderMarkdown(initialText);
+      content.innerHTML = renderMarkdown(initialText);
     } else {
-      bubble.innerText = initialText;
+      content.textContent = initialText;
     }
 
-    wrapper.appendChild(bubble);
-    this.chatContainer.appendChild(wrapper);
+    body.appendChild(content);
+    row.appendChild(body);
+    this.chatContainer.appendChild(row);
     this.scrollToBottom();
 
-    return bubble;
+    return content;
   }
 
   /**
-   * Appends a non-message system notification badge in the chat log
+   * A non-message notice in the stream, for staged context and the like.
    */
   public appendSystemNotice(text: string): void {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'chat-bubble-row system-notice';
+    const row = document.createElement('div');
+    row.className = 'ac-message ac-message--system';
 
-    const bubble = document.createElement('div');
-    bubble.className = 'chat-bubble system-notice';
-    bubble.style.cssText = 'font-size: 0.75rem; color: #888; font-style: italic; padding: 4px 8px; border: 1px dashed #444; border-radius: 6px; margin: 4px 0;';
-    bubble.innerText = `[System]: ${text}`;
+    const body = document.createElement('div');
+    body.className = 'ac-message__body';
+    body.textContent = text;
 
-    wrapper.appendChild(bubble);
-    this.chatContainer.appendChild(wrapper);
+    row.appendChild(body);
+    this.chatContainer.appendChild(row);
     this.scrollToBottom();
   }
 
   public renderHistory(messages: ModelMessage[]): void {
-    this.chatContainer.innerHTML = '';
-    const nonSystem = messages.filter((m) => m.role !== 'system');
+    this.chatContainer.replaceChildren();
+    const visible = messages.filter((m) => m.role !== 'system');
 
-    if (nonSystem.length > 0) {
+    if (visible.length > 0) {
       this.collapseHero();
     }
 
-    for (const msg of nonSystem) {
+    for (const msg of visible) {
       const text = typeof msg.content === 'string' ? msg.content : '';
       if (msg.role === 'user' || msg.role === 'assistant') {
         this.appendBubble(msg.role, text);
@@ -67,15 +79,14 @@ export class ChatUI {
   public startStream(): void {
     this.collapseHero();
     this.runBtn.disabled = true;
-    this.runBtn.innerText = 'Running...';
+    this.runBtn.textContent = 'Running...';
     this.activeAiBubble = this.appendBubble('assistant', '');
   }
 
   public updateStreamChunk(fullText: string): void {
-    if (this.activeAiBubble) {
-      this.activeAiBubble.innerHTML = renderMarkdown(fullText);
-      this.scrollToBottom();
-    }
+    if (!this.activeAiBubble) return;
+    this.activeAiBubble.innerHTML = renderMarkdown(fullText);
+    this.scrollToBottom();
   }
 
   public completeStream(): void {
@@ -85,8 +96,10 @@ export class ChatUI {
 
   public streamError(error: string): void {
     if (this.activeAiBubble) {
-      this.activeAiBubble.innerText = `Error: ${error}`;
-      this.activeAiBubble.classList.add('text-rose-600');
+      this.activeAiBubble.textContent = `Error: ${error}`;
+      // The error state sits on the bubble, not its content, so the whole
+      // card recolours rather than just the text inside it.
+      this.activeAiBubble.closest('.ac-message__body')?.classList.add('is-error');
     }
     this.resetSubmitButton();
     this.activeAiBubble = null;
@@ -102,7 +115,7 @@ export class ChatUI {
 
   private resetSubmitButton(): void {
     this.runBtn.disabled = false;
-    this.runBtn.innerText = 'Run →';
+    this.runBtn.textContent = 'Run →';
   }
 
   private scrollToBottom(): void {

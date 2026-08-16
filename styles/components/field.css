@@ -1,0 +1,144 @@
+/* =============================================================
+   COMPONENT — Form field
+
+   `.ac-field` is the label-plus-control unit. `.ac-input` is the
+   control itself and is shared by input, select, and textarea, so
+   the three never drift apart.
+
+   This is the component an addon contributing a settings section
+   will lean on hardest, so the parts are named for what they are
+   rather than for where the options page happens to put them.
+============================================================= */
+
+.ac-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-3);
+}
+
+.ac-field__label {
+  font-size: var(--ac-text-sm);
+  font-weight: var(--ac-weight-medium);
+  color: var(--ac-color-text-muted);
+}
+
+.ac-field__hint {
+  font-size: var(--ac-text-xs);
+  color: var(--ac-color-text-subtle);
+}
+
+/* A label with a live value on the right, used by sliders. */
+.ac-field__label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ac-space-4);
+}
+
+.ac-field__value {
+  font-family: var(--ac-font-mono);
+  font-size: var(--ac-text-sm);
+  color: var(--ac-color-text-muted);
+}
+
+/* A label beside its control, for checkboxes. */
+.ac-field--inline {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ac-space-4);
+}
+
+/* ---- The control ---- */
+.ac-input {
+  width: 100%;
+  padding: var(--ac-space-3) var(--ac-space-4);
+
+  border: 1px solid var(--ac-color-border);
+  border-radius: var(--ac-radius-lg);
+  background-color: var(--ac-color-base);
+  color: var(--ac-color-text);
+
+  font-size: var(--ac-text-sm);
+  outline: none;
+
+  transition:
+    background-color var(--ac-transition-fast),
+    border-color var(--ac-transition-fast);
+}
+
+.ac-input:focus {
+  background-color: var(--ac-color-raised);
+  border-color: var(--ac-color-accent);
+}
+
+.ac-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ac-input--mono {
+  font-family: var(--ac-font-mono);
+}
+
+.ac-input--textarea {
+  resize: vertical;
+  min-height: 4rem;
+  line-height: var(--ac-leading-normal);
+}
+
+/* Borderless, for a control that sits inside a card it should look
+   continuous with — the chat composer, for one. */
+.ac-input--bare {
+  border-color: transparent;
+  background-color: transparent;
+  padding: var(--ac-space-3);
+}
+
+.ac-input--bare:focus {
+  background-color: transparent;
+  border-color: transparent;
+}
+
+.ac-checkbox {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  accent-color: var(--ac-color-accent);
+  border-radius: var(--ac-radius-sm);
+  cursor: pointer;
+}
+
+.ac-range {
+  width: 100%;
+  accent-color: var(--ac-color-accent);
+  cursor: pointer;
+}
+
+/* ---- Field layout helpers ----
+   Column counts, because a settings section is mostly a question of
+   how many controls sit on a row. */
+.ac-field-row {
+  display: grid;
+  gap: var(--ac-space-5);
+  grid-template-columns: 1fr;
+}
+
+.ac-field-row--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ac-field-row--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* An input with a button welded to its right. */
+.ac-field-attached {
+  display: flex;
+  gap: var(--ac-space-4);
+}
+
+.ac-field-attached > .ac-input {
+  flex: 1;
+  min-width: 0;
+}

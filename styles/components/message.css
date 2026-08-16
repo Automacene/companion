@@ -1,0 +1,180 @@
+/* =============================================================
+   COMPONENT — Message
+
+   Chat bubbles and the rendered markdown inside them.
+
+   NOTE: the conversation layer is being replaced, so this file is
+   expected to be rewritten rather than extended. It is here in its
+   tokenized form so the reorganization is complete and the current
+   UI keeps working; treat it as the least settled file in the
+   folder.
+============================================================= */
+
+.ac-message {
+  display: flex;
+  width: 100%;
+  animation: ac-fade-slide-in var(--ac-transition-base) both;
+}
+
+.ac-message--user {
+  justify-content: flex-end;
+}
+
+.ac-message--assistant {
+  justify-content: flex-start;
+}
+
+.ac-message--system {
+  justify-content: center;
+}
+
+.ac-message__body {
+  max-width: 85%;
+  padding: var(--ac-space-4) var(--ac-space-5);
+  border: 1px solid transparent;
+  border-radius: var(--ac-radius-2xl);
+
+  font-size: var(--ac-text-sm);
+  line-height: var(--ac-leading-normal);
+  box-shadow: var(--ac-shadow-sm);
+  overflow-wrap: anywhere;
+}
+
+.ac-message--user .ac-message__body {
+  background-color: var(--ac-color-accent);
+  color: var(--ac-color-text-inverted);
+  /* Squared corner on the side the bubble is anchored to. */
+  border-radius: var(--ac-radius-2xl) var(--ac-radius-2xl) var(--ac-radius-xl)
+    var(--ac-radius-2xl);
+}
+
+.ac-message--assistant .ac-message__body {
+  background-color: var(--ac-color-raised);
+  border-color: var(--ac-color-border);
+  color: var(--ac-color-text);
+  border-radius: var(--ac-radius-2xl) var(--ac-radius-2xl) var(--ac-radius-2xl)
+    var(--ac-radius-xl);
+}
+
+.ac-message--system .ac-message__body {
+  max-width: 100%;
+  padding: var(--ac-space-2) var(--ac-space-4);
+
+  background-color: transparent;
+  border: 1px dashed var(--ac-color-border);
+  border-radius: var(--ac-radius-md);
+  box-shadow: none;
+
+  font-family: var(--ac-font-mono);
+  font-size: var(--ac-text-xs);
+  color: var(--ac-color-text-subtle);
+}
+
+/* A failed turn. The bubble stays in place so the conversation does
+   not jump; only its colour changes. */
+.ac-message__body.is-error {
+  background-color: var(--ac-color-danger-soft);
+  border-color: var(--ac-color-danger-border);
+  color: var(--ac-color-danger);
+}
+
+/* ---- Rendered markdown ----
+   Scoped under `__content` so these rules can never reach the rest
+   of the UI. The reset stripped list markers and margins globally,
+   so prose has to put them back explicitly. */
+.ac-message__content > *:last-child {
+  margin-bottom: 0;
+}
+
+.ac-message__content p {
+  margin-bottom: var(--ac-space-4);
+}
+
+.ac-message__content h1,
+.ac-message__content h2,
+.ac-message__content h3 {
+  font-weight: var(--ac-weight-bold);
+  line-height: var(--ac-leading-tight);
+  margin: var(--ac-space-5) 0 var(--ac-space-3);
+}
+
+.ac-message__content h1 { font-size: var(--ac-text-lg); }
+.ac-message__content h2 { font-size: var(--ac-text-md); }
+.ac-message__content h3 { font-size: var(--ac-text-sm); }
+
+.ac-message__content ul,
+.ac-message__content ol {
+  margin: var(--ac-space-3) 0 var(--ac-space-4) var(--ac-space-5);
+  padding-left: var(--ac-space-5);
+}
+
+.ac-message__content li {
+  list-style: disc;
+  margin-bottom: var(--ac-space-2);
+}
+
+.ac-message__content ol li {
+  list-style: decimal;
+}
+
+.ac-message__content code {
+  padding: 0.1em 0.35em;
+  border-radius: var(--ac-radius-xs);
+  background-color: var(--ac-color-sunken);
+  font-size: 0.9em;
+}
+
+.ac-message__content pre {
+  margin: var(--ac-space-4) 0;
+  padding: var(--ac-space-4);
+  border-radius: var(--ac-radius-lg);
+  background-color: var(--ac-color-sunken);
+  overflow-x: auto;
+}
+
+.ac-message__content pre code {
+  padding: 0;
+  background: none;
+  font-size: var(--ac-text-xs);
+}
+
+.ac-message__content blockquote {
+  margin: var(--ac-space-4) 0;
+  padding-left: var(--ac-space-4);
+  border-left: 2px solid var(--ac-color-accent);
+  color: var(--ac-color-text-muted);
+}
+
+.ac-message__content a {
+  color: var(--ac-color-info);
+  text-decoration: underline;
+}
+
+/* Links inside a user bubble sit on the accent fill, where the info
+   blue is unreadable. */
+.ac-message--user .ac-message__content a {
+  color: var(--ac-color-text-inverted);
+}
+
+.ac-message__content table {
+  width: 100%;
+  margin: var(--ac-space-4) 0;
+  border-collapse: collapse;
+  font-size: var(--ac-text-xs);
+}
+
+.ac-message__content th,
+.ac-message__content td {
+  padding: var(--ac-space-2) var(--ac-space-3);
+  border: 1px solid var(--ac-color-border);
+  text-align: left;
+}
+
+/* ---- The stream itself ---- */
+.ac-message-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-5);
+  overflow-y: auto;
+  padding-right: var(--ac-space-2);
+}

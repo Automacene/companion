@@ -1,28 +1,38 @@
-import '../../styles/theme.css';
-import '../../styles/global.css';
-import '../../styles/anim.css';
-import '../../styles/sidepanel.css';
+/**
+ * Sidepanel bootstrap.
+ *
+ * Two stylesheets: the shared design system, then this surface's own layout.
+ * Nothing else should ever be imported here — `styles/index.css` pulls in the
+ * tokens, base, and components in the order the cascade needs.
+ */
+import '../../styles/index.css';
+import './sidepanel.css';
 
 import { initGhostOverlay } from '../../lib/anim';
+import { watchTheme } from '../../lib/theme';
 import { ChatUI } from '../../lib/sidepanel/ui';
 import { ConnectionManager } from '../../lib/sidepanel/connection';
 import { SidepanelApp } from './app';
 
 document.addEventListener('DOMContentLoaded', async () => {
-  initGhostOverlay('grid-overlay');
+  // Before anything paints, so the panel never flashes the wrong palette.
+  // Reads the stored preference once the app has it; `system` until then.
+  watchTheme('system');
 
-  const statusDot = document.getElementById('status-dot') as HTMLElement | null;
-  const statusPill = document.getElementById('status-pill') as HTMLElement | null;
-  const chatContainer = document.getElementById('chat-container') as HTMLElement | null;
+  initGhostOverlay('backdrop-layer');
+
+  const statusDot = document.getElementById('status-dot');
+  const statusPill = document.getElementById('status-pill');
+  const chatContainer = document.getElementById('chat-container');
   const chatForm = document.getElementById('chat-form') as HTMLFormElement | null;
   const chatInput = document.getElementById('chat-input') as HTMLTextAreaElement | null;
   const runBtn = document.getElementById('run-btn') as HTMLButtonElement | null;
   const scrapeBtn = document.getElementById('scrape-btn') as HTMLButtonElement | null;
-  const hero = document.querySelector('.brand-hero') as HTMLElement | null;
-  const pulser = document.querySelector('.brand-status-badge') as HTMLElement | null;
+  const hero = document.querySelector<HTMLElement>('.sidepanel__hero');
+  const heroBadge = document.querySelector<HTMLElement>('.sidepanel__logo-badge');
 
   if (!statusDot || !statusPill || !chatContainer || !chatForm || !chatInput || !runBtn) {
-    console.warn('Missing required UI elements in sidepanel');
+    console.warn('[Sidepanel] Missing required UI elements, aborting boot');
     return;
   }
 
@@ -34,7 +44,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     chatForm,
     chatInput,
     scrapeBtn,
-    pulser
+    heroBadge
   );
 
   await app.init();

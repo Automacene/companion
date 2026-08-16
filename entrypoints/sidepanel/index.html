@@ -6,80 +6,82 @@
     <title>Automacene Companion</title>
   </head>
   <body>
-    
-    <div class="page-container">
-      <div id="grid-overlay"></div>
-      
-      <div class="content-wrapper">
-        <!-- Top Navigation / Status Header -->
-        <header class="status-header">
-          <div class="header-title-group">
-            <span id="status-dot" class="status-indicator-dot"></span>
-            <span class="header-title-text">AUTOMACENE COMPANION</span>
+    <div class="sidepanel ac-backdrop">
+      <div id="backdrop-layer" class="ac-backdrop__layer"></div>
+
+      <div class="sidepanel__content ac-backdrop__content">
+        <!-- Status header -->
+        <header class="sidepanel__header">
+          <div class="sidepanel__header-title">
+            <span id="status-dot" class="ac-status-dot"></span>
+            <span class="ac-heading">AUTOMACENE COMPANION</span>
           </div>
-          <span id="status-pill" class="status-badge">
-            [ CHECKING... ]
-          </span>
+          <span id="status-pill" class="ac-badge">[ CHECKING... ]</span>
         </header>
 
-        <!-- Brand Logo + Main Headline Section -->
-        <section class="brand-hero">
-          <div class="brand-logo-wrap">
-            <img src="/logo.svg" alt="Automacene logo" class="brand-logo" />
-            <span class="brand-status-badge" aria-hidden="true"></span>
+        <!-- Brand hero, collapses once a conversation starts -->
+        <section class="sidepanel__hero">
+          <div class="sidepanel__logo-wrap">
+            <img src="/logo.svg" alt="Automacene logo" class="sidepanel__logo" />
+            <button
+              type="button"
+              class="sidepanel__logo-badge"
+              aria-label="Show introduction"
+            ></button>
           </div>
           <div>
-            <h1 class="hero-heading">
-              Power <span class="accent-text">your</span> agents with <span class="accent-text">your data</span>
+            <h1 class="ac-heading ac-heading--hero sidepanel__hero-heading">
+              Power <span class="ac-text-accent">your</span> agents with
+              <span class="ac-text-accent">your data</span>
             </h1>
-            <p class="hero-subtext">A <b>data companion</b> for all of your online activities</p>
+            <p class="sidepanel__hero-subtext">
+              A <b>data companion</b> for all of your online activities
+            </p>
           </div>
         </section>
 
-        <!-- Dynamic Chat Log -->
-        <div id="chat-container" class="chat-log-container"></div>
+        <!-- Conversation -->
+        <div id="chat-container" class="ac-message-list sidepanel__messages"></div>
 
-        <!-- Search Input Card -->
-        <form id="chat-form" class="chat-card">
-          <input 
+        <!-- Composer -->
+        <form id="chat-form" class="ac-card ac-card--glass ac-card--flush sidepanel__composer">
+          <label class="ac-visually-hidden" for="chat-input">Message</label>
+          <textarea
             id="chat-input"
-            type="text" 
-            placeholder="What is the context of this page?" 
-            class="chat-input-field"
+            rows="1"
+            placeholder="What is the context of this page?"
+            class="ac-input ac-input--bare ac-input--textarea"
             autocomplete="off"
-          />
-          <div class="card-footer-controls">
-            <div class="action-buttons-group">
-              <button id="scrape-btn" type="button" class="action-btn-secondary">Scrape</button>
-              <button type="button" class="action-btn-secondary">Map</button>
+          ></textarea>
+
+          <div class="ac-card__footer">
+            <div id="action-row" class="sidepanel__actions">
+              <button id="scrape-btn" type="button" class="ac-btn ac-btn--secondary ac-btn--sm">
+                Scrape
+              </button>
+              <button id="map-btn" type="button" class="ac-btn ac-btn--secondary ac-btn--sm" disabled>
+                Map
+              </button>
             </div>
-            <button id="run-btn" type="submit" class="action-btn-primary">
-              Run →
-            </button>
+            <button id="run-btn" type="submit" class="ac-btn ac-btn--primary">Run →</button>
           </div>
         </form>
       </div>
 
       <!-- Footer -->
-      <footer class="app-footer">
-        <a 
-          href="https://github.com/automacene" 
-          target="_blank" 
+      <footer class="sidepanel__footer ac-backdrop__content">
+        <a
+          href="https://github.com/automacene"
+          target="_blank"
           rel="noopener noreferrer"
-          class="github-link-pill"
+          class="sidepanel__repo-link"
         >
-          <svg class="github-icon" viewBox="0 0 24 24">
+          <svg class="sidepanel__repo-icon" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
           </svg>
-          <span class="github-text">Automacene</span>
-          <img 
-            src="https://img.shields.io/github/stars/automacene/stegodata?style=social" 
-            alt="GitHub stars" 
-            class="github-stars-badge"
-          />
+          <span>Automacene</span>
         </a>
       </footer>
-
     </div>
 
     <script type="module" src="main.ts"></script>

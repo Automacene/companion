@@ -13,6 +13,7 @@ export class SettingsManager {
       const saved = (result.extensionSettings || {}) as Partial<ExtensionSettings>;
 
       return {
+        theme: saved.theme ?? DEFAULT_SETTINGS.theme,
         ollamaHost: saved.ollamaHost ?? DEFAULT_SETTINGS.ollamaHost,
         connTimeout: saved.connTimeout ?? DEFAULT_SETTINGS.connTimeout,
         keepAlive: saved.keepAlive ?? DEFAULT_SETTINGS.keepAlive,

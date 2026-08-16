@@ -16,6 +16,12 @@ export type SidepanelState = (typeof SidepanelState)[keyof typeof SidepanelState
  * State of the Settings
  */
 export interface ExtensionSettings {
+  /**
+   * Which palette to apply, or `system` to follow the OS. Resolved to a
+   * concrete theme by `lib/theme.ts`; see `ThemePreference` there for the
+   * values this accepts.
+   */
+  theme?: string;
   ollamaHost?: string;
   connTimeout?: number;
   keepAlive?: string;

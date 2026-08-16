@@ -1,0 +1,94 @@
+/* =============================================================
+   COMPONENT — Status dot & badge
+
+   The connection readout, shared by the sidepanel header and the
+   options header. Both were previously written twice with slightly
+   different class names, which is how they drifted apart.
+
+   Four states, named for meaning rather than for the situation that
+   produced them, so an addon reporting its own health can reuse
+   them without the names lying:
+
+     (default)  unknown / not yet checked
+     --ok       reachable, healthy
+     --warn     in progress, degraded
+     --error    unreachable, failed
+============================================================= */
+
+/* ---- Dot ---- */
+.ac-status-dot {
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  flex-shrink: 0;
+
+  border-radius: var(--ac-radius-xs);
+  background-color: var(--ac-color-text-subtle);
+
+  /* Rotated to a diamond, matching the logo mark. */
+  transform: rotate(45deg);
+  transform-origin: center;
+  animation: ac-pulse 3s var(--ac-ease-in-out) infinite;
+}
+
+.ac-status-dot--ok {
+  background-color: var(--ac-color-success);
+}
+
+.ac-status-dot--warn {
+  background-color: var(--ac-color-warning);
+}
+
+.ac-status-dot--error {
+  background-color: var(--ac-color-danger);
+}
+
+/* A settled state has nothing to draw attention to, so the pulse
+   stops once the answer is known and good. */
+.ac-status-dot--ok {
+  animation: none;
+}
+
+/* ---- Badge ---- */
+.ac-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ac-space-2);
+
+  padding: var(--ac-space-1) var(--ac-space-3);
+  border: 1px solid var(--ac-color-border);
+  border-radius: var(--ac-radius-sm);
+
+  background-color: var(--ac-color-sunken);
+  color: var(--ac-color-text-muted);
+
+  font-family: var(--ac-font-mono);
+  font-size: var(--ac-text-2xs);
+  font-weight: var(--ac-weight-medium);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.ac-badge--ok {
+  background-color: var(--ac-color-success-soft);
+  border-color: var(--ac-color-success-border);
+  color: var(--ac-color-success);
+}
+
+.ac-badge--warn {
+  background-color: var(--ac-color-warning-soft);
+  border-color: var(--ac-color-warning-border);
+  color: var(--ac-color-warning);
+}
+
+.ac-badge--error {
+  background-color: var(--ac-color-danger-soft);
+  border-color: var(--ac-color-danger-border);
+  color: var(--ac-color-danger);
+}
+
+.ac-badge--accent {
+  background-color: var(--ac-color-accent-soft);
+  border-color: var(--ac-color-accent-border);
+  color: var(--ac-color-accent);
+}

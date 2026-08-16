@@ -1,0 +1,52 @@
+/* =============================================================
+   COMPONENT — Backdrop
+
+   The graph-paper grid and the ghost squares that drift across it.
+   Shared by both surfaces, which previously drew the same grid with
+   two different opacities because each page had written its own.
+
+   Two pieces:
+     .ac-backdrop        the static grid, painted on a container
+     .ac-backdrop__layer the positioned box ghosts are appended into
+     .ac-backdrop__ghost one square, created by `lib/anim.ts`
+============================================================= */
+
+.ac-backdrop {
+  position: relative;
+  background-size: var(--ac-grid-size) var(--ac-grid-size);
+  background-image:
+    linear-gradient(to right, var(--ac-color-grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--ac-color-grid-line) 1px, transparent 1px);
+}
+
+.ac-backdrop__layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: var(--ac-z-backdrop);
+}
+
+.ac-backdrop__ghost {
+  position: absolute;
+  width: var(--ac-grid-size);
+  height: var(--ac-grid-size);
+
+  /* The square's own tint is set inline by `lib/anim.ts`, which
+     varies it per square. This is the fallback for a square created
+     without one. */
+  background-color: var(--ac-color-grid-ghost);
+  border-radius: var(--ac-radius-md);
+
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.85);
+  animation: ac-ghost-fade 3s var(--ac-ease-in-out) forwards;
+  will-change: opacity, transform;
+}
+
+/* The grid is decoration. Anything that wants to be clickable has to
+   sit above it, which is what this class is for. */
+.ac-backdrop__content {
+  position: relative;
+  z-index: var(--ac-z-raised);
+}

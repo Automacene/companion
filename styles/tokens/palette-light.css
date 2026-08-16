@@ -1,0 +1,78 @@
+/* =============================================================
+   TOKENS — Light palette (the default)
+
+   THIS IS THE THEME CONTRACT. Every token defined here must be
+   defined by every other palette, because any of them can be the
+   only palette loaded. A palette file contains colors and nothing
+   else: no selectors beyond the theme root, no layout, no sizing.
+
+   Bound to `:root` as well as `[data-theme="light"]` so the UI
+   still renders if nothing has stamped a theme onto the document
+   yet — a flash of unstyled color is worse than a wrong theme.
+============================================================= */
+
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* ---- Surfaces ----
+     `base` is the page. `raised` is a panel sitting on it.
+     `overlay` is translucent and expects a backdrop-filter. */
+  --ac-color-base: #fcfcfc;
+  --ac-color-raised: #ffffff;
+  --ac-color-overlay: rgba(255, 255, 255, 0.85);
+  --ac-color-sunken: rgba(15, 23, 42, 0.06);
+
+  /* ---- Text ----
+     Three weights of emphasis, plus `inverted` for text sitting on
+     an accent fill. */
+  --ac-color-text: #18181b;
+  --ac-color-text-muted: #52525b;
+  --ac-color-text-subtle: #a1a1aa;
+  --ac-color-text-inverted: #ffffff;
+
+  /* ---- Lines ---- */
+  --ac-color-border: rgba(0, 0, 0, 0.1);
+  --ac-color-border-subtle: rgba(0, 0, 0, 0.05);
+  --ac-color-border-strong: rgba(0, 0, 0, 0.24);
+
+  /* ---- Accent ----
+     `soft` is the tinted fill behind accent text, `border` the
+     hairline around it. Keeping all four means an accent element
+     never has to compose a color inline. */
+  --ac-color-accent: #ea580c;
+  --ac-color-accent-hover: #c2410c;
+  --ac-color-accent-soft: #fff7ed;
+  --ac-color-accent-border: rgba(234, 88, 12, 0.24);
+  --ac-color-accent-glow: rgba(234, 88, 12, 0.65);
+
+  /* ---- Status ----
+     Each state carries the same three parts as the accent so
+     badges, dots, and toasts all read from one place. */
+  --ac-color-success: #059669;
+  --ac-color-success-soft: #ecfdf5;
+  --ac-color-success-border: #6ee7b7;
+
+  --ac-color-warning: #d97706;
+  --ac-color-warning-soft: #fffbeb;
+  --ac-color-warning-border: #fcd34d;
+
+  --ac-color-danger: #dc2626;
+  --ac-color-danger-soft: #fef2f2;
+  --ac-color-danger-border: #fecaca;
+
+  --ac-color-info: #2563eb;
+  --ac-color-info-soft: #eff6ff;
+  --ac-color-info-border: #bfdbfe;
+
+  /* ---- Backdrop grid ---- */
+  --ac-color-grid-line: rgba(0, 0, 0, 0.05);
+  --ac-color-grid-ghost: rgba(120, 120, 120, 0.18);
+
+  /* ---- Shadows ----
+     Part of the palette rather than the structure layer, because a
+     dark theme needs different opacities to read at all. */
+  --ac-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --ac-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --ac-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.1);
+}

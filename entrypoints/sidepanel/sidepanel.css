@@ -1,0 +1,174 @@
+/* =============================================================
+   SURFACE — Sidepanel layout
+
+   Colocated with the entrypoint it belongs to. Layout only: what
+   goes where, and how big. Appearance comes from components and
+   tokens, so there is no color, shadow, or radius literal in here.
+============================================================= */
+
+.sidepanel {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  /* The panel owns the viewport exactly. Anything that needs to
+     scroll does so internally, never the document. */
+  height: 100vh;
+  padding: var(--ac-space-4);
+  overflow: hidden;
+}
+
+.sidepanel__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-6);
+  min-height: 0; /* lets the message list shrink instead of overflowing */
+}
+
+/* ---- Header ---- */
+.sidepanel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ac-space-4);
+  padding-bottom: var(--ac-space-5);
+  border-bottom: 1px solid var(--ac-color-border);
+}
+
+.sidepanel__header-title {
+  display: flex;
+  align-items: center;
+  gap: var(--ac-space-4);
+}
+
+/* ---- Hero ----
+   Collapses once the conversation starts. Height and gap animate;
+   the contents are hidden outright so they cannot be tabbed to
+   while collapsed. */
+.sidepanel__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ac-space-5);
+
+  margin: var(--ac-space-4) 0;
+  text-align: center;
+  transition:
+    margin var(--ac-transition-base),
+    gap var(--ac-transition-base);
+}
+
+.sidepanel__hero.is-collapsed {
+  margin: 0;
+  gap: 0;
+}
+
+.sidepanel__hero.is-collapsed .sidepanel__logo-wrap,
+.sidepanel__hero.is-collapsed .sidepanel__hero-heading,
+.sidepanel__hero.is-collapsed .sidepanel__hero-subtext {
+  display: none;
+}
+
+.sidepanel__logo-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidepanel__logo {
+  height: 12rem;
+  width: auto;
+}
+
+/* The pulsing diamond pinned over the logo mark. Percentages are
+   tuned to the artwork in public/logo.svg. */
+.sidepanel__logo-badge {
+  position: absolute;
+  top: 24%;
+  left: 44.8%;
+
+  width: 1.7rem;
+  height: 1.7rem;
+  padding: 0;
+
+  background-color: var(--ac-color-accent);
+  border: 0;
+  border-radius: var(--ac-radius-xs);
+
+  transform: rotate(45deg);
+  animation: ac-pulse-ring 1.8s var(--ac-ease-out) infinite;
+  cursor: pointer;
+}
+
+.sidepanel__hero-subtext {
+  margin-top: var(--ac-space-2);
+  font-size: var(--ac-text-sm);
+  color: var(--ac-color-text-muted);
+}
+
+/* ---- Conversation ---- */
+.sidepanel__messages {
+  flex: 1;
+  min-height: 0;
+  max-height: calc(100vh - 31rem);
+}
+
+.sidepanel__hero.is-collapsed + .sidepanel__messages {
+  margin-top: var(--ac-space-8);
+  max-height: calc(100vh - 16rem);
+}
+
+/* ---- Composer ---- */
+.sidepanel__composer {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-4);
+}
+
+/* The row of contributed actions. Rendering this from the addon
+   registry rather than from markup is what will let an addon add a
+   button here; the layout does not care how many there are. */
+.sidepanel__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--ac-space-2);
+  flex-wrap: wrap;
+}
+
+/* ---- Footer ---- */
+.sidepanel__footer {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding-top: var(--ac-space-6);
+  border-top: 1px solid var(--ac-color-border-subtle);
+}
+
+.sidepanel__repo-link {
+  display: flex;
+  align-items: center;
+  gap: var(--ac-space-4);
+
+  padding: var(--ac-space-3) var(--ac-space-5);
+  border: 1px solid var(--ac-color-border);
+  border-radius: var(--ac-radius-pill);
+
+  font-size: var(--ac-text-sm);
+  color: var(--ac-color-text-muted);
+  text-decoration: none;
+}
+
+.sidepanel__repo-link:hover {
+  color: var(--ac-color-text);
+  text-decoration: none;
+}
+
+.sidepanel__repo-icon {
+  width: 1rem;
+  height: 1rem;
+  fill: currentColor;
+}

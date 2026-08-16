@@ -1,11 +1,15 @@
-import '../../styles/theme.css';
-import '../../styles/global.css';
-import '../../styles/anim.css';
-import '../../styles/options.css';
+/**
+ * Options page bootstrap.
+ *
+ * Two stylesheets: the shared design system, then this surface's own layout.
+ */
+import '../../styles/index.css';
+import './options.css';
 
 import { initGhostOverlay } from '../../lib/anim';
+import { applyTheme, isThemePreference, DEFAULT_THEME_PREFERENCE } from '../../lib/theme';
 import { PortAction } from '@/types/actions';
-import type { ExtensionSettings } from '../../types/state'; 
+import type { ExtensionSettings } from '../../types/state';
 import {
   DEFAULT_CONN_TIMEOUT,
   OLLAMA_HOST,
@@ -63,6 +67,7 @@ function populateModelDropdowns(
 
 function applySettingsToForm(settings: ExtensionSettings | null | undefined) {
   const resolvedSettings = settings || DEFAULT_SETTINGS;
+  const themeSelect = document.getElementById('theme') as HTMLSelectElement | null;
   const hostInput = document.getElementById('ollama-host') as HTMLInputElement | null;
   const timeoutInput = document.getElementById('conn-timeout') as HTMLInputElement | null;
   const keepAliveInput = document.getElementById('keep-alive') as HTMLInputElement | null;
@@ -81,6 +86,13 @@ function applySettingsToForm(settings: ExtensionSettings | null | undefined) {
   const stopSeqEl = document.getElementById('stop-seq') as HTMLInputElement | null;
   const rawModeEl = document.getElementById('raw-mode') as HTMLInputElement | null;
   const debugModeEl = document.getElementById('debug-mode') as HTMLInputElement | null;
+
+  // Applied as well as shown, so opening the page already looks right.
+  const theme = isThemePreference(resolvedSettings.theme)
+    ? resolvedSettings.theme
+    : DEFAULT_THEME_PREFERENCE;
+  if (themeSelect) themeSelect.value = theme;
+  applyTheme(theme);
 
   if (hostInput) hostInput.value = resolvedSettings.ollamaHost || OLLAMA_HOST;
   if (timeoutInput) timeoutInput.value = resolvedSettings.connTimeout?.toString() || DEFAULT_CONN_TIMEOUT.toString();
@@ -151,7 +163,7 @@ async function saveSettingsToStorage(settingsData: Record<string, any>) {
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Initialize background ghost grid animation
-  initGhostOverlay('grid-overlay');
+  initGhostOverlay('backdrop-layer');
 
   const hostInput = document.getElementById('ollama-host') as HTMLInputElement | null;
   const testBtn = document.getElementById('test-conn-btn') as HTMLButtonElement | null;
@@ -168,38 +180,49 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!hostInput || !timeoutInput) return { success: false };
     const host = hostInput.value.trim() || OLLAMA_HOST;
 
-    if (statusDot) statusDot.className = 'status-indicator-dot connecting';
-    if (statusPill) {
-      statusPill.className = 'status-badge checking';
-      statusPill.innerText = '[ CHECKING... ]';
-    }
+    setStatus('warn', '[ CHECKING... ]');
 
     // Call centralized model check
     const res = await checkOllamaConnection(host);
     if (res.success && res.models && res.models.length) {
-      if (statusDot) statusDot.className = 'status-indicator-dot connected';
-      if (statusPill) {
-        statusPill.className = 'status-badge connected';
-        statusPill.innerText = '[ 200 OK ]';
-      }
+      setStatus('ok', '[ 200 OK ]');
       populateModelDropdowns(res.models, {
         activeModel: (document.getElementById('active-model') as HTMLSelectElement | null)?.value || undefined,
         fallbackModel: (document.getElementById('fallback-model') as HTMLSelectElement | null)?.value || undefined,
       });
-      if (showToast && saveToast) {
-        saveToast.textContent = 'Model list loaded';
-        saveToast.classList.add('show');
-        setTimeout(() => saveToast.classList.remove('show'), 1200);
-      }
+      if (showToast) showToast_('Model list loaded');
       return { success: true, models: res.models };
     }
 
-    if (statusDot) statusDot.className = 'status-indicator-dot error';
-    if (statusPill) {
-      statusPill.className = 'status-badge offline';
-      statusPill.innerText = '[ OFFLINE ]';
-    }
+    setStatus('error', '[ OFFLINE ]');
     return { success: false };
+  }
+
+  /**
+   * Write the connection state into the header. Both elements move together,
+   * matching `ConnectionManager` on the sidepanel side.
+   */
+  function setStatus(state: 'ok' | 'warn' | 'error', label: string) {
+    if (statusDot) statusDot.className = `ac-status-dot ac-status-dot--${state}`;
+    if (statusPill) {
+      statusPill.className = `ac-badge ac-badge--${state}`;
+      statusPill.textContent = label;
+    }
+  }
+
+  /**
+   * Flash the toast. One code path, one state class.
+   *
+   * This previously had two: `classList.add('show')` here and
+   * `classList.remove('opacity-0')` at the save handler. `opacity-0` is a
+   * Tailwind utility, and no stylesheet in this project ever imported
+   * Tailwind, so that half silently did nothing.
+   */
+  function showToast_(message: string, tone: 'success' | 'error' = 'success') {
+    if (!saveToast) return;
+    saveToast.textContent = message;
+    saveToast.className = `ac-toast ac-toast--${tone} is-visible`;
+    setTimeout(() => saveToast.classList.remove('is-visible'), 1600);
   }
 
   // Wire up Test Connection button
@@ -236,6 +259,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await runTestConnection(false);
 
   function getSettingsFromForm(): ExtensionSettings {
+    const themeSelect = document.getElementById('theme') as HTMLSelectElement | null;
     const hostInput = document.getElementById('ollama-host') as HTMLInputElement | null;
     const timeoutInput = document.getElementById('conn-timeout') as HTMLInputElement | null;
     const keepAliveInput = document.getElementById('keep-alive') as HTMLInputElement | null;
@@ -255,6 +279,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const debugModeEl = document.getElementById('debug-mode') as HTMLInputElement | null;
 
     return {
+      theme: isThemePreference(themeSelect?.value) ? themeSelect.value : DEFAULT_THEME_PREFERENCE,
       ollamaHost: hostInput?.value.trim() || OLLAMA_HOST,
       connTimeout: parseInt(timeoutInput?.value || '', 10) || DEFAULT_CONN_TIMEOUT,
       keepAlive: keepAliveInput?.value || '',
@@ -287,17 +312,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
 
       if (response?.success) {
-        if (saveToast) {
-          saveToast.textContent = '✓ Settings saved successfully';
-          saveToast.classList.remove('opacity-0');
-          setTimeout(() => saveToast.classList.add('opacity-0'), 1400);
-        }
+        showToast_('✓ Settings saved successfully');
       } else {
         throw new Error(response?.error || 'Unknown save error');
       }
     } catch (err) {
       console.error('Failed saving settings', err);
-      alert('Failed to save settings');
+      showToast_('Failed to save settings', 'error');
     }
   });
 
@@ -311,18 +332,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
 
       if (response?.success) {
-        if (saveToast) {
-          saveToast.textContent = '✓ Defaults restored';
-          saveToast.classList.remove('opacity-0');
-          setTimeout(() => saveToast.classList.add('opacity-0'), 1400);
-        }
+        showToast_('✓ Defaults restored');
       } else {
         throw new Error(response?.error || 'Unknown reset error');
       }
     } catch (err) {
       console.error('Failed resetting settings', err);
-      alert('Failed to reset settings');
+      showToast_('Failed to reset settings', 'error');
     }
+  });
+
+  // Preview the theme as it is picked, before anything is saved.
+  document.getElementById('theme')?.addEventListener('change', (event) => {
+    const value = (event.target as HTMLSelectElement).value;
+    if (isThemePreference(value)) applyTheme(value);
   });
 });
 
