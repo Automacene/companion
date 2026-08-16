@@ -19,6 +19,24 @@ import { checkOllamaConnection } from '../../lib/model';
 import { getPreset } from '../../lib/backdrop';
 import { OLLAMA_HOST } from '../../lib/constants';
 
+/**
+ * Break out of Chrome's embedded options panel into a real tab.
+ *
+ * `manifest.open_in_tab` should make this unnecessary, but it only applies to
+ * a build the browser has actually reloaded — an older unpacked build, or a
+ * profile that has not picked up the new manifest, still renders this page as
+ * a short modal on chrome://extensions where the links out of it go nowhere.
+ *
+ * The embedded panel is an iframe, so `window.top !== window.self` identifies
+ * it exactly. That is also what makes this safe to run unconditionally: a page
+ * already open in a tab is top-level, so it cannot re-trigger. The previous
+ * version tested `window.innerHeight < 700`, which is true of a small tab as
+ * well and would open tabs forever on a short screen.
+ */
+if (window.top !== window.self) {
+  void browser.tabs.create({ url: browser.runtime.getURL('/options.html') });
+} else {
+
 document.addEventListener('DOMContentLoaded', async () => {
   const settings = await readSettings();
 
@@ -75,3 +93,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     statusPill.textContent = success ? '[ 200 OK ]' : '[ OFFLINE ]';
   }
 });
+}

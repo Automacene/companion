@@ -94,6 +94,10 @@ export class MessageDispatcher {
                 port,
                 conversation,
                 msg.prompt,
+                // Already read at the top of this handler. It was being used
+                // only to pick the session, while every sampling parameter in
+                // it went unused.
+                currentSettings,
                 msg.hostUrl,
                 msg.modelName
               );

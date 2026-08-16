@@ -1,5 +1,37 @@
 import { DEFAULT_SETTINGS } from '../constants';
+import { LEGACY_FIELDS, PARAMS_BY_ID } from '../model-params';
 import type { ExtensionSettings } from '../../types/state';
+
+/**
+ * Carry pre-schema settings into `modelParams`.
+ *
+ * Generation parameters used to be one flat field each, under names that were
+ * ours rather than Ollama's (`topP`, `numCtx`). They are now keyed by Ollama's
+ * own names so the request builder never has to translate. Anyone upgrading has
+ * values under the old names, and dropping them would silently reset tuning
+ * somebody had deliberately chosen.
+ *
+ * Only runs when `modelParams` is absent, so it cannot overwrite newer values,
+ * and skips zeroes because the old options page stored a cleared box as 0.
+ */
+function migrateLegacyParams(saved: Partial<ExtensionSettings>): Record<string, string | number | boolean> {
+  if (saved.modelParams) return saved.modelParams;
+
+  const migrated: Record<string, string | number | boolean> = {};
+
+  for (const [oldName, paramId] of Object.entries(LEGACY_FIELDS)) {
+    const value = (saved as Record<string, unknown>)[oldName];
+    if (value === undefined || value === null || value === '') continue;
+
+    // A cleared numeric box was stored as 0 by the old page. Migrating that
+    // would send `num_ctx: 0`, which asks for a zero-token window.
+    if (value === 0 && PARAMS_BY_ID.get(paramId)?.kind !== 'float') continue;
+
+    migrated[paramId] = value as string | number | boolean;
+  }
+
+  return migrated;
+}
 
 /**
  * Reads and writes the one settings object in `browser.storage.local`.
@@ -32,6 +64,7 @@ export class SettingsManager {
         backdrop: saved.backdrop ?? DEFAULT_SETTINGS.backdrop,
 
         // Model configuration
+        modelParams: migrateLegacyParams(saved),
         ollamaHost: saved.ollamaHost ?? DEFAULT_SETTINGS.ollamaHost,
         connTimeout: saved.connTimeout ?? DEFAULT_SETTINGS.connTimeout,
         keepAlive: saved.keepAlive ?? DEFAULT_SETTINGS.keepAlive,

@@ -51,20 +51,13 @@
                   </div>
                 </div>
 
-                <div class="ac-field-row ac-field-row--2">
-                  <div class="ac-field">
-                    <label for="conn-timeout" class="ac-field__label">Connection Timeout (ms)</label>
-                    <input id="conn-timeout" type="number" class="ac-input ac-input--mono" />
-                  </div>
-                  <div class="ac-field">
-                    <label for="keep-alive" class="ac-field__label">VRAM Keep Alive</label>
-                    <input
-                      id="keep-alive"
-                      type="text"
-                      placeholder="5m, 15m, -1"
-                      class="ac-input ac-input--mono"
-                    />
-                  </div>
+                <div class="ac-field">
+                  <label for="conn-timeout" class="ac-field__label">Connection timeout (ms)</label>
+                  <input id="conn-timeout" type="number" class="ac-input ac-input--mono" />
+                  <span class="ac-field__hint">
+                    How long to wait when checking whether Ollama is reachable. Not applied to
+                    generation, where a cold model load legitimately takes a minute.
+                  </span>
                 </div>
               </section>
 
@@ -107,87 +100,56 @@
 
             <!-- RIGHT COLUMN -->
             <div class="model-page__column">
-              <!-- Hyperparameters -->
+              <!--
+                Server panel.
+
+                Everything here comes from the HTTP API, which is all an
+                extension can see — the sampler readout and layer offload counts
+                we read during development live in the server's stdout and have
+                no endpoint.
+              -->
               <section class="ac-card ac-card--stack">
-                <h2 class="ac-card__title">3. Hyperparameters</h2>
-
-                <div class="ac-field">
-                  <div class="ac-field__label-row">
-                    <label for="temperature" class="ac-field__label">Temperature</label>
-                    <span id="temp-val" class="ac-field__value">0.7</span>
-                  </div>
-                  <input
-                    id="temperature"
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                    class="ac-range"
-                  />
+                <div class="ac-card__header">
+                  <h2 class="ac-card__title">3. Server</h2>
+                  <button id="refresh-status-btn" type="button" class="ac-btn ac-btn--ghost">
+                    Refresh
+                  </button>
                 </div>
+                <div id="server-status"></div>
+              </section>
 
-                <div class="ac-field-row ac-field-row--2">
-                  <div class="ac-field">
-                    <label for="num-ctx" class="ac-field__label">
-                      Context Length (<code>num_ctx</code>)
-                    </label>
-                    <input id="num-ctx" type="number" class="ac-input ac-input--mono" />
-                  </div>
-                  <div class="ac-field">
-                    <label for="num-predict" class="ac-field__label">
-                      Max Predict Tokens (<code>num_predict</code>)
-                    </label>
-                    <input id="num-predict" type="number" class="ac-input ac-input--mono" />
-                  </div>
-                </div>
+              <!--
+                Generation parameters.
 
-                <div class="ac-field-row ac-field-row--3">
-                  <div class="ac-field">
-                    <label for="top-p" class="ac-field__label">Top-P</label>
-                    <input id="top-p" type="number" step="0.05" class="ac-input ac-input--mono" />
-                  </div>
-                  <div class="ac-field">
-                    <label for="top-k" class="ac-field__label">Top-K</label>
-                    <input id="top-k" type="number" class="ac-input ac-input--mono" />
-                  </div>
-                  <div class="ac-field">
-                    <label for="repeat-penalty" class="ac-field__label">Repeat Penalty</label>
-                    <input
-                      id="repeat-penalty"
-                      type="number"
-                      step="0.05"
-                      class="ac-input ac-input--mono"
-                    />
-                  </div>
+                Rendered from `lib/model-params.ts` rather than written out
+                here: the same list builds these controls and the request body,
+                so a parameter cannot exist in one and not the other. That list
+                is also where the verified-against-a-real-server notes live,
+                including why mirostat is absent.
+              -->
+              <section class="ac-card ac-card--stack">
+                <div class="ac-card__header">
+                  <h2 class="ac-card__title">4. Generation</h2>
+                  <button id="reset-params-btn" type="button" class="ac-btn ac-btn--ghost">
+                    Reset
+                  </button>
                 </div>
+                <p class="ac-field__hint">
+                  Every box left blank uses the model's own default — that is the only way
+                  Ollama can be told to decide for itself.
+                </p>
+                <div id="param-groups"></div>
               </section>
 
               <!-- Memory & Developer -->
               <section class="ac-card ac-card--stack">
-                <h2 class="ac-card__title">4. Memory &amp; Developer</h2>
+                <h2 class="ac-card__title">5. Memory &amp; Developer</h2>
 
                 <div class="ac-field">
                   <label for="max-memory" class="ac-field__label">
                     Max Character Memory Budget
                   </label>
                   <input id="max-memory" type="number" class="ac-input ac-input--mono" />
-                </div>
-
-                <div class="ac-field">
-                  <label for="stop-seq" class="ac-field__label">
-                    Custom Stop Sequences (comma separated)
-                  </label>
-                  <input
-                    id="stop-seq"
-                    type="text"
-                    placeholder="e.g. USER:, END"
-                    class="ac-input ac-input--mono"
-                  />
-                </div>
-
-                <div class="ac-field ac-field--inline">
-                  <label for="raw-mode" class="ac-field__label">Raw Mode</label>
-                  <input id="raw-mode" type="checkbox" class="ac-checkbox" />
                 </div>
 
                 <div class="ac-field ac-field--inline">

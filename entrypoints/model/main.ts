@@ -8,6 +8,9 @@ import './model.css';
 
 import { startAppearance } from '../../lib/appearance';
 import { readSettings, patchSettings, replaceSettings } from '../../lib/settings-client';
+import { renderParams, type ParamsUi } from './params-ui';
+import { mountServerPanel } from './server-panel';
+import type { ParamValues } from '../../lib/model-params';
 import type { ExtensionSettings } from '../../types/state';
 import {
   DEFAULT_CONN_TIMEOUT,
@@ -60,44 +63,20 @@ function applySettingsToForm(settings: ExtensionSettings | null | undefined) {
   const resolvedSettings = settings || DEFAULT_SETTINGS;
   const hostInput = document.getElementById('ollama-host') as HTMLInputElement | null;
   const timeoutInput = document.getElementById('conn-timeout') as HTMLInputElement | null;
-  const keepAliveInput = document.getElementById('keep-alive') as HTMLInputElement | null;
   const primarySelect = document.getElementById('active-model') as HTMLSelectElement | null;
   const fallbackSelect = document.getElementById('fallback-model') as HTMLSelectElement | null;
   const systemPrompt = document.getElementById('system-prompt') as HTMLTextAreaElement | null;
   const streamResponses = document.getElementById('stream-responses') as HTMLInputElement | null;
-  const tempEl = document.getElementById('temperature') as HTMLInputElement | null;
-  const tempValEl = document.getElementById('temp-val') as HTMLElement | null;
-  const numCtxEl = document.getElementById('num-ctx') as HTMLInputElement | null;
-  const numPredictEl = document.getElementById('num-predict') as HTMLInputElement | null;
-  const topPEl = document.getElementById('top-p') as HTMLInputElement | null;
-  const topKEl = document.getElementById('top-k') as HTMLInputElement | null;
-  const repeatPenaltyEl = document.getElementById('repeat-penalty') as HTMLInputElement | null;
   const maxMemoryEl = document.getElementById('max-memory') as HTMLInputElement | null;
-  const stopSeqEl = document.getElementById('stop-seq') as HTMLInputElement | null;
-  const rawModeEl = document.getElementById('raw-mode') as HTMLInputElement | null;
   const debugModeEl = document.getElementById('debug-mode') as HTMLInputElement | null;
 
   if (hostInput) hostInput.value = resolvedSettings.ollamaHost || OLLAMA_HOST;
   if (timeoutInput) timeoutInput.value = resolvedSettings.connTimeout?.toString() || DEFAULT_CONN_TIMEOUT.toString();
-  if (keepAliveInput) keepAliveInput.value = resolvedSettings.keepAlive || '';
   if (systemPrompt) systemPrompt.value = resolvedSettings.systemPrompt || '';
   if (streamResponses) streamResponses.checked = !!resolvedSettings.streamResponses;
 
-  if (tempEl) {
-    tempEl.value = resolvedSettings.temperature?.toString() || DEFAULT_TEMPERATURE.toString();
-  }
-  if (tempValEl) {
-    tempValEl.textContent = tempEl?.value || DEFAULT_TEMPERATURE.toString();
-  }
 
-  if (numCtxEl) numCtxEl.value = resolvedSettings.numCtx?.toString() || '';
-  if (numPredictEl) numPredictEl.value = resolvedSettings.numPredict?.toString() || '';
-  if (topPEl) topPEl.value = resolvedSettings.topP?.toString() || '';
-  if (topKEl) topKEl.value = resolvedSettings.topK?.toString() || '';
-  if (repeatPenaltyEl) repeatPenaltyEl.value = resolvedSettings.repeatPenalty?.toString() || '';
   if (maxMemoryEl) maxMemoryEl.value = resolvedSettings.maxMemory?.toString() || '';
-  if (stopSeqEl) stopSeqEl.value = resolvedSettings.stopSeq || '';
-  if (rawModeEl) rawModeEl.checked = !!resolvedSettings.rawMode;
   if (debugModeEl) debugModeEl.checked = !!resolvedSettings.debugMode;
 
   if (primarySelect && resolvedSettings.activeModel) {
@@ -143,6 +122,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const settingsForm = document.getElementById('settings-form') as HTMLFormElement | null;
   const resetBtn = document.getElementById('reset-settings-btn') as HTMLButtonElement | null;
   const saveToast = document.getElementById('save-toast') as HTMLElement | null;
+  const paramHost = document.getElementById('param-groups');
+  const statusHost = document.getElementById('server-status');
   const statusDot = document.getElementById('status-dot') as HTMLElement | null;
   const statusPill = document.getElementById('status-pill') as HTMLElement | null;
 
@@ -216,46 +197,77 @@ document.addEventListener('DOMContentLoaded', async () => {
   await runTestConnection(false);
 
   /**
+   * Generation parameters, held here rather than read back out of the DOM.
+   *
+   * The controls can be empty, and empty means "let the model decide" — which
+   * is a different thing from zero and cannot be recovered by reading an input
+   * value after the fact. Keeping the authoritative copy in memory is what lets
+   * a cleared box actually delete the key.
+   */
+  let params: ParamValues = (storedSettings.modelParams ?? {}) as ParamValues;
+
+  const paramsUi: ParamsUi | null = paramHost
+    ? renderParams({
+        host: paramHost,
+        values: params,
+        onChange: (next) => {
+          params = next;
+        },
+      })
+    : null;
+
+  // Reads the host field rather than the saved setting, so typing a new URL
+  // and pressing Refresh checks the one on screen.
+  const serverPanel = statusHost
+    ? mountServerPanel({
+        host: statusHost,
+        getHostUrl: () =>
+          (document.getElementById('ollama-host') as HTMLInputElement | null)?.value.trim() ||
+          OLLAMA_HOST,
+        getTimeoutMs: () =>
+          parseInt(
+            (document.getElementById('conn-timeout') as HTMLInputElement | null)?.value || '',
+            10
+          ) || DEFAULT_CONN_TIMEOUT,
+        getActiveModel: () =>
+          (document.getElementById('active-model') as HTMLSelectElement | null)?.value || '',
+      })
+    : null;
+
+  document.getElementById('refresh-status-btn')?.addEventListener('click', () => {
+    serverPanel?.refresh();
+  });
+
+  document.getElementById('reset-params-btn')?.addEventListener('click', () => {
+    params = {};
+    paramsUi?.setValues(params);
+    showToast_('Generation parameters back to model defaults');
+  });
+
+  /**
    * Only the fields this page owns. Appearance lives on the theme page, and a
    * partial is what keeps this save from erasing it.
    */
   function getSettingsFromForm(): Partial<ExtensionSettings> {
     const hostInput = document.getElementById('ollama-host') as HTMLInputElement | null;
     const timeoutInput = document.getElementById('conn-timeout') as HTMLInputElement | null;
-    const keepAliveInput = document.getElementById('keep-alive') as HTMLInputElement | null;
     const primarySelect = document.getElementById('active-model') as HTMLSelectElement | null;
     const fallbackSelect = document.getElementById('fallback-model') as HTMLSelectElement | null;
     const systemPrompt = document.getElementById('system-prompt') as HTMLTextAreaElement | null;
     const streamResponses = document.getElementById('stream-responses') as HTMLInputElement | null;
-    const tempEl = document.getElementById('temperature') as HTMLInputElement | null;
-    const numCtxEl = document.getElementById('num-ctx') as HTMLInputElement | null;
-    const numPredictEl = document.getElementById('num-predict') as HTMLInputElement | null;
-    const topPEl = document.getElementById('top-p') as HTMLInputElement | null;
-    const topKEl = document.getElementById('top-k') as HTMLInputElement | null;
-    const repeatPenaltyEl = document.getElementById('repeat-penalty') as HTMLInputElement | null;
     const maxMemoryEl = document.getElementById('max-memory') as HTMLInputElement | null;
-    const stopSeqEl = document.getElementById('stop-seq') as HTMLInputElement | null;
-    const rawModeEl = document.getElementById('raw-mode') as HTMLInputElement | null;
     const debugModeEl = document.getElementById('debug-mode') as HTMLInputElement | null;
 
     return {
       ollamaHost: hostInput?.value.trim() || OLLAMA_HOST,
       connTimeout: parseInt(timeoutInput?.value || '', 10) || DEFAULT_CONN_TIMEOUT,
-      keepAlive: keepAliveInput?.value || '',
       activeModel: primarySelect?.value || '',
       fallbackModel: fallbackSelect?.value || '',
       systemPrompt: systemPrompt?.value || '',
       streamResponses: streamResponses ? streamResponses.checked : true,
-      temperature: tempEl?.value || '',
-      numCtx: parseInt(numCtxEl?.value || '', 10) || 0,
-      numPredict: parseInt(numPredictEl?.value || '', 10) || 0,
-      topP: parseFloat(topPEl?.value || '') || 0,
-      topK: parseInt(topKEl?.value || '', 10) || 0,
-      repeatPenalty: parseFloat(repeatPenaltyEl?.value || '') || 0,
       maxMemory: parseInt(maxMemoryEl?.value || '', 10) || 0,
-      stopSeq: stopSeqEl?.value || '',
-      rawMode: rawModeEl ? rawModeEl.checked : false,
       debugMode: debugModeEl ? debugModeEl.checked : false,
+      modelParams: params,
     };
   }
 
@@ -280,6 +292,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     applySettingsToForm(DEFAULT_SETTINGS);
 
     // Reset is the one case where replacing wholesale is the intent.
+    params = (DEFAULT_SETTINGS.modelParams ?? {}) as ParamValues;
+    paramsUi?.setValues(params);
+
     const response = await replaceSettings(DEFAULT_SETTINGS);
 
     if (response.success) {

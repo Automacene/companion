@@ -122,3 +122,229 @@
   display: flex;
   gap: var(--ac-space-3);
 }
+
+/* ---- Generation parameters ----
+   Built by `params-ui.ts` from `lib/model-params.ts`. Layout only; the
+   controls themselves are the shared `.ac-input` / `.ac-range`. */
+.model-page__param-group {
+  border: 1px solid var(--ac-color-border-subtle);
+  border-radius: var(--ac-radius-md);
+  margin-bottom: var(--ac-space-3);
+}
+
+.model-page__param-summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ac-space-4);
+  padding: var(--ac-space-4) var(--ac-space-5);
+  font-size: var(--ac-text-sm);
+  font-weight: var(--ac-weight-semibold);
+  list-style: none;
+}
+
+.model-page__param-summary::-webkit-details-marker {
+  display: none;
+}
+
+.model-page__param-summary::before {
+  content: "▸ ";
+  color: var(--ac-color-text-subtle);
+}
+
+.model-page__param-group[open] > .model-page__param-summary::before {
+  content: "▾ ";
+}
+
+.model-page__param-meta {
+  font-size: var(--ac-text-2xs);
+  color: var(--ac-color-text-subtle);
+}
+
+.model-page__param {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-2);
+  padding: var(--ac-space-4) var(--ac-space-5);
+  border-top: 1px solid var(--ac-color-border-subtle);
+}
+
+/* Marked on the edge rather than by colouring anything, so "I changed this"
+   reads at a glance down the whole column. */
+.model-page__param.is-set {
+  border-left: 2px solid var(--ac-color-accent);
+  background: var(--ac-color-accent-soft);
+}
+
+.model-page__param-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--ac-space-4);
+}
+
+/* The key sits next to the label and takes the slack, so Revert stays pinned
+   to the right edge whatever the label length. */
+.model-page__param-key {
+  flex: 1;
+}
+
+.model-page__param-revert {
+  flex-shrink: 0;
+  font-size: var(--ac-text-2xs);
+}
+
+/* Disabled means "nothing to revert", which is the resting state for most
+   rows — so it has to read as quiet rather than as broken. */
+.model-page__param-revert:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.model-page__param-key {
+  font-family: var(--ac-font-mono);
+  font-size: var(--ac-text-2xs);
+  color: var(--ac-color-text-subtle);
+}
+
+.model-page__param-control {
+  display: flex;
+  align-items: center;
+  gap: var(--ac-space-4);
+}
+
+.model-page__param-range {
+  flex: 1;
+  min-width: 0;
+}
+
+/* A slider cannot show "unset" — every position is a value. Fading it says the
+   handle's position is not in force, and it returns to full opacity the moment
+   the parameter is actually set. */
+.model-page__param-range.is-unset {
+  opacity: 0.4;
+}
+
+.model-page__param-box {
+  inline-size: 7rem;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+/* ---- Server panel ----
+   Built by `server-panel.ts` from the HTTP API. Layout only. */
+.model-page__server-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
+  gap: 1px;
+  background: var(--ac-color-border-subtle);
+  border: 1px solid var(--ac-color-border);
+  border-radius: var(--ac-radius-md);
+  overflow: hidden;
+}
+
+.model-page__server-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-1);
+  padding: var(--ac-space-4);
+  background: var(--ac-color-raised);
+}
+
+.model-page__server-stat-key {
+  font-family: var(--ac-font-mono);
+  font-size: var(--ac-text-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--ac-tracking-wide);
+  color: var(--ac-color-text-subtle);
+}
+
+.model-page__server-stat-value {
+  font-family: var(--ac-font-mono);
+  font-size: var(--ac-text-md);
+  font-weight: var(--ac-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.model-page__server-stat-value.is-ok {
+  color: var(--ac-color-success);
+}
+
+.model-page__server-model {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-3);
+  padding: var(--ac-space-5);
+  margin-top: var(--ac-space-4);
+  border: 1px solid var(--ac-color-border-subtle);
+  border-radius: var(--ac-radius-md);
+}
+
+.model-page__server-model-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ac-space-4);
+}
+
+.model-page__server-ttl {
+  font-size: var(--ac-text-2xs);
+  color: var(--ac-color-text-subtle);
+}
+
+/* VRAM share. `size_vram` against `size` is the same figure `ollama ps` turns
+   into "100% GPU" or "13%/87% CPU/GPU". */
+.model-page__server-bar {
+  block-size: var(--ac-space-3);
+  border-radius: var(--ac-radius-pill);
+  background: var(--ac-color-sunken);
+  overflow: hidden;
+}
+
+.model-page__server-bar-fill {
+  block-size: 100%;
+  background: var(--ac-color-success);
+  border-radius: var(--ac-radius-pill);
+  transition: inline-size var(--ac-transition-base);
+}
+
+/* Anything short of fully resident is the interesting case, so it is warned
+   rather than celebrated. */
+.model-page__server-bar-fill.is-partial {
+  background: var(--ac-color-warning);
+}
+
+.model-page__server-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-2);
+}
+
+.model-page__server-chip {
+  font-size: var(--ac-text-2xs);
+  padding: var(--ac-space-1) var(--ac-space-3);
+  border: 1px solid var(--ac-color-border-subtle);
+  border-radius: var(--ac-radius-sm);
+  color: var(--ac-color-text-muted);
+  background: var(--ac-color-sunken);
+}
+
+.model-page__server-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-3);
+  margin-top: var(--ac-space-5);
+  padding-top: var(--ac-space-5);
+  border-top: 1px solid var(--ac-color-border-subtle);
+}
+
+.model-page__server-notice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-2);
+  padding: var(--ac-space-5);
+  margin-top: var(--ac-space-4);
+  border: 1px dashed var(--ac-color-border);
+  border-radius: var(--ac-radius-md);
+  background: var(--ac-color-sunken);
+}

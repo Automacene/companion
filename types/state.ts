@@ -52,6 +52,16 @@ export interface ExtensionSettings {
     custom?: Record<string, string | number>;
   };
 
+  /**
+   * Generation parameters, keyed by Ollama's own option name. Absent keys mean
+   * "use the model's default", which is the only way Ollama expresses it.
+   *
+   * Replaces the flat `temperature` / `topP` / `numCtx` fields below, which are
+   * kept so an older stored settings object can be migrated rather than reset.
+   * See `lib/model-params.ts`.
+   */
+  modelParams?: Record<string, string | number | boolean>;
+
   ollamaHost?: string;
   connTimeout?: number;
   keepAlive?: string;

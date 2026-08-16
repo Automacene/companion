@@ -1,6 +1,9 @@
 import { streamChatResponse } from '../model';
+import { buildRequestShape } from '../ollama-options';
+import { saveLastRun } from '../last-run';
 import { PortAction } from '../../types/actions';
 import type { VercelConversation } from '../conversation';
+import type { ExtensionSettings } from '../../types/state';
 
 export class StreamService {
   /**
@@ -11,6 +14,7 @@ export class StreamService {
     port: Browser.runtime.Port,
     conversation: VercelConversation,
     prompt: string,
+    settings: ExtensionSettings,
     overrideHost?: string,
     overrideModel?: string
   ): Promise<void> {
@@ -26,10 +30,15 @@ export class StreamService {
       let accumulatedText = '';
 
       // Initiate stream to host/model configured in conversation
+      const model = conversation.getModelName();
+
       await streamChatResponse(
         {
           ollamaHost: conversation.getHostUrl(),
-          activeModel: conversation.getModelName(),
+          activeModel: model,
+          // Where the sampling parameters finally reach the request. Without
+          // this the options page was writing to storage and nothing read it.
+          request: buildRequestShape(settings, model),
         },
         conversation.getMessages(),
         (textDelta) => {
@@ -38,7 +47,11 @@ export class StreamService {
             action: PortAction.STREAM_CHUNK,
             fullText: accumulatedText,
           });
-        }
+        },
+        undefined,
+        // Stored rather than sent over the port: the model settings page wants
+        // these, and it is a different document with no port of its own.
+        (metrics) => void saveLastRun(metrics)
       );
 
       // Record assistant response upon stream completion
