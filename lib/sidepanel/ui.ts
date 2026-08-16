@@ -70,9 +70,10 @@ export class ChatUI {
     this.chatContainer.replaceChildren();
     const visible = messages.filter((m) => m.role !== 'system');
 
-    if (visible.length > 0) {
-      this.collapseHero();
-    }
+    // Always set, never only collapse. Loading an empty tab has to put the
+    // hero back open AND write the button's accessible name, which starts
+    // unset because the markup cannot know which state it will boot into.
+    this.setHero(visible.length === 0);
 
     for (const msg of visible) {
       const text = typeof msg.content === 'string' ? msg.content : '';
@@ -112,13 +113,46 @@ export class ChatUI {
   }
 
   public collapseHero(): void {
-    this.hero?.classList.add('is-collapsed');
-    setLogoMode(this.logo, 'mark');
+    this.setHero(false);
   }
 
   public expandHero(): void {
-    this.hero?.classList.remove('is-collapsed');
-    setLogoMode(this.logo, 'full');
+    this.setHero(true);
+  }
+
+  /**
+   * Flip the hero, and report where it ended up.
+   *
+   * The mark is the only control for this, so it has to work both ways —
+   * opening the introduction with no way to put it away again leaves the panel
+   * permanently shorter until a message is sent.
+   */
+  public toggleHero(): boolean {
+    return this.setHero(this.hero?.classList.contains('is-collapsed') ?? false);
+  }
+
+  /**
+   * The one place hero state is written.
+   *
+   * Three things move together: the class the layout reads, the mark reducing
+   * to its square, and the button's accessible name. Splitting them across
+   * collapse and expand is how they drift.
+   *
+   * @returns whether the hero is now open
+   */
+  private setHero(open: boolean): boolean {
+    this.hero?.classList.toggle('is-collapsed', !open);
+    setLogoMode(this.logo, open ? 'full' : 'mark');
+
+    if (this.logo) {
+      // The button IS the toggle, so its name has to say what pressing it does
+      // next rather than what it did last.
+      this.logo.setAttribute('aria-label', open ? 'Hide introduction' : 'Show introduction');
+      this.logo.setAttribute('aria-expanded', String(open));
+      this.logo.title = open ? 'Hide introduction' : 'Show introduction';
+    }
+
+    return open;
   }
 
   private resetSubmitButton(): void {

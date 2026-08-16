@@ -24,7 +24,9 @@ export class SidepanelApp {
   ) {
     this.port = browser.runtime.connect({ name: SIDEPANEL_CONNECTION_NAME });
 
-    pulser?.addEventListener('click', () => this.chatUI.expandHero());
+    // Toggle, not just expand: the mark is the only way back in either
+    // direction once the conversation has started.
+    pulser?.addEventListener('click', () => this.chatUI.toggleHero());
 
     // Typing counts as activity, so the field does not downshift to its idle
     // rate while somebody is composing a long prompt.
@@ -36,6 +38,11 @@ export class SidepanelApp {
 
     const settings = await this.fetchSettings();
     await this.connectionManager.updateStatus(settings.ollamaHost || OLLAMA_HOST);
+
+    // Size it once before anything is typed. The CSS height and the height
+    // computed from scrollHeight differ by a couple of pixels, and without this
+    // the box visibly jumps on the first keystroke.
+    this.resizeComposer();
 
     this.bindPortListeners();
     this.bindTabListeners();
@@ -80,18 +87,29 @@ export class SidepanelApp {
   }
 
   private bindFormEvents(): void {
-    // Shift+Enter newline handling
+    /**
+     * Enter sends, Shift+Enter inserts a newline.
+     *
+     * The composer used to be an `<input>`, where Enter submitted the form for
+     * free and the handler here had to fake a newline by splicing the value.
+     * It is a `<textarea>` now, which reverses both: newlines are native, and
+     * Enter no longer submits anything — so the browser's default has to be
+     * cancelled and the submit driven by hand.
+     *
+     * `isComposing` guards an IME. Enter is how you accept a candidate word in
+     * Japanese, Chinese, and Korean input, and swallowing it would send a
+     * half-finished message mid-word.
+     */
     this.chatInput.addEventListener('keydown', (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && e.shiftKey) {
-        e.preventDefault();
-        const start = this.chatInput.selectionStart ?? this.chatInput.value.length;
-        const end = this.chatInput.selectionEnd ?? this.chatInput.value.length;
-        const val = this.chatInput.value;
-        this.chatInput.value = `${val.slice(0, start)}\n${val.slice(end)}`;
-        const pos = start + 1;
-        this.chatInput.setSelectionRange(pos, pos);
-      }
+      if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
+
+      e.preventDefault();
+      this.chatForm.requestSubmit();
     });
+
+    // Grow with the text rather than scrolling a single line, now that a
+    // message can genuinely be several lines long.
+    this.chatInput.addEventListener('input', () => this.resizeComposer());
 
     // Form submission
     this.chatForm.addEventListener('submit', async (e) => {
@@ -114,6 +132,7 @@ export class SidepanelApp {
 
       this.chatUI.appendBubble('user', prompt);
       this.chatInput.value = '';
+      this.resizeComposer();
       this.chatUI.startStream();
       this.backdrop.setStreaming(true);
 
@@ -168,6 +187,22 @@ export class SidepanelApp {
       this.scrapeBtn.innerText = 'Scrape';
     }
     alert(`Scrape failed: ${error}`);
+  }
+
+  /**
+   * Fit the composer to its content, up to a ceiling.
+   *
+   * Height is reset before measuring because `scrollHeight` never shrinks below
+   * the element's current height — without the reset, deleting a line would
+   * leave the box permanently tall.
+   */
+  private resizeComposer(): void {
+    const maxHeight = 10 * 16; // about ten lines
+
+    this.chatInput.style.height = 'auto';
+    this.chatInput.style.height = `${Math.min(this.chatInput.scrollHeight, maxHeight)}px`;
+    this.chatInput.style.overflowY =
+      this.chatInput.scrollHeight > maxHeight ? 'auto' : 'hidden';
   }
 
   private requestTabHistory(tabId: number): void {

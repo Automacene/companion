@@ -116,6 +116,16 @@
 }
 
 /* ---- Composer ---- */
+
+/* The shared textarea style assumes a form field: three lines tall with a drag
+   handle. The composer starts at one line and grows with what is typed, so both
+   are overridden here rather than weakened for every other textarea. */
+.sidepanel__composer .ac-input--textarea {
+  min-height: 0;
+  resize: none;
+  overflow-y: hidden;
+}
+
 .sidepanel__composer {
   flex-shrink: 0;
   display: flex;
