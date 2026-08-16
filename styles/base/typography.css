@@ -1,0 +1,68 @@
+/* =============================================================
+   BASE — Typography helpers
+
+   A small, closed set of text utilities. Deliberately closed: this
+   is not a utility framework, and anything needing more than these
+   should become a component instead of growing this file.
+
+   All prefixed `ac-` so an addon's own classes cannot collide.
+============================================================= */
+
+.ac-mono {
+  font-family: var(--ac-font-mono);
+}
+
+/* The recurring small-uppercase-monospace label used for section
+   headings, status text, and pill captions. One class rather than
+   four declarations repeated everywhere. */
+.ac-label {
+  font-family: var(--ac-font-mono);
+  font-size: var(--ac-text-2xs);
+  font-weight: var(--ac-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--ac-tracking-wide);
+  color: var(--ac-color-text-subtle);
+}
+
+.ac-heading {
+  font-size: var(--ac-text-md);
+  font-weight: var(--ac-weight-bold);
+  letter-spacing: var(--ac-tracking-tight);
+  line-height: var(--ac-leading-tight);
+}
+
+.ac-heading--hero {
+  font-size: var(--ac-text-xl);
+}
+
+.ac-text-muted {
+  color: var(--ac-color-text-muted);
+}
+
+.ac-text-subtle {
+  color: var(--ac-color-text-subtle);
+}
+
+.ac-text-accent {
+  color: var(--ac-color-accent);
+}
+
+/* Long model output and scraped URLs both overflow a narrow panel.
+   `anywhere` breaks mid-token when there is no other option. */
+.ac-text-wrap {
+  overflow-wrap: anywhere;
+}
+
+/* Visible to screen readers, invisible on screen. Needed wherever an
+   icon-only control has to carry a name. */
+.ac-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

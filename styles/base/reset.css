@@ -1,0 +1,106 @@
+/* =============================================================
+   BASE — Reset
+
+   Element-level defaults only. Nothing here uses a class, so a
+   surface or an addon can never be surprised by it.
+============================================================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  /* The type scale is in rem, so this is the one place that decides
+     how big everything is. A theme could raise it for a large-text
+     mode without touching a single component. */
+  font-size: 100%;
+}
+
+body {
+  background-color: var(--ac-color-base);
+  color: var(--ac-color-text);
+  font-family: var(--ac-font-sans);
+  font-size: var(--ac-text-sm);
+  line-height: var(--ac-leading-normal);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Form controls do not inherit type by default, which is how a
+   button ends up in the browser's font rather than the product's. */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+a {
+  color: var(--ac-color-accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--ac-font-mono);
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+/* One focus treatment for the whole product. `:focus-visible` rather
+   than `:focus` so a mouse click does not leave a ring behind, while
+   keyboard traversal always shows one. */
+:focus-visible {
+  outline: 2px solid var(--ac-color-accent);
+  outline-offset: 2px;
+  border-radius: var(--ac-radius-xs);
+}
+
+::placeholder {
+  color: var(--ac-color-text-subtle);
+}
+
+/* Scrollbars, so a dark theme does not get a light scrollbar sitting
+   inside it. `color-scheme` on the palette does most of this; these
+   two rules handle the panels that scroll internally. */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ac-color-border);
+  border-radius: var(--ac-radius-pill);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ac-color-border-strong);
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}

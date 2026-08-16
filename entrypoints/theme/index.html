@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Automacene Appearance</title>
+  </head>
+  <body>
+    <div class="theme-page ac-backdrop">
+      <div id="backdrop-layer" class="ac-backdrop__layer"></div>
+
+      <main class="theme-page__content ac-backdrop__content">
+        <header class="theme-page__header">
+          <div>
+            <h1 class="theme-page__title">
+              <span id="status-dot" class="ac-status-dot"></span> APPEARANCE
+            </h1>
+            <p class="theme-page__subtitle">
+              Themes, colours, and the backdrop. Everything here is data — nothing needs a
+              rebuild, and nothing leaves your machine.
+            </p>
+          </div>
+          <nav class="theme-page__nav">
+            <a id="open-hub" class="ac-btn ac-btn--ghost" href="#">← Settings</a>
+            <a id="open-options" class="ac-btn ac-btn--secondary" href="#">Model →</a>
+          </nav>
+        </header>
+
+        <div class="theme-page__grid">
+          <!-- ============ Left: controls ============ -->
+          <div class="theme-page__column">
+            <section class="ac-card">
+              <h2 class="ac-card__title">Theme</h2>
+              <p class="ac-field__hint">
+                Which palette to use. <b>System</b> follows your operating system.
+              </p>
+              <div id="theme-picker" class="ac-segmented" role="group" aria-label="Theme"></div>
+            </section>
+
+            <section class="ac-card">
+              <div class="ac-card__header">
+                <h2 class="ac-card__title">Backdrop</h2>
+                <button id="reset-backdrop" type="button" class="ac-btn ac-btn--ghost">
+                  Reset
+                </button>
+              </div>
+
+              <div class="ac-field">
+                <label class="ac-field__label" for="backdrop-preset">Preset</label>
+                <select id="backdrop-preset" class="ac-input ac-mono"></select>
+                <p id="backdrop-preset-hint" class="ac-field__hint"></p>
+              </div>
+
+              <details id="backdrop-advanced" class="theme-page__disclosure">
+                <summary class="theme-page__disclosure-summary">Tune this preset</summary>
+                <div class="theme-page__disclosure-body">
+                  <div class="ac-field">
+                    <label class="ac-field__label" for="backdrop-mask">Motion</label>
+                    <select id="backdrop-mask" class="ac-input ac-mono"></select>
+                    <p id="backdrop-mask-hint" class="ac-field__hint"></p>
+                  </div>
+
+                  <div class="ac-field">
+                    <label class="ac-field__label" for="backdrop-ramp">Characters</label>
+                    <select id="backdrop-ramp" class="ac-input ac-mono"></select>
+
+                    <!-- Only shown when Custom is selected. -->
+                    <div id="custom-ramp-field" class="theme-page__custom-ramp" hidden>
+                      <label class="ac-field__label" for="backdrop-custom-ramp">
+                        Your characters, darkest first
+                      </label>
+                      <input
+                        id="backdrop-custom-ramp"
+                        type="text"
+                        class="ac-input ac-mono"
+                        spellcheck="false"
+                        autocomplete="off"
+                        placeholder=" .:-=+*#%@"
+                      />
+                      <p class="ac-field__hint">
+                        Leading spaces are how the field stays sparse — a space means
+                        “draw nothing here”. Add more to thin it out.
+                      </p>
+                    </div>
+
+                    <p id="backdrop-ramp-preview" class="ac-field__hint ac-mono"></p>
+                  </div>
+
+                  <div id="backdrop-sliders" class="theme-page__sliders"></div>
+                </div>
+              </details>
+            </section>
+
+            <section class="ac-card">
+              <div class="ac-card__header">
+                <h2 class="ac-card__title">Share</h2>
+              </div>
+              <p class="ac-field__hint">
+                A theme is JSON. Copy it to send someone your colours, or paste one in.
+              </p>
+              <div class="theme-page__row">
+                <button id="export-theme" type="button" class="ac-btn ac-btn--secondary">
+                  Copy theme
+                </button>
+                <button id="import-theme" type="button" class="ac-btn ac-btn--secondary">
+                  Paste theme
+                </button>
+              </div>
+              <textarea
+                id="theme-json"
+                class="ac-input ac-mono theme-page__json"
+                rows="5"
+                spellcheck="false"
+                aria-label="Theme JSON"
+              ></textarea>
+            </section>
+          </div>
+
+          <!-- ============ Right: tokens ============ -->
+          <div class="theme-page__column">
+            <section class="ac-card">
+              <div class="ac-card__header">
+                <h2 class="ac-card__title">Theme options</h2>
+                <button id="reset-tokens" type="button" class="ac-btn ac-btn--ghost">
+                  Reset all
+                </button>
+              </div>
+              <p class="ac-field__hint">
+                Every value the interface is built from, for the theme selected above.
+                Changes are marked, and each theme keeps its own — so a colour you pick
+                for dark does not follow you into light.
+              </p>
+
+              <div class="ac-field">
+                <input
+                  id="token-search"
+                  type="search"
+                  class="ac-input"
+                  placeholder="Search, e.g. accent, border, corner…"
+                  autocomplete="off"
+                />
+              </div>
+
+              <div id="token-groups" class="theme-page__tokens"></div>
+            </section>
+          </div>
+        </div>
+
+        <footer class="theme-page__footer">
+          <span id="save-toast" class="ac-toast" role="status" aria-live="polite"></span>
+          <span class="ac-field__hint ac-mono" id="token-count"></span>
+        </footer>
+      </main>
+    </div>
+
+    <script type="module" src="main.ts"></script>
+  </body>
+</html>

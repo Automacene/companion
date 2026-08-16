@@ -1,0 +1,75 @@
+/* =============================================================
+   TOKENS — Dark palette
+
+   Defines exactly the same token names as `palette-light.css`.
+   That is the whole rule a palette has to satisfy: same names,
+   different values, nothing else in the file.
+
+   There is deliberately no `prefers-color-scheme` query here. If a
+   palette had to appear twice — once for the media query and once
+   for the explicit choice — the two copies would drift. Instead
+   `lib/theme.ts` resolves the "system" setting to a concrete theme
+   name and stamps it on the document, so this file only ever has
+   to answer one question: what does dark look like.
+============================================================= */
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* ---- Accent ----
+     The same #ff5500 as the mark, lifted two steps in lightness. At full
+     strength it reads hot but thin against #111113, and small text set in it
+     loses legibility — so the hue and saturation are held and only the
+     lightness moves. */
+  --ac-color-accent: #ff7029;
+  --ac-color-accent-hover: #ff8b52;
+  --ac-color-accent-soft: rgba(255, 85, 0, 0.16);
+  --ac-color-accent-border: rgba(255, 112, 41, 0.4);
+  --ac-color-accent-glow: rgba(255, 112, 41, 0.55);
+
+  /* ---- Surfaces ---- */
+  --ac-color-base: #111113;
+  --ac-color-raised: #1a1a1d;
+  --ac-color-overlay: rgba(26, 26, 29, 0.85);
+  --ac-color-sunken: rgba(255, 255, 255, 0.06);
+
+  /* ---- Text ---- */
+  --ac-color-text: #f4f4f5;
+  --ac-color-text-muted: #a1a1aa;
+  --ac-color-text-subtle: #71717a;
+  --ac-color-text-inverted: #111113;
+
+  /* ---- Lines ---- */
+  --ac-color-border: rgba(255, 255, 255, 0.12);
+  --ac-color-border-subtle: rgba(255, 255, 255, 0.06);
+  --ac-color-border-strong: rgba(255, 255, 255, 0.28);
+
+
+  /* ---- Status ---- */
+  --ac-color-success: #34d399;
+  --ac-color-success-soft: rgba(52, 211, 153, 0.12);
+  --ac-color-success-border: rgba(52, 211, 153, 0.36);
+
+  --ac-color-warning: #fbbf24;
+  --ac-color-warning-soft: rgba(251, 191, 36, 0.12);
+  --ac-color-warning-border: rgba(251, 191, 36, 0.36);
+
+  --ac-color-danger: #f87171;
+  --ac-color-danger-soft: rgba(248, 113, 113, 0.12);
+  --ac-color-danger-border: rgba(248, 113, 113, 0.36);
+
+  --ac-color-info: #60a5fa;
+  --ac-color-info-soft: rgba(96, 165, 250, 0.12);
+  --ac-color-info-border: rgba(96, 165, 250, 0.36);
+
+  /* ---- Backdrop grid ---- */
+  --ac-color-grid-line: rgba(255, 255, 255, 0.05);
+
+  /* ---- Shadows ----
+     Heavier than the light theme's. A 5% black shadow is invisible
+     against a #111 surface, so the opacities climb rather than the
+     geometry changing. */
+  --ac-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --ac-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.5);
+  --ac-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+}

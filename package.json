@@ -1,0 +1,36 @@
+{
+  "name": "wxt-starter",
+  "description": "manifest.json description",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "build": "wxt build",
+    "zip": "wxt zip",
+    "compile": "tsc --noEmit",
+    "postinstall": "wxt prepare",
+    "generate:tokens": "node scripts/generate-token-manifest.mjs",
+    "predev": "npm run generate:tokens",
+    "prebuild": "npm run generate:tokens",
+    "precompile": "npm run generate:tokens"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/chrome": "^0.2.5",
+    "@types/dompurify": "^3.0.5",
+    "@types/marked": "^5.0.2",
+    "@types/node": "^26.2.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3",
+    "vite": "^8.1.5",
+    "wxt": "^0.21.3"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^4.0.27",
+    "ai": "^7.0.47",
+    "dompurify": "^3.4.12",
+    "marked": "^18.0.7",
+    "ollama": "^0.6.3"
+  }
+}

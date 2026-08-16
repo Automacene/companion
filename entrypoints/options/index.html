@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Automacene Companion</title>
+
+    <!--
+      Open as a real tab rather than Chrome's embedded options modal.
+
+      The modal is a constrained overlay on chrome://extensions: a link from
+      inside it to another extension page does not navigate, which is exactly
+      what this page is made of. It is also far too short to be useful.
+
+      WXT reads entrypoint options from meta tags here, not from wxt.config.ts —
+      a manifest override for `options_ui` in the config is discarded.
+    -->
+    <meta name="manifest.open_in_tab" content="true" />
+  </head>
+  <body>
+    <div class="hub ac-backdrop">
+      <div id="backdrop-layer" class="ac-backdrop__layer"></div>
+
+      <main class="hub__content ac-backdrop__content">
+        <header class="hub__header">
+          <div class="hub__brand">
+            <!-- Replaced by lib/logo.ts. --><span class="hub__logo"></span>
+            <div>
+              <h1 class="hub__title">
+                <span id="status-dot" class="ac-status-dot"></span>
+                AUTOMACENE COMPANION
+              </h1>
+              <p class="hub__subtitle">Settings</p>
+            </div>
+          </div>
+          <span id="status-pill" class="ac-badge">[ CHECKING... ]</span>
+        </header>
+
+        <div class="hub__cards">
+          <a id="open-model" class="hub__card" href="#">
+            <span class="hub__card-mark" aria-hidden="true">⚙</span>
+            <span class="hub__card-body">
+              <span class="hub__card-title">Model</span>
+              <span class="hub__card-text">
+                Where Ollama is, which model answers, and how it samples. Connection,
+                prompts, hyperparameters, and the memory budget.
+              </span>
+              <span id="model-summary" class="hub__card-meta ac-mono"></span>
+            </span>
+            <span class="hub__card-go" aria-hidden="true">→</span>
+          </a>
+
+          <a id="open-theme" class="hub__card" href="#">
+            <span class="hub__card-mark" aria-hidden="true">◐</span>
+            <span class="hub__card-body">
+              <span class="hub__card-title">Appearance</span>
+              <span class="hub__card-text">
+                Theme, every colour and measurement the interface is built from, and the
+                animated backdrop. Changes preview live in the open sidepanel.
+              </span>
+              <span id="theme-summary" class="hub__card-meta ac-mono"></span>
+            </span>
+            <span class="hub__card-go" aria-hidden="true">→</span>
+          </a>
+        </div>
+      </main>
+    </div>
+
+    <script type="module" src="main.ts"></script>
+  </body>
+</html>

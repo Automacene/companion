@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 290" class="ac-logo__art" role="img" aria-label="Automacene">
+  <defs>
+    <!--
+      MASTER BRANDING FILE.
+
+      Used two ways, which is why every colour is a token with a literal
+      fallback:
+
+        Inline in the extension  `lib/logo.ts` injects this markup into the
+                                 page, so `var(--ac-color-accent)` resolves and
+                                 the mark follows the active theme.
+        On its own              README, marketing, anywhere it is loaded as an
+                                image. No custom properties exist there, so each
+                                `var()` falls through to the brand literal and it
+                                renders exactly as it always has.
+
+      Class names carry the `ac-logo__` prefix because inlining puts them in the
+      page's global namespace, where a bare `.core-orange` would collide with
+      anything. The filter id is rewritten per instance by `lib/logo.ts`, since
+      two copies on one page would otherwise share an ambiguous `url(#…)`.
+    -->
+    <filter id="ac-logo-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <style>
+      /* Structure — charcoal when standalone, the theme's text colour inline,
+         so the mark stops disappearing against a dark background. */
+      .ac-logo__trace {
+        stroke: var(--ac-color-text, #1A1D24);
+        stroke-width: 3.5;
+        stroke-linecap: round;
+        opacity: 0.95;
+        fill: none;
+      }
+      .ac-logo__node { fill: var(--ac-color-text, #1A1D24); }
+      .ac-logo__node--outline {
+        fill: var(--ac-color-base, #FFFFFF);
+        stroke: var(--ac-color-text, #1A1D24);
+        stroke-width: 3;
+      }
+      .ac-logo__dot--dim { fill: var(--ac-color-text, #1A1D24); opacity: 0.15; }
+      .ac-logo__dot--subtle { fill: var(--ac-color-text, #1A1D24); opacity: 0.35; }
+
+      /* Accent */
+      .ac-logo__trace--accent {
+        stroke: var(--ac-color-accent, #FF5500);
+        stroke-width: 3.5;
+        stroke-linecap: round;
+        fill: none;
+      }
+      .ac-logo__dot--accent { fill: var(--ac-color-accent, #FF5500); }
+
+      .ac-logo__core-square {
+        fill: var(--ac-color-accent, #FF5500);
+        filter: url(#ac-logo-glow);
+      }
+
+      /* The expanding ring. `box-shadow` has no SVG equivalent, so the halo is
+         a real second square behind the core that scales out and fades.
+         Invisible until the animation in `styles/components/logo.css` runs it,
+         which means it costs nothing when motion is switched off. */
+      .ac-logo__core-halo {
+        fill: var(--ac-color-accent, #FF5500);
+        opacity: 0;
+      }
+
+      /*
+        Rotation lives here rather than on a `transform` attribute, because a
+        CSS transform REPLACES the attribute instead of composing with it — the
+        moment the pulse animates `scale`, an attribute rotation would vanish.
+
+        `transform-box: fill-box` is what makes `center` mean the square's own
+        middle. Without it the origin is the SVG user-space origin and a scaled
+        square shoots off toward the corner.
+      */
+      .ac-logo__core-square,
+      .ac-logo__core-halo {
+        transform-box: fill-box;
+        transform-origin: center;
+        transform: rotate(45deg);
+      }
+    </style>
+  </defs>
+
+  <!-- Content re-centered to tight (390x290) bounding box -->
+  <g transform="translate(-205, -80)">
+
+    <!-- Ambient Sensor Grid -->
+    <g class="ac-logo__grid">
+      <circle cx="310" cy="130" r="2.5" class="ac-logo__dot--dim"/>
+      <circle cx="490" cy="130" r="2.5" class="ac-logo__dot--dim"/>
+      <circle cx="250" cy="190" r="2.5" class="ac-logo__dot--dim"/>
+      <circle cx="550" cy="190" r="2.5" class="ac-logo__dot--dim"/>
+      <circle cx="190" cy="250" r="2.5" class="ac-logo__dot--dim"/>
+      <circle cx="610" cy="250" r="2.5" class="ac-logo__dot--dim"/>
+
+      <circle cx="400" cy="95" r="3" class="ac-logo__dot--accent"/>
+      <circle cx="360" cy="270" r="2.5" class="ac-logo__dot--subtle"/>
+      <circle cx="440" cy="270" r="2.5" class="ac-logo__dot--subtle"/>
+      <circle cx="400" cy="360" r="3" class="ac-logo__dot--accent"/>
+      <circle cx="250" cy="270" r="2.5" class="ac-logo__dot--accent"/>
+      <circle cx="550" cy="270" r="2.5" class="ac-logo__dot--accent"/>
+    </g>
+
+    <!-- Network Circuit Lines -->
+    <g class="ac-logo__traces">
+      <line x1="400" y1="170" x2="350" y2="220" class="ac-logo__trace--accent"/>
+      <line x1="400" y1="170" x2="450" y2="220" class="ac-logo__trace--accent"/>
+
+      <line x1="350" y1="220" x2="300" y2="270" class="ac-logo__trace"/>
+      <line x1="450" y1="220" x2="500" y2="270" class="ac-logo__trace"/>
+
+      <line x1="300" y1="270" x2="340" y2="310" class="ac-logo__trace"/>
+      <line x1="500" y1="270" x2="460" y2="310" class="ac-logo__trace"/>
+    </g>
+
+    <!-- Nodes -->
+    <g class="ac-logo__nodes">
+      <!--
+        The core. Halo first so it sits behind, both squares sharing the exact
+        geometry of the original single rect, so the mark is unchanged when
+        nothing is animating.
+      -->
+      <g class="ac-logo__core">
+        <rect x="381" y="151" width="38" height="38" rx="4" class="ac-logo__core-halo"/>
+        <rect x="381" y="151" width="38" height="38" rx="4" class="ac-logo__core-square"/>
+      </g>
+
+      <rect x="339" y="209" width="22" height="22" rx="3" transform="rotate(45 350 220)" class="ac-logo__node--outline"/>
+      <rect x="439" y="209" width="22" height="22" rx="3" transform="rotate(45 450 220)" class="ac-logo__node--outline"/>
+
+      <rect x="289" y="259" width="22" height="22" rx="3" transform="rotate(45 300 270)" class="ac-logo__node"/>
+      <rect x="489" y="259" width="22" height="22" rx="3" transform="rotate(45 500 270)" class="ac-logo__node"/>
+
+      <rect x="330" y="300" width="20" height="20" rx="2" transform="rotate(45 340 310)" class="ac-logo__node--outline"/>
+      <rect x="450" y="300" width="20" height="20" rx="2" transform="rotate(45 460 310)" class="ac-logo__node--outline"/>
+
+      <circle cx="230" cy="270" r="3.5" class="ac-logo__dot--accent"/>
+      <circle cx="570" cy="270" r="3.5" class="ac-logo__dot--accent"/>
+      <circle cx="340" cy="345" r="3" class="ac-logo__node"/>
+      <circle cx="460" cy="345" r="3" class="ac-logo__node"/>
+    </g>
+  </g>
+</svg>

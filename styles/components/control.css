@@ -1,0 +1,93 @@
+/* =============================================================
+   COMPONENT — Value controls
+
+   The friendly editors for a single value: a swatch with opacity, a
+   slider with its reading, a short list of choices. Each one is the
+   default way to change a setting, with a text box behind a toggle
+   for the cases it cannot reach.
+============================================================= */
+
+.ac-control {
+  display: flex;
+  align-items: center;
+  gap: var(--ac-space-4);
+  min-width: 0;
+  flex: 1;
+}
+
+/* ---- Colour: swatch plus opacity ----
+   Opacity is not optional decoration. A large share of the palette is
+   translucent, and `<input type="color">` cannot express alpha at all —
+   without this, picking a colour on a hairline border would silently
+   turn it solid. */
+.ac-control--color {
+  flex-wrap: wrap;
+}
+
+.ac-control__swatch {
+  flex-shrink: 0;
+  inline-size: var(--ac-space-7);
+  block-size: var(--ac-space-7);
+  padding: 0;
+  border: 1px solid var(--ac-color-border);
+  border-radius: var(--ac-radius-sm);
+  background: none;
+  cursor: pointer;
+}
+
+.ac-control__swatch::-webkit-color-swatch-wrapper {
+  padding: var(--ac-space-1);
+}
+
+.ac-control__swatch::-webkit-color-swatch {
+  border: none;
+  border-radius: var(--ac-radius-xs);
+}
+
+.ac-control__alpha {
+  display: flex;
+  align-items: center;
+  gap: var(--ac-space-3);
+  flex: 1;
+  min-width: 0;
+}
+
+.ac-control__alpha-label {
+  font-family: var(--ac-font-mono);
+  font-size: var(--ac-text-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--ac-tracking-wide);
+  color: var(--ac-color-text-subtle);
+  flex-shrink: 0;
+}
+
+.ac-control__alpha-range {
+  flex: 1;
+  min-width: var(--ac-space-9);
+}
+
+/* ---- Measure: slider plus its reading ---- */
+.ac-control--measure .ac-range {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Tabular figures and a reserved width, so the row does not twitch
+   sideways as the number under the handle changes. */
+.ac-control__readout {
+  flex-shrink: 0;
+  min-inline-size: 4.5ch;
+  text-align: right;
+
+  font-family: var(--ac-font-mono);
+  font-size: var(--ac-text-2xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--ac-color-accent);
+}
+
+/* ---- Choice ---- */
+.ac-control--choice .ac-input {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--ac-text-xs);
+}

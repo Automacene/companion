@@ -1,0 +1,104 @@
+/* =============================================================
+   COMPONENT — Button
+
+   `.ac-btn` carries everything shared. A variant modifier chooses
+   the fill. Always write both:  class="ac-btn ac-btn--primary"
+
+   Naming: `.ac-block`, `.ac-block__element`, `.ac-block--modifier`,
+   and `.is-*` for states that JavaScript toggles. Same shape for
+   every component in this folder, and the shape addons should
+   follow for their own.
+============================================================= */
+
+.ac-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ac-space-2);
+
+  padding: var(--ac-space-3) var(--ac-space-5);
+  border: 1px solid transparent;
+  border-radius: var(--ac-radius-md);
+
+  font-size: var(--ac-text-sm);
+  font-weight: var(--ac-weight-medium);
+  line-height: 1;
+  white-space: nowrap;
+
+  transition:
+    background-color var(--ac-transition-fast),
+    border-color var(--ac-transition-fast),
+    color var(--ac-transition-fast),
+    transform var(--ac-duration-fast) var(--ac-ease-out);
+}
+
+.ac-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.ac-btn:disabled {
+  opacity: 0.5;
+}
+
+/* ---- Primary: the one committing action on a surface ---- */
+.ac-btn--primary {
+  background-color: var(--ac-color-accent);
+  border-color: var(--ac-color-accent);
+  color: var(--ac-color-text-inverted);
+  box-shadow: var(--ac-shadow-sm);
+}
+
+.ac-btn--primary:hover:not(:disabled) {
+  background-color: var(--ac-color-accent-hover);
+  border-color: var(--ac-color-accent-hover);
+}
+
+/* ---- Secondary: everything else that is still a real button ---- */
+.ac-btn--secondary {
+  background-color: var(--ac-color-raised);
+  border-color: var(--ac-color-border);
+  color: var(--ac-color-text);
+}
+
+.ac-btn--secondary:hover:not(:disabled) {
+  background-color: var(--ac-color-sunken);
+  border-color: var(--ac-color-border-strong);
+}
+
+/* ---- Ghost: toolbar actions that should not compete ---- */
+.ac-btn--ghost {
+  background-color: transparent;
+  color: var(--ac-color-text-muted);
+}
+
+.ac-btn--ghost:hover:not(:disabled) {
+  background-color: var(--ac-color-sunken);
+  color: var(--ac-color-text);
+}
+
+/* ---- Size modifiers ---- */
+.ac-btn--sm {
+  padding: var(--ac-space-2) var(--ac-space-3);
+  font-size: var(--ac-text-xs);
+}
+
+.ac-btn--icon {
+  padding: var(--ac-space-2);
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--ac-radius-md);
+}
+
+/* ---- Active, for buttons that toggle ---- */
+.ac-btn.is-active {
+  background-color: var(--ac-color-accent-soft);
+  border-color: var(--ac-color-accent-border);
+  color: var(--ac-color-accent);
+}
+
+/* ---- Group: a row of related buttons ---- */
+.ac-btn-group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ac-space-2);
+}

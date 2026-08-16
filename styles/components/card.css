@@ -1,0 +1,67 @@
+/* =============================================================
+   COMPONENT — Card
+
+   A bordered panel. `--glass` adds the frosted translucency the
+   product uses over the backdrop grid; plain `.ac-card` is opaque
+   and cheaper, which matters for anything that repeats.
+============================================================= */
+
+.ac-card {
+  background-color: var(--ac-color-raised);
+  border: 1px solid var(--ac-color-border);
+  border-radius: var(--ac-radius-xl);
+  padding: var(--ac-space-6);
+  box-shadow: var(--ac-shadow-sm);
+}
+
+/* `backdrop-filter` is what makes the grid show through. It forces
+   a compositing layer, so it belongs on panels that persist rather
+   than on list items that churn.
+
+   Unprefixed only. The `-webkit-` alias is not a safety net here —
+   current Chrome has removed it, and leaving it in let the minifier
+   emit the dead prefixed property instead of the live one. The
+   build target in wxt.config.ts is what keeps this correct. */
+.ac-card--glass {
+  background-color: var(--ac-color-overlay);
+  backdrop-filter: var(--ac-blur-md);
+}
+
+.ac-card--flush {
+  padding: var(--ac-space-4);
+}
+
+.ac-card__title {
+  font-family: var(--ac-font-mono);
+  font-size: var(--ac-text-sm);
+  font-weight: var(--ac-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--ac-tracking-wide);
+  color: var(--ac-color-accent);
+}
+
+.ac-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ac-space-4);
+  padding-bottom: var(--ac-space-4);
+  border-bottom: 1px solid var(--ac-color-border-subtle);
+}
+
+.ac-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ac-space-4);
+  padding-top: var(--ac-space-2);
+  border-top: 1px solid var(--ac-color-border-subtle);
+}
+
+/* Vertical rhythm inside a card, so sections do not each invent
+   their own gap. */
+.ac-card--stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-6);
+}

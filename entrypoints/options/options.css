@@ -1,0 +1,163 @@
+/* =============================================================
+   SURFACE — Settings hub
+
+   Layout only. No colour, radius, shadow, or spacing literal here;
+   every value comes from a token.
+============================================================= */
+
+.hub {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--ac-space-7) var(--ac-space-6);
+}
+
+.hub__content {
+  width: 100%;
+  max-width: 46rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-7);
+}
+
+/* ---- Header ---- */
+.hub__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ac-space-5);
+  padding-bottom: var(--ac-space-6);
+  border-bottom: 1px solid var(--ac-color-border);
+}
+
+.hub__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--ac-space-5);
+  min-width: 0;
+}
+
+/* Height-driven, matching the sidepanel. The component carries the artwork's
+   aspect ratio, so `height: auto` here would leave the box with no size at
+   all now that width is no longer the driving dimension. */
+.hub__logo {
+  block-size: var(--ac-space-8);
+  flex-shrink: 0;
+}
+
+.hub__title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--ac-space-4);
+  font-size: var(--ac-text-md);
+  font-weight: var(--ac-weight-bold);
+  letter-spacing: var(--ac-tracking-tight);
+}
+
+.hub__subtitle {
+  margin: var(--ac-space-1) 0 0;
+  font-family: var(--ac-font-mono);
+  font-size: var(--ac-text-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--ac-tracking-wide);
+  color: var(--ac-color-text-subtle);
+}
+
+/* ---- The two doors ---- */
+.hub__cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ac-space-5);
+}
+
+.hub__card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--ac-space-6);
+
+  padding: var(--ac-space-6);
+  border: 1px solid var(--ac-color-border);
+  border-radius: var(--ac-radius-xl);
+  background: var(--ac-color-overlay);
+  backdrop-filter: var(--ac-blur-md);
+  box-shadow: var(--ac-shadow-sm);
+
+  color: inherit;
+  text-decoration: none;
+
+  transition:
+    border-color var(--ac-transition-fast),
+    box-shadow var(--ac-transition-fast),
+    transform var(--ac-transition-fast);
+}
+
+.hub__card:hover {
+  border-color: var(--ac-color-accent-border);
+  box-shadow: var(--ac-shadow-md);
+  transform: translateY(-1px);
+  text-decoration: none;
+}
+
+.hub__card-mark {
+  font-size: var(--ac-text-xl);
+  line-height: 1;
+  color: var(--ac-color-accent);
+}
+
+.hub__card-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-2);
+  min-width: 0;
+}
+
+.hub__card-title {
+  font-size: var(--ac-text-md);
+  font-weight: var(--ac-weight-bold);
+}
+
+.hub__card-text {
+  font-size: var(--ac-text-sm);
+  color: var(--ac-color-text-muted);
+  line-height: var(--ac-leading-normal);
+}
+
+/* The live summary. Truncates rather than wrapping, because a long host URL
+   would otherwise push the card taller than its neighbour. */
+.hub__card-meta {
+  font-size: var(--ac-text-2xs);
+  color: var(--ac-color-text-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hub__card-go {
+  font-size: var(--ac-text-lg);
+  color: var(--ac-color-text-subtle);
+  transition: color var(--ac-transition-fast), transform var(--ac-transition-fast);
+}
+
+.hub__card:hover .hub__card-go {
+  color: var(--ac-color-accent);
+  transform: translateX(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hub__card,
+  .hub__card-go {
+    transition: none;
+  }
+
+  .hub__card:hover {
+    transform: none;
+  }
+
+  .hub__card:hover .hub__card-go {
+    transform: none;
+  }
+}
