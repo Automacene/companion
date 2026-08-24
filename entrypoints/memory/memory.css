@@ -263,3 +263,66 @@
   color: var(--ac-color-danger);
   font-size: var(--ac-text-sm);
 }
+
+/*
+  What an entry is made of, as tags on its summary line.
+
+  An entry used to read as one blob of question and answer, which hid the
+  largest thing in it. An attached page runs to thousands of characters against
+  a question of maybe sixty, and every one of those characters is indexed for
+  recall — so a turn carrying a page matches far more questions than the
+  exchange alone ever would. These say what is in there and how big it is
+  before you open anything.
+*/
+.memory-page__tags {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--ac-space-1);
+  align-items: center;
+}
+
+.memory-page__tag {
+  padding: 2px var(--ac-space-2);
+  border-radius: var(--ac-radius-sm);
+
+  font-family: var(--ac-font-mono);
+  font-size: var(--ac-text-2xs);
+  white-space: nowrap;
+
+  color: var(--ac-color-text-subtle);
+  background: var(--ac-color-sunken);
+  border: 1px solid var(--ac-color-border-subtle);
+}
+
+/* The page is the one that costs real room, so it is the one that stands out. */
+.memory-page__tag--context {
+  color: var(--ac-color-warning);
+  background: var(--ac-color-warning-soft);
+  border-color: var(--ac-color-warning-border);
+}
+
+/* One removable piece of an entry, in the expanded view. */
+.memory-page__part {
+  margin-top: var(--ac-space-3);
+  padding-top: var(--ac-space-3);
+  border-top: 1px dashed var(--ac-color-border-subtle);
+}
+
+.memory-page__part-head {
+  display: flex;
+  gap: var(--ac-space-3);
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--ac-space-2);
+}
+
+.memory-page__part-name {
+  font-size: var(--ac-text-xs);
+  color: var(--ac-color-text-muted);
+}
+
+/* Capped, because a full page read would otherwise own the whole screen. */
+.memory-page__part-detail {
+  max-height: 16rem;
+  overflow: auto;
+}

@@ -65,6 +65,16 @@ export const MemoryAction = {
    * other tab can recall — this is how you finish one by hand.
    */
   MEMORY_CLOSE: 'MEMORY_CLOSE',
+  /**
+   * Drop one PART of an entry and keep the rest.
+   *
+   * A turn is not one thing. It holds the question, the answer, whatever page
+   * was attached, the model's reasoning, and what tools returned — and the
+   * attached page is routinely the largest of those by a wide margin. Forgetting
+   * the whole turn to be rid of a page throws away the exchange as well, which
+   * is the wrong trade when the exchange is the part worth keeping.
+   */
+  MEMORY_FORGET_PART: 'MEMORY_FORGET_PART',
 } as const;
 
 export type MemoryAction = (typeof MemoryAction)[keyof typeof MemoryAction];

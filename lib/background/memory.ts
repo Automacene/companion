@@ -19,6 +19,37 @@ import type { SessionManager } from './session';
 /** How many entries a listing returns. Search covers the rest. */
 const LIST_CAP = 300;
 
+/**
+ * Which removable pieces an entry is made of.
+ *
+ * `query` and `response` are not here on purpose: between them they are the
+ * turn, and an entry without either is not a shorter entry, it is a broken one.
+ * Removing those means removing the entry.
+ */
+export type MemoryPartId = 'context' | 'thinking' | 'actions';
+
+/**
+ * One piece of an entry, sized so it can be judged before it is removed.
+ *
+ * The size is the reason this exists. An attached page runs to thousands of
+ * characters against a question of maybe sixty, and every one of those
+ * characters is indexed for recall — so a turn carrying a page matches far more
+ * questions than the exchange alone ever would. None of that was visible.
+ */
+export interface MemoryPart {
+  id: MemoryPartId;
+  /** What it is, in the user's words. */
+  label: string;
+  /** Characters of text, for `context`. */
+  chars?: number;
+  /** Number of nodes, for `thinking` and `actions`. */
+  count?: number;
+  /** A one-line description: the page title, or how many items. */
+  note: string;
+  /** The full text, for the expanded view. */
+  detail: string;
+}
+
 export interface MemoryEntry {
   id: string;
   /** `turn`, `thinking`, `action`, or `note`. */
@@ -30,6 +61,8 @@ export interface MemoryEntry {
   createdAt: number;
   /** Present on search results only. */
   score?: number;
+  /** Removable pieces this entry holds. Empty for a plain exchange. */
+  parts: MemoryPart[];
 }
 
 export class MemoryService {
@@ -67,6 +100,8 @@ export class MemoryService {
         return () => this.stats();
       case MemoryAction.MEMORY_CLOSE:
         return (msg) => this.close(msg.scope);
+      case MemoryAction.MEMORY_FORGET_PART:
+        return (msg) => this.forgetPart(msg.id, msg.part);
       default:
         return null;
     }
@@ -79,13 +114,13 @@ export class MemoryService {
 
   /** Newest first, because that is the order a history is read in. */
   private async list(): Promise<{ entries: MemoryEntry[]; total: number }> {
-    const { pool } = await this.archive();
+    const { convo, pool } = await this.archive();
     const all = pool.list();
 
     const entries = all
       .slice(-LIST_CAP)
       .reverse()
-      .map((node: any) => toEntry(node));
+      .map((node: any) => toEntry(node, convo));
 
     return { entries, total: all.length };
   }
@@ -132,7 +167,7 @@ export class MemoryService {
 
       return {
         entries: hits.map((hit: any) => ({
-          ...toEntry(hit.node),
+          ...toEntry(hit.node, convo),
           ...(query?.trim() ? { score: round(hit.score) } : {}),
         })),
         total: hits.length,
@@ -144,7 +179,7 @@ export class MemoryService {
     const hits = await convo.scope('memory-page').search(query, { pool: 'archive', limit: 50 });
 
     return {
-      entries: hits.map((hit: any) => ({ ...toEntry(hit.node), score: round(hit.score) })),
+      entries: hits.map((hit: any) => ({ ...toEntry(hit.node, convo), score: round(hit.score) })),
       total: hits.length,
     };
   }
@@ -181,6 +216,50 @@ export class MemoryService {
     const removed = convo.unregister(id);
     if (removed) announceMemoryChanged();
     return { removed };
+  }
+
+  /**
+   * Remove one piece of an entry and leave the rest of it stored.
+   *
+   * The re-indexing is the part that matters and the part that is easy to get
+   * wrong. Recall runs on keywords extracted from a node's whole content, and
+   * the extractor walks nested objects — so an attached page contributes every
+   * word it contains to what that turn matches. Deleting the page text without
+   * rebuilding the index would leave the turn answering questions about a page
+   * it no longer holds, which is worse than not deleting it at all: the entry
+   * would still surface, now with nothing to justify why.
+   *
+   * `pool.update()` handles this. Passing `content` without `tags` clears the
+   * node's tags, and `_index` re-derives them from what is left.
+   */
+  private async forgetPart(id: string, part: MemoryPartId): Promise<{ removed: boolean }> {
+    const convo = await this.sessions.ready();
+
+    const pool = poolHolding(convo, id);
+    if (!pool) return { removed: false };
+
+    const node = pool.get(id);
+    if (!node) return { removed: false };
+
+    const content = { ...(node.content ?? {}) };
+    const metadata = { ...(node.metadata ?? {}) };
+
+    if (part === 'context') {
+      if (content.context === undefined) return { removed: false };
+      delete content.context;
+      await pool.update(id, { content });
+    } else {
+      const ids: string[] = Array.isArray(metadata[part]) ? metadata[part] : [];
+      if (ids.length === 0) return { removed: false };
+
+      // The referenced nodes are the actual text; the turn only points at them.
+      // Both ends go, or the pointers dangle and the text is orphaned.
+      for (const nodeId of ids) convo.unregister(nodeId);
+      await pool.update(id, { content, metadata: { ...metadata, [part]: [] } });
+    }
+
+    announceMemoryChanged();
+    return { removed: true };
   }
 
   private async forgetAll(): Promise<{ removed: number }> {
@@ -301,10 +380,17 @@ export interface MemoryStats {
   conversations: ConversationStat[];
 }
 
-/** A stored node as the page shows it. Kinds render differently. */
-function toEntry(node: any): MemoryEntry {
+/**
+ * A stored node as the page shows it. Kinds render differently.
+ *
+ * `convo` is optional because only turns need it, and only to resolve the
+ * thinking and action ids into something worth showing. A node listed without
+ * one still renders, just without those parts.
+ */
+function toEntry(node: any, convo?: any): MemoryEntry {
   const content = node?.content ?? {};
-  const createdAt = Number(node?.metadata?.createdAt ?? 0);
+  const metadata = node?.metadata ?? {};
+  const createdAt = Number(metadata.createdAt ?? 0);
 
   if (content.query !== undefined) {
     return {
@@ -313,6 +399,7 @@ function toEntry(node: any): MemoryEntry {
       summary: String(content.query || '(no question)'),
       detail: `Asked: ${content.query ?? ''}\n\nAnswered: ${content.response ?? '(no answer recorded)'}`,
       createdAt,
+      parts: partsOf(content, metadata, convo),
     };
   }
 
@@ -323,6 +410,7 @@ function toEntry(node: any): MemoryEntry {
       summary: `${content.tool}(${JSON.stringify(content.params ?? {})})`,
       detail: JSON.stringify(content, null, 2),
       createdAt,
+      parts: [],
     };
   }
 
@@ -333,11 +421,79 @@ function toEntry(node: any): MemoryEntry {
       summary: String(content.text).slice(0, 200),
       detail: String(content.text),
       createdAt,
+      parts: [],
     };
   }
 
   const raw = JSON.stringify(content);
-  return { id: node.id, kind: 'note', summary: raw.slice(0, 200), detail: raw, createdAt };
+  return {
+    id: node.id,
+    kind: 'note',
+    summary: raw.slice(0, 200),
+    detail: raw,
+    createdAt,
+    parts: [],
+  };
+}
+
+/** The removable pieces a turn is carrying, sized. */
+function partsOf(content: any, metadata: any, convo?: any): MemoryPart[] {
+  const parts: MemoryPart[] = [];
+
+  const page = content.context;
+  if (page && typeof page === 'object') {
+    const text = typeof page.content === 'string' ? page.content : '';
+    parts.push({
+      id: 'context',
+      label: 'page',
+      chars: text.length,
+      note: page.title || page.url || 'an attached page',
+      detail: [page.title, page.url, '', text].filter((line) => line != null).join('\n'),
+    });
+  }
+
+  // Thinking and actions live as their own nodes in their own pools; the turn
+  // only holds their ids. Resolving them is what makes the size meaningful.
+  for (const [id, label, ids] of [
+    ['thinking', 'reasoning', metadata.thinking],
+    ['actions', 'tool results', metadata.actions],
+  ] as const) {
+    if (!Array.isArray(ids) || ids.length === 0) continue;
+
+    const bodies = ids
+      .map((nodeId: string) => {
+        const found = convo?.get?.(nodeId);
+        if (!found) return null;
+        return typeof found.text === 'string' ? found.text : JSON.stringify(found, null, 2);
+      })
+      .filter((body: string | null): body is string => typeof body === 'string');
+
+    parts.push({
+      id,
+      label,
+      count: ids.length,
+      note: `${ids.length} ${ids.length === 1 ? 'item' : 'items'}`,
+      detail: bodies.length > 0 ? bodies.join('\n\n---\n\n') : '(no longer stored)',
+    });
+  }
+
+  return parts;
+}
+
+/**
+ * The pool holding an id, across every scope.
+ *
+ * The library has this internally but does not expose it, and `unregister` —
+ * which does use it — only removes whole nodes. Editing one needs the pool
+ * itself, so the walk is repeated here. Ids are unique across pools, so the
+ * first hit is the only hit.
+ */
+function poolHolding(convo: any, id: string): any | null {
+  for (const name of convo.memory.pools()) {
+    const pool = convo.memory.pool(name);
+    if (pool.has(id)) return pool;
+  }
+  return null;
 }
 
 function round(value: number): number {

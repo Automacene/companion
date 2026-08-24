@@ -350,7 +350,27 @@ function row(entry: MemoryEntry, onChange: () => void): HTMLElement {
         ? new Date(entry.createdAt).toLocaleDateString()
         : '';
 
-  summary.append(kind, text, meta);
+  /*
+    Tags for what this entry is carrying beyond the exchange itself.
+
+    An entry used to render as one blob of question and answer, which hid the
+    biggest thing in it: an attached page is thousands of characters against a
+    question of maybe sixty, and all of it is indexed for recall. A turn holding
+    a page therefore matches far more questions than the exchange alone would,
+    and nothing on the page said so. The tag says so, and carries the size.
+  */
+  const tags = document.createElement('span');
+  tags.className = 'memory-page__tags';
+
+  for (const part of entry.parts) {
+    const tag = document.createElement('span');
+    tag.className = `memory-page__tag memory-page__tag--${part.id}`;
+    tag.textContent = part.chars !== undefined ? `${part.label} ${sizeOf(part.chars)}` : part.label;
+    tag.title = part.note;
+    tags.appendChild(tag);
+  }
+
+  summary.append(kind, text, tags, meta);
 
   const body = document.createElement('div');
   body.className = 'memory-page__entry-body';
@@ -359,18 +379,69 @@ function row(entry: MemoryEntry, onChange: () => void): HTMLElement {
   detail.className = 'memory-page__entry-detail';
   detail.textContent = entry.detail;
 
+  body.appendChild(detail);
+
+  /*
+    Each part shown and removable on its own.
+
+    Forgetting the whole turn to be rid of an attached page throws away the
+    exchange with it, which is the wrong trade when the exchange is the part
+    worth keeping. These remove one piece and leave the rest stored — and the
+    worker re-indexes what remains, so a turn stripped of its page stops
+    matching questions about that page.
+  */
+  for (const part of entry.parts) {
+    const block = document.createElement('div');
+    block.className = 'memory-page__part';
+
+    const head = document.createElement('div');
+    head.className = 'memory-page__part-head';
+
+    const name = document.createElement('span');
+    name.className = 'memory-page__part-name';
+    name.textContent =
+      part.chars !== undefined
+        ? `${part.label} — ${part.note} (${part.chars.toLocaleString()} characters)`
+        : `${part.label} — ${part.note}`;
+
+    const drop = document.createElement('button');
+    drop.type = 'button';
+    drop.className = 'ac-btn ac-btn--ghost';
+    drop.textContent = `Forget the ${part.label}`;
+    drop.addEventListener('click', async () => {
+      drop.disabled = true;
+      drop.textContent = 'Forgetting…';
+      await ask(MemoryAction.MEMORY_FORGET_PART, { id: entry.id, part: part.id });
+      onChange();
+    });
+
+    head.append(name, drop);
+
+    const partDetail = document.createElement('pre');
+    partDetail.className = 'memory-page__entry-detail memory-page__part-detail';
+    partDetail.textContent = part.detail;
+
+    block.append(head, partDetail);
+    body.appendChild(block);
+  }
+
   const forget = document.createElement('button');
   forget.type = 'button';
   forget.className = 'ac-btn ac-btn--ghost';
-  forget.textContent = 'Forget this';
+  forget.textContent = entry.parts.length > 0 ? 'Forget the whole entry' : 'Forget this';
   forget.addEventListener('click', async () => {
     await ask(MemoryAction.MEMORY_FORGET, { id: entry.id });
     onChange();
   });
 
-  body.append(detail, forget);
+  body.appendChild(forget);
   wrap.append(summary, body);
   return wrap;
+}
+
+/** Characters as something readable at a glance. */
+function sizeOf(chars: number): string {
+  return chars >= 1000 ? `${(chars / 1000).toFixed(1)}k` : String(chars);
 }
 
 /** `window:tab:412` is an internal name; this is what it means. */
