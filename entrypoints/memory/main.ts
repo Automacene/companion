@@ -17,11 +17,7 @@ import { startAppearance } from '../../lib/appearance';
 import { readSettings } from '../../lib/settings-client';
 import { MemoryAction } from '../../types/actions';
 import { askWorker } from '../../lib/worker-client';
-import type {
-  MemoryEntry,
-  PoolCount,
-  ConversationStat,
-} from '../../lib/background/memory';
+import type { MemoryEntry, PoolCount, ConversationStat } from '../../lib/background/memory';
 
 /**
  * Ask the worker something, and report a failure AS a failure.
@@ -71,7 +67,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (error) {
       setReachable(false);
       statsHost.replaceChildren(
-        problem(error instanceof Error ? error.message : 'Could not read memory.')
+        problem(error instanceof Error ? error.message : 'Could not read memory.'),
       );
       return;
     }
@@ -83,7 +79,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // them means history was lost.
     if (result.storageFailure) {
       statsHost.appendChild(
-        problem(`${result.storageFailure} Anything from before this session is not loaded.`)
+        problem(`${result.storageFailure} Anything from before this session is not loaded.`),
       );
     }
 
@@ -124,7 +120,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (conversations.length === 0) {
       statsHost.appendChild(
-        note('No conversations are open. Send a message in the sidepanel to start one.')
+        note('No conversations are open. Send a message in the sidepanel to start one.'),
       );
       return;
     }
@@ -170,7 +166,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           : await ask(MemoryAction.MEMORY_LIST);
     } catch (error) {
       listHost.replaceChildren(
-        problem(error instanceof Error ? error.message : 'Could not read memory.')
+        problem(error instanceof Error ? error.message : 'Could not read memory.'),
       );
       return;
     }
@@ -196,8 +192,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             ? 'Nothing matches those words. Recall is keyword matching, so a memory only comes back when the question shares words with it.'
             : inArchive
               ? 'The archive is empty. It fills when a conversation grows past its budget, or when you close a tab.'
-              : 'This conversation holds nothing yet.'
-        )
+              : 'This conversation holds nothing yet.',
+        ),
       );
       return;
     }
@@ -237,7 +233,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 function conversationCard(
   convo: ConversationStat,
   onChange: () => void,
-  onSearch: (scope: string) => void
+  onSearch: (scope: string) => void,
 ): HTMLElement {
   const card = document.createElement('div');
   card.className = `memory-page__convo${convo.live ? '' : ' memory-page__convo--stale'}`;
@@ -286,7 +282,7 @@ function conversationCard(
       !confirm(
         `End the conversation "${where}"?\n\n` +
           'Its turns move into the shared archive, where every tab can recall ' +
-          'them. Nothing is deleted.'
+          'them. Nothing is deleted.',
       )
     ) {
       return;

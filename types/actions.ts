@@ -21,9 +21,9 @@ export const PortAction = {
   STREAM_CHUNK: 'STREAM_CHUNK',
   STREAM_COMPLETE: 'STREAM_COMPLETE',
   STREAM_ERROR: 'STREAM_ERROR',
-  SCRAPE_COMPLETE: 'SCRAPE_COMPLETE', 
-  MAP_COMPLETE: 'MAP_COMPLETE',       
-  SCRAPE_ERROR: 'SCRAPE_ERROR',       
+  SCRAPE_COMPLETE: 'SCRAPE_COMPLETE',
+  MAP_COMPLETE: 'MAP_COMPLETE',
+  SCRAPE_ERROR: 'SCRAPE_ERROR',
 } as const;
 
 export type PortAction = (typeof PortAction)[keyof typeof PortAction];

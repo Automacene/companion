@@ -98,7 +98,7 @@ export class MemoryService {
    */
   private async search(
     query: string,
-    target?: string
+    target?: string,
   ): Promise<{ entries: MemoryEntry[]; total: number }> {
     const convo = await this.sessions.ready();
 
@@ -165,11 +165,18 @@ export class MemoryService {
     return { closed: true };
   }
 
+  /**
+   * Drop one entry, from whichever pool actually holds it.
+   *
+   * This used to only look in the archive, which was correct as long as the
+   * page only ever listed the archive. Now that a conversation's own turns can
+   * be searched and shown with the same "Forget this" button, an id can just as
+   * easily live in a live tab's window pool — `unregister` finds it in any
+   * scope instead of the button silently doing nothing outside the archive.
+   */
   private async forget(id: string): Promise<{ removed: boolean }> {
-    const { pool } = await this.archive();
-    // `remove` rather than `evict`: eviction runs the pool's disposition, and
-    // the archive's disposition is where things go TO. Forgetting must end here.
-    return { removed: pool.remove(id) };
+    const convo = await this.sessions.ready();
+    return { removed: convo.unregister(id) };
   }
 
   private async forgetAll(): Promise<{ removed: number }> {
