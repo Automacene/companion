@@ -1,0 +1,174 @@
+/* =============================================================
+   SURFACE — Memory page
+
+   Layout only; every value comes from a token.
+============================================================= */
+
+.memory-page {
+  min-height: 100vh;
+  padding: var(--ac-space-7) var(--ac-space-6) var(--ac-space-9);
+}
+
+.memory-page__content {
+  max-width: 60rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-7);
+}
+
+.memory-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--ac-space-5);
+  padding-bottom: var(--ac-space-6);
+  border-bottom: 1px solid var(--ac-color-border);
+}
+
+.memory-page__title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--ac-space-4);
+  font-size: var(--ac-text-lg);
+  font-weight: var(--ac-weight-bold);
+  letter-spacing: var(--ac-tracking-tight);
+}
+
+.memory-page__subtitle {
+  margin: var(--ac-space-2) 0 0;
+  font-size: var(--ac-text-sm);
+  color: var(--ac-color-text-muted);
+  max-width: 62ch;
+}
+
+/* ---- Counts ---- */
+.memory-page__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 1px;
+  background: var(--ac-color-border-subtle);
+  border: 1px solid var(--ac-color-border);
+  border-radius: var(--ac-radius-md);
+  overflow: hidden;
+}
+
+.memory-page__stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-1);
+  padding: var(--ac-space-4) var(--ac-space-5);
+  background: var(--ac-color-raised);
+}
+
+.memory-page__stat-key {
+  font-family: var(--ac-font-mono);
+  font-size: var(--ac-text-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--ac-tracking-wide);
+  color: var(--ac-color-text-subtle);
+}
+
+.memory-page__stat-value {
+  font-family: var(--ac-font-mono);
+  font-size: var(--ac-text-lg);
+  font-weight: var(--ac-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Entries ---- */
+.memory-page__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-2);
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: var(--ac-space-3);
+}
+
+.memory-page__entry {
+  border: 1px solid var(--ac-color-border-subtle);
+  border-radius: var(--ac-radius-md);
+}
+
+.memory-page__entry-summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: var(--ac-space-4);
+  padding: var(--ac-space-4) var(--ac-space-5);
+}
+
+.memory-page__entry-summary::-webkit-details-marker {
+  display: none;
+}
+
+/* The kind is the first thing worth knowing, so it reads as a tag. */
+.memory-page__kind {
+  flex-shrink: 0;
+  padding: var(--ac-space-1) var(--ac-space-3);
+  border-radius: var(--ac-radius-sm);
+
+  font-family: var(--ac-font-mono);
+  font-size: var(--ac-text-2xs);
+  font-weight: var(--ac-weight-bold);
+  text-transform: uppercase;
+
+  color: var(--ac-color-text-subtle);
+  background: var(--ac-color-sunken);
+  border: 1px solid var(--ac-color-border-subtle);
+}
+
+.memory-page__kind--turn {
+  color: var(--ac-color-accent);
+  background: var(--ac-color-accent-soft);
+  border-color: var(--ac-color-accent-border);
+}
+
+.memory-page__entry-text {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--ac-text-sm);
+
+  /* One line each, or a page read would fill the list on its own. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memory-page__entry-meta {
+  flex-shrink: 0;
+  font-size: var(--ac-text-2xs);
+  color: var(--ac-color-text-subtle);
+}
+
+.memory-page__entry-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--ac-space-4);
+  padding: 0 var(--ac-space-5) var(--ac-space-5);
+  border-top: 1px solid var(--ac-color-border-subtle);
+}
+
+.memory-page__entry-detail {
+  margin: var(--ac-space-4) 0 0;
+  max-height: 18rem;
+  overflow-y: auto;
+  width: 100%;
+
+  font-family: var(--ac-font-mono);
+  font-size: var(--ac-text-2xs);
+  line-height: var(--ac-leading-normal);
+  color: var(--ac-color-text-muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.memory-page__empty {
+  padding: var(--ac-space-6);
+  text-align: center;
+}

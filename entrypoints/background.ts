@@ -16,6 +16,7 @@ import { SessionManager } from '../lib/background/session';
 import { ScraperService } from '../lib/background/page';
 import { StreamService } from '../lib/background/stream';
 import { MessageDispatcher } from '../lib/background/dispatch';
+import { MemoryService } from '../lib/background/memory';
 import { DEFAULT_SETTINGS } from '../lib/constants';
 
 const settingsManager = new SettingsManager();
@@ -31,8 +32,9 @@ const settingsManager = new SettingsManager();
 const sessionManager = new SessionManager(DEFAULT_SETTINGS);
 const scraperService = new ScraperService();
 const streamService = new StreamService(sessionManager);
+const memoryService = new MemoryService(sessionManager);
 
-const testServices = { sessionManager, settingsManager, scraperService, streamService };
+const testServices = { sessionManager, settingsManager, scraperService, streamService, memoryService };
 (globalThis as any).__TEST_SERVICES__ = testServices;
 (self as any).__TEST_SERVICES__ = testServices;
 
@@ -63,6 +65,10 @@ export default defineBackground(() => {
   settingsManager.onSettingsChanged((settings) => {
     void sessionManager.applySettings(settings as never);
   });
+
+  // Reading and pruning the archive. Separate from the dispatcher because it is
+  // not tab-scoped: the archive belongs to the browser, not to a conversation.
+  memoryService.init();
 
   new MessageDispatcher(
     sessionManager,

@@ -37,6 +37,25 @@ export interface MemoryParamDef {
 
 export const MEMORY_PARAMS: MemoryParamDef[] = [
   {
+    /*
+      Not a share — a count. How many archived items recall may return.
+
+      It is here rather than derived from the archive share because the two
+      bound different things: the share caps how much room recalled text may
+      occupy, and this caps how many separate memories are considered at all.
+      A generous share with a count of five still only ever sees five.
+    */
+    id: 'recallCount',
+    inPrompt: false,
+    label: 'Memories recalled',
+    description:
+      'How many past items a question may bring back. Recall is keyword matching, so a higher number widens what can surface, and the archive budget above still caps how much of it is used.',
+    defaultShare: 12,
+    min: 1,
+    max: 40,
+    step: 1,
+  },
+  {
     id: 'replyShare',
     inPrompt: true,
     label: 'Room to answer',
@@ -115,6 +134,7 @@ export type MemoryShares = Record<string, number>;
  * silently resolving to zero tokens.
  */
 export type MemoryParamId =
+  | 'recallCount'
   | 'replyShare'
   | 'pageShare'
   | 'windowShare'
@@ -158,7 +178,13 @@ export function resolveBudgets(
   let total = 0;
 
   for (const param of MEMORY_PARAMS) {
-    const value = Math.max(0, Math.round(contextTokens * shareOf(memory, param.id)));
+    // `recallCount` is a count of items, not a share of the window, so it is
+    // taken as written rather than multiplied by the context length.
+    const value =
+      param.id === 'recallCount'
+        ? Math.round(shareOf(memory, param.id))
+        : Math.max(0, Math.round(contextTokens * shareOf(memory, param.id)));
+
     tokens[param.id] = value;
     if (param.inPrompt) total += value;
   }

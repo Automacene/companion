@@ -73,10 +73,21 @@ export function buildMind(settings: ExtensionSettings) {
       thinking: { ...DEFAULT_MIND.pools.thinking, eviction: 'thinkingEviction' },
       action: { ...DEFAULT_MIND.pools.action, eviction: 'actionEviction' },
 
-      // Recall is bounded by node count here. The archive holds page reads, so
-      // a handful of large nodes is the case that matters; the count is kept
-      // low deliberately and the assembler renders them as summaries.
-      archive: { ...DEFAULT_MIND.pools.archive, context: { mode: 'ranked', limit: 5, rerank: true } },
+      /*
+        How many memories a question may bring back.
+
+        This was hardcoded at 5 and ignored the archive budget completely, so a
+        128k window with 19,661 tokens allocated to recall was using a few
+        hundred of them. It is a setting now.
+
+        Recall is keyword matching, so the count is what decides whether an
+        older memory can surface at all — the token budget only caps how much of
+        what surfaced is kept.
+      */
+      archive: {
+        ...DEFAULT_MIND.pools.archive,
+        context: { mode: 'ranked', limit: tokens.recallCount, rerank: true },
+      },
 
       /*
         The scrollback index. Scoped so each tab has its own, and with no

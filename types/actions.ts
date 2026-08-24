@@ -38,3 +38,25 @@ export const ToolAction = {
 } as const;
 
 export type ToolAction = (typeof ToolAction)[keyof typeof ToolAction];
+
+/**
+ * Reading and pruning the shared archive.
+ *
+ * One-off runtime messages rather than port traffic: the memory page is not
+ * tab-scoped, and the archive belongs to the browser rather than to any
+ * conversation in it.
+ */
+export const MemoryAction = {
+  /** Recent entries, newest first. */
+  MEMORY_LIST: 'MEMORY_LIST',
+  /** The same ranking the model gets, so the page shows what it would recall. */
+  MEMORY_SEARCH: 'MEMORY_SEARCH',
+  /** Forget one entry. */
+  MEMORY_FORGET: 'MEMORY_FORGET',
+  /** Forget everything in the archive. */
+  MEMORY_FORGET_ALL: 'MEMORY_FORGET_ALL',
+  /** Counts per pool, for the summary. */
+  MEMORY_STATS: 'MEMORY_STATS',
+} as const;
+
+export type MemoryAction = (typeof MemoryAction)[keyof typeof MemoryAction];

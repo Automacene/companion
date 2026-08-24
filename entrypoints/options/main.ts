@@ -14,6 +14,7 @@ import './options.css';
 
 import { startAppearance } from '../../lib/appearance';
 import { readSettings } from '../../lib/settings-client';
+import { MemoryAction } from '../../types/actions';
 import { mountLogo } from '../../lib/logo';
 import { checkOllamaConnection } from '../../lib/model';
 import { getPreset } from '../../lib/backdrop';
@@ -49,9 +50,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Extension page URLs are only knowable from inside the extension.
   const modelLink = document.getElementById('open-model') as HTMLAnchorElement | null;
   const themeLink = document.getElementById('open-theme') as HTMLAnchorElement | null;
+  const memoryLink = document.getElementById('open-memory') as HTMLAnchorElement | null;
 
   if (modelLink) modelLink.href = browser.runtime.getURL('/model.html');
   if (themeLink) themeLink.href = browser.runtime.getURL('/theme.html');
+  if (memoryLink) memoryLink.href = browser.runtime.getURL('/memory.html');
+
+  // How much is stored, so the card says something rather than only pointing.
+  void browser.runtime
+    .sendMessage({ action: MemoryAction.MEMORY_STATS })
+    .then((result) => {
+      const summary = document.getElementById('memory-summary');
+      if (!summary) return;
+
+      const archive = (result?.pools ?? []).find((p: { name: string }) => p.name === 'archive');
+      summary.textContent = archive?.size
+        ? `${archive.size} remembered`
+        : 'nothing stored yet';
+    })
+    .catch(() => {});
 
   // Summaries, so the cards say something rather than only pointing.
   const modelSummary = document.getElementById('model-summary');

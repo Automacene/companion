@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Automacene Memory</title>
+  </head>
+  <body>
+    <div class="memory-page ac-backdrop">
+      <div id="backdrop-layer" class="ac-backdrop__layer"></div>
+
+      <main class="memory-page__content ac-backdrop__content">
+        <header class="memory-page__header">
+          <div>
+            <h1 class="memory-page__title">
+              <span id="status-dot" class="ac-status-dot"></span> MEMORY
+            </h1>
+            <p class="memory-page__subtitle">
+              Everything the companion has kept from your browsing, shared across every tab.
+              Search it the way it would, and forget anything you would rather it did not know.
+            </p>
+          </div>
+          <nav class="memory-page__nav">
+            <a id="open-hub" class="ac-btn ac-btn--ghost" href="#">← Settings</a>
+          </nav>
+        </header>
+
+        <section class="ac-card ac-card--stack">
+          <div class="ac-card__header">
+            <h2 class="ac-card__title">What is stored</h2>
+            <button id="forget-all" type="button" class="ac-btn ac-btn--ghost">Forget everything</button>
+          </div>
+          <div id="memory-stats" class="memory-page__stats"></div>
+        </section>
+
+        <section class="ac-card ac-card--stack">
+          <div class="ac-field">
+            <label class="ac-field__label" for="memory-search">Search</label>
+            <input
+              id="memory-search"
+              type="search"
+              class="ac-input"
+              placeholder="Try words you would expect it to remember…"
+              autocomplete="off"
+            />
+            <p class="ac-field__hint">
+              This runs the same ranking the model does, so what appears here is what a
+              question using these words would actually bring back. Empty shows the most
+              recent instead.
+            </p>
+          </div>
+
+          <div id="memory-list" class="memory-page__list"></div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="main.ts"></script>
+  </body>
+</html>
