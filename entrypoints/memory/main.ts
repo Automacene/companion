@@ -16,6 +16,7 @@ import './memory.css';
 import { startAppearance } from '../../lib/appearance';
 import { readSettings } from '../../lib/settings-client';
 import { MemoryAction } from '../../types/actions';
+import { askWorker } from '../../lib/worker-client';
 import type { MemoryEntry } from '../../lib/background/memory';
 
 /**
@@ -26,9 +27,15 @@ import type { MemoryEntry } from '../../lib/background/memory';
  * empty archive. On a page whose whole job is telling you what is stored, those
  * two must never look the same.
  */
+/**
+ * Ask the worker something.
+ *
+ * This page is opened from a link on the settings hub, so it is very often the
+ * thing that wakes the worker up. `askWorker` handles that; see the note there
+ * for why a cold worker drops the first message without reporting anything.
+ */
 async function ask(action: string, payload: object = {}): Promise<any> {
-  const response = await browser.runtime.sendMessage({ action, ...payload });
-  if (!response) throw new Error('The background worker did not answer.');
+  const response = await askWorker<{ success: boolean; error?: string }>({ action, ...payload });
   if (!response.success) throw new Error(response.error ?? 'The request failed.');
   return response;
 }
@@ -196,7 +203,7 @@ function row(entry: MemoryEntry, onChange: () => void): HTMLElement {
   forget.className = 'ac-btn ac-btn--ghost';
   forget.textContent = 'Forget this';
   forget.addEventListener('click', async () => {
-    await browser.runtime.sendMessage({ action: MemoryAction.MEMORY_FORGET, id: entry.id });
+    await ask(MemoryAction.MEMORY_FORGET, { id: entry.id });
     onChange();
   });
 

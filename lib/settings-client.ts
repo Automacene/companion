@@ -9,6 +9,7 @@
  * sessions as well as storage.
  */
 import { DEFAULT_SETTINGS } from './constants';
+import { askWorker } from './worker-client';
 import { PortAction } from '../types/actions';
 import type { ExtensionSettings } from '../types/state';
 
@@ -108,12 +109,17 @@ export async function replaceSettings(settings: ExtensionSettings): Promise<Writ
 
 async function send(action: string, settings: unknown): Promise<WriteResult> {
   try {
-    const response = (await browser.runtime.sendMessage({ action, settings })) as
-      | WriteResult
-      | undefined;
+    /*
+      Through `askWorker` because a settings page is usually opened cold, and a
+      cold worker drops the first message without reporting anything. That made
+      a write vanish in the worst possible way: storage was never touched, the
+      page had no error to show, and the form still displayed the value the user
+      had just typed. It looked saved.
+    */
+    const response = await askWorker<WriteResult>({ action, settings });
 
-    if (!response?.success) {
-      return { success: false, error: response?.error ?? 'No response from background worker' };
+    if (!response.success) {
+      return { success: false, error: response.error ?? 'No response from background worker' };
     }
 
     return response;

@@ -15,6 +15,7 @@ import './options.css';
 import { startAppearance } from '../../lib/appearance';
 import { readSettings } from '../../lib/settings-client';
 import { MemoryAction } from '../../types/actions';
+import { askWorker } from '../../lib/worker-client';
 import { mountLogo } from '../../lib/logo';
 import { checkOllamaConnection } from '../../lib/model';
 import { getPreset } from '../../lib/backdrop';
@@ -56,19 +57,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (themeLink) themeLink.href = browser.runtime.getURL('/theme.html');
   if (memoryLink) memoryLink.href = browser.runtime.getURL('/memory.html');
 
-  // How much is stored, so the card says something rather than only pointing.
-  void browser.runtime
-    .sendMessage({ action: MemoryAction.MEMORY_STATS })
+  /*
+    How much is stored, so the card says something rather than only pointing.
+
+    A failure here says so instead of claiming the archive is empty. The two
+    were reported identically before, which sent me hunting through storage for
+    a bug that was really the worker running a stale bundle with no memory
+    handler in it.
+  */
+  void askWorker<{ pools?: { name: string; size: number }[] }>({
+    action: MemoryAction.MEMORY_STATS,
+  })
     .then((result) => {
       const summary = document.getElementById('memory-summary');
       if (!summary) return;
 
-      const archive = (result?.pools ?? []).find((p: { name: string }) => p.name === 'archive');
-      summary.textContent = archive?.size
-        ? `${archive.size} remembered`
-        : 'nothing stored yet';
+      const archive = (result.pools ?? []).find((p) => p.name === 'archive');
+      summary.textContent = archive?.size ? `${archive.size} remembered` : 'nothing stored yet';
     })
-    .catch(() => {});
+    .catch(() => {
+      const summary = document.getElementById('memory-summary');
+      if (summary) summary.textContent = 'could not read memory';
+    });
 
   // Summaries, so the cards say something rather than only pointing.
   const modelSummary = document.getElementById('model-summary');
