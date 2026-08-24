@@ -145,12 +145,16 @@
               <section class="ac-card ac-card--stack">
                 <h2 class="ac-card__title">5. Memory &amp; Developer</h2>
 
-                <div class="ac-field">
-                  <label for="max-memory" class="ac-field__label">
-                    Max Character Memory Budget
-                  </label>
-                  <input id="max-memory" type="number" class="ac-input ac-input--mono" />
-                </div>
+                <p class="ac-field__hint">
+                  How the context window is divided. Each is a share of the context length
+                  set above, so these follow it rather than needing their own numbers.
+                </p>
+
+                <!-- The total against num_ctx. Nothing said this before, and the
+                     library's own defaults sum to 16,000 against a 4,096 window. -->
+                <div id="memory-total" class="model-page__memory-total"></div>
+
+                <div id="memory-params"></div>
 
                 <div class="ac-field ac-field--inline">
                   <label for="debug-mode" class="ac-field__label">Debug Console Logging</label>

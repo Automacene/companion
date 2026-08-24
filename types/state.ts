@@ -86,7 +86,6 @@ export interface ExtensionSettings {
   topP?: number;
   topK?: number;
   repeatPenalty?: number;
-  maxMemory?: number;
   stopSeq?: string;
   rawMode?: boolean;
   debugMode?: boolean;

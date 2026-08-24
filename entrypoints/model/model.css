@@ -348,3 +348,43 @@
   border-radius: var(--ac-radius-md);
   background: var(--ac-color-sunken);
 }
+
+/* ---- Memory budgets ----
+   The total sits above the sliders because it is the number nobody had
+   before: the library's own defaults sum to 16,000 tokens against a
+   window that defaults to 4,096, and nothing said so. */
+.model-page__memory-total {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-1);
+
+  padding: var(--ac-space-4) var(--ac-space-5);
+  border: 1px solid var(--ac-color-border-subtle);
+  border-radius: var(--ac-radius-md);
+  background: var(--ac-color-sunken);
+}
+
+.model-page__memory-figure {
+  font-size: var(--ac-text-md);
+  font-weight: var(--ac-weight-bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--ac-color-success);
+}
+
+/* Over budget is a warning, not an error — it still runs, the model just
+   drops the oldest part of the prompt. */
+.model-page__memory-total.is-over {
+  border-color: var(--ac-color-warning-border);
+  background: var(--ac-color-warning-soft);
+}
+
+.model-page__memory-total.is-over .model-page__memory-figure {
+  color: var(--ac-color-warning);
+}
+
+.model-page__memory-readout {
+  flex-shrink: 0;
+  font-size: var(--ac-text-2xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--ac-color-accent);
+}

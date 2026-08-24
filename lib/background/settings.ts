@@ -78,7 +78,7 @@ export class SettingsManager {
         topP: saved.topP ?? DEFAULT_SETTINGS.topP,
         topK: saved.topK ?? DEFAULT_SETTINGS.topK,
         repeatPenalty: saved.repeatPenalty ?? DEFAULT_SETTINGS.repeatPenalty,
-        maxMemory: saved.maxMemory ?? DEFAULT_SETTINGS.maxMemory,
+        memory: saved.memory ?? DEFAULT_SETTINGS.memory,
         stopSeq: saved.stopSeq ?? DEFAULT_SETTINGS.stopSeq,
         rawMode: saved.rawMode ?? DEFAULT_SETTINGS.rawMode,
         debugMode: saved.debugMode ?? DEFAULT_SETTINGS.debugMode,

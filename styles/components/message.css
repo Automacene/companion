@@ -178,3 +178,33 @@
   overflow-y: auto;
   padding-right: var(--ac-space-2);
 }
+
+/* ---- A turn whose answer never arrived ----
+   Dashed and muted, the same language the demo used for anything
+   provisional. It appears when the worker was killed mid-stream, or when
+   a turn errored — the question is real, the answer is not coming. */
+.ac-message--pending .ac-message__body {
+  border: 1px dashed var(--ac-color-border);
+  background: transparent;
+  color: var(--ac-color-text-subtle);
+  font-style: italic;
+}
+
+/* ---- The note that a page was read ----
+   Sits above the message it was attached to. Only the title, never the
+   page: the text was in the prompt on the turn it arrived, and repeating
+   it here is what the whole page-context rework exists to stop. */
+.ac-message--note {
+  justify-content: center;
+}
+
+.ac-message--note .ac-message__body {
+  padding: var(--ac-space-2) var(--ac-space-4);
+  border: 1px dashed var(--ac-color-accent-border);
+  background: var(--ac-color-accent-soft);
+  color: var(--ac-color-accent);
+
+  font-family: var(--ac-font-mono);
+  font-size: var(--ac-text-2xs);
+  overflow-wrap: anywhere;
+}

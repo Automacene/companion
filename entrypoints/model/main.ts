@@ -9,6 +9,9 @@ import './model.css';
 import { startAppearance } from '../../lib/appearance';
 import { readSettings, patchSettings, replaceSettings } from '../../lib/settings-client';
 import { renderParams, type ParamsUi } from './params-ui';
+import { renderMemory, type MemoryUi } from './memory-ui';
+import { DEFAULT_MEMORY, type MemoryShares } from '../../lib/mind/memory-params';
+import { contextTokensOf } from '../../lib/mind/build';
 import { mountServerPanel } from './server-panel';
 import type { ParamValues } from '../../lib/model-params';
 import type { ExtensionSettings } from '../../types/state';
@@ -67,7 +70,6 @@ function applySettingsToForm(settings: ExtensionSettings | null | undefined) {
   const fallbackSelect = document.getElementById('fallback-model') as HTMLSelectElement | null;
   const systemPrompt = document.getElementById('system-prompt') as HTMLTextAreaElement | null;
   const streamResponses = document.getElementById('stream-responses') as HTMLInputElement | null;
-  const maxMemoryEl = document.getElementById('max-memory') as HTMLInputElement | null;
   const debugModeEl = document.getElementById('debug-mode') as HTMLInputElement | null;
 
   if (hostInput) hostInput.value = resolvedSettings.ollamaHost || OLLAMA_HOST;
@@ -76,7 +78,6 @@ function applySettingsToForm(settings: ExtensionSettings | null | undefined) {
   if (streamResponses) streamResponses.checked = !!resolvedSettings.streamResponses;
 
 
-  if (maxMemoryEl) maxMemoryEl.value = resolvedSettings.maxMemory?.toString() || '';
   if (debugModeEl) debugModeEl.checked = !!resolvedSettings.debugMode;
 
   if (primarySelect && resolvedSettings.activeModel) {
@@ -123,6 +124,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const resetBtn = document.getElementById('reset-settings-btn') as HTMLButtonElement | null;
   const saveToast = document.getElementById('save-toast') as HTMLElement | null;
   const paramHost = document.getElementById('param-groups');
+  const memoryHost = document.getElementById('memory-params');
+  const memoryTotalHost = document.getElementById('memory-total');
   const statusHost = document.getElementById('server-status');
   const statusDot = document.getElementById('status-dot') as HTMLElement | null;
   const statusPill = document.getElementById('status-pill') as HTMLElement | null;
@@ -206,15 +209,34 @@ document.addEventListener('DOMContentLoaded', async () => {
    */
   let params: ParamValues = (storedSettings.modelParams ?? {}) as ParamValues;
 
+  let memory: MemoryShares = (storedSettings.memory ?? DEFAULT_MEMORY) as MemoryShares;
+
   const paramsUi: ParamsUi | null = paramHost
     ? renderParams({
         host: paramHost,
         values: params,
         onChange: (next) => {
           params = next;
+          // Every memory figure is a share of `num_ctx`, so changing the context
+          // length changes all of them. Without this the sliders keep showing
+          // token counts for the old window.
+          memoryUi?.refresh();
         },
       })
     : null;
+
+  const memoryUi: MemoryUi | null =
+    memoryHost && memoryTotalHost
+      ? renderMemory({
+          host: memoryHost,
+          totalHost: memoryTotalHost,
+          values: memory,
+          getContextTokens: () => contextTokensOf({ modelParams: params }),
+          onChange: (next) => {
+            memory = next;
+          },
+        })
+      : null;
 
   // Reads the host field rather than the saved setting, so typing a new URL
   // and pressing Refresh checks the one on screen.
@@ -255,8 +277,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const fallbackSelect = document.getElementById('fallback-model') as HTMLSelectElement | null;
     const systemPrompt = document.getElementById('system-prompt') as HTMLTextAreaElement | null;
     const streamResponses = document.getElementById('stream-responses') as HTMLInputElement | null;
-    const maxMemoryEl = document.getElementById('max-memory') as HTMLInputElement | null;
-    const debugModeEl = document.getElementById('debug-mode') as HTMLInputElement | null;
+      const debugModeEl = document.getElementById('debug-mode') as HTMLInputElement | null;
 
     return {
       ollamaHost: hostInput?.value.trim() || OLLAMA_HOST,
@@ -265,7 +286,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       fallbackModel: fallbackSelect?.value || '',
       systemPrompt: systemPrompt?.value || '',
       streamResponses: streamResponses ? streamResponses.checked : true,
-      maxMemory: parseInt(maxMemoryEl?.value || '', 10) || 0,
+      memory,
       debugMode: debugModeEl ? debugModeEl.checked : false,
       modelParams: params,
     };
@@ -294,6 +315,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Reset is the one case where replacing wholesale is the intent.
     params = (DEFAULT_SETTINGS.modelParams ?? {}) as ParamValues;
     paramsUi?.setValues(params);
+
+    memory = { ...DEFAULT_MEMORY };
+    memoryUi?.setValues(memory);
 
     const response = await replaceSettings(DEFAULT_SETTINGS);
 

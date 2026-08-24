@@ -37,7 +37,6 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
   topP: DEFAULT_TOP_P,
   topK: DEFAULT_TOP_K,
   repeatPenalty: DEFAULT_REPEAT_PENALTY,
-  maxMemory: DEFAULT_MAX_CHAR_BUDGET,
   stopSeq: '',
   rawMode: false,
   debugMode: false,

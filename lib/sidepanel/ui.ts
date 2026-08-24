@@ -1,6 +1,6 @@
 import { renderMarkdown } from '../markdown';
 import { setLogoMode } from '../logo';
-import type { ModelMessage } from 'ai';
+import type { ThreadTurn } from '../background/thread';
 
 /**
  * Renders the conversation into the message list.
@@ -66,21 +66,76 @@ export class ChatUI {
     this.scrollToBottom();
   }
 
-  public renderHistory(messages: ModelMessage[]): void {
+  /**
+   * Rebuild the whole conversation from storage.
+   *
+   * The panel throws its DOM away and calls this on every tab switch, so this
+   * is the scrollback rather than an optimisation.
+   *
+   * It takes TURNS now, not messages. A turn holds both halves of an exchange
+   * and carries a stable id, where the old message array was a flat list in
+   * which a question and its answer were unrelated entries. That matters here
+   * because a turn can be open — `response` is null until it closes — and only
+   * a turn can say so.
+   */
+  public renderHistory(turns: ThreadTurn[]): void {
     this.chatContainer.replaceChildren();
-    const visible = messages.filter((m) => m.role !== 'system');
 
-    // Always set, never only collapse. Loading an empty tab has to put the
-    // hero back open AND write the button's accessible name, which starts
-    // unset because the markup cannot know which state it will boot into.
-    this.setHero(visible.length === 0);
+    // Always set, never only collapse: an empty tab has to put the hero back
+    // AND write the button's accessible name, which starts unset because the
+    // markup cannot know which state it will boot into.
+    this.setHero(turns.length === 0);
 
-    for (const msg of visible) {
-      const text = typeof msg.content === 'string' ? msg.content : '';
-      if (msg.role === 'user' || msg.role === 'assistant') {
-        this.appendBubble(msg.role, text);
+    for (const turn of turns) {
+      if (turn.query) {
+        // A page read shows as a marker, not as the page. The text itself was
+        // in the prompt on the turn it arrived and is in the archive now.
+        if (turn.page?.title || turn.page?.url) {
+          this.appendPageMarker(turn.page.title || turn.page.url);
+        }
+        this.appendBubble('user', turn.query);
+      }
+
+      if (turn.response !== null && turn.response !== undefined) {
+        this.appendBubble('assistant', turn.response);
+      } else {
+        /*
+          An open turn. It exists whenever a reply is still streaming, or was
+          streaming when the worker was killed.
+
+          Showing the question with nothing after it would read as a message the
+          extension lost, so it gets a visible unfinished state instead.
+        */
+        this.appendPending();
       }
     }
+  }
+
+  /** A question whose answer never arrived, or has not arrived yet. */
+  private appendPending(): void {
+    const row = document.createElement('div');
+    row.className = 'ac-message ac-message--assistant ac-message--pending';
+
+    const body = document.createElement('div');
+    body.className = 'ac-message__body';
+    body.textContent = 'No reply was recorded for this message.';
+
+    row.appendChild(body);
+    this.chatContainer.appendChild(row);
+    this.scrollToBottom();
+  }
+
+  /** The one-line note that a page was attached to the message below it. */
+  private appendPageMarker(label: string): void {
+    const row = document.createElement('div');
+    row.className = 'ac-message ac-message--note';
+
+    const body = document.createElement('div');
+    body.className = 'ac-message__body';
+    body.textContent = `Read: ${label}`;
+
+    row.appendChild(body);
+    this.chatContainer.appendChild(row);
   }
 
   public startStream(): void {

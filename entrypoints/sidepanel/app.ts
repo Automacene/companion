@@ -56,7 +56,7 @@ export class SidepanelApp {
     this.port.onMessage.addListener((msg) => {
       switch (msg.action) {
         case PortAction.HISTORY_RESPONSE:
-          this.chatUI.renderHistory(msg.messages);
+          this.chatUI.renderHistory(msg.turns ?? []);
           break;
         case PortAction.STREAM_CHUNK:
           this.chatUI.updateStreamChunk(msg.fullText);
