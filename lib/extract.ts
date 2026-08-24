@@ -43,9 +43,27 @@ const ELEMENT_NODE = 1;
 
 /** Never carries anything readable, whatever the page. */
 const NEVER_CONTENT = new Set([
-  'SCRIPT', 'STYLE', 'NOSCRIPT', 'IFRAME', 'SVG', 'CANVAS', 'TEMPLATE',
-  'LINK', 'META', 'OBJECT', 'EMBED', 'AUDIO', 'VIDEO', 'MAP', 'AREA',
-  'INPUT', 'SELECT', 'TEXTAREA', 'BUTTON', 'LABEL', 'FORM',
+  'SCRIPT',
+  'STYLE',
+  'NOSCRIPT',
+  'IFRAME',
+  'SVG',
+  'CANVAS',
+  'TEMPLATE',
+  'LINK',
+  'META',
+  'OBJECT',
+  'EMBED',
+  'AUDIO',
+  'VIDEO',
+  'MAP',
+  'AREA',
+  'INPUT',
+  'SELECT',
+  'TEXTAREA',
+  'BUTTON',
+  'LABEL',
+  'FORM',
 ]);
 
 /** Page furniture by tag. */
@@ -59,8 +77,18 @@ const FURNITURE_TAGS = new Set(['NAV', 'HEADER', 'FOOTER', 'ASIDE', 'DIALOG', 'M
  * thing marking it as furniture.
  */
 const FURNITURE_ROLES = new Set([
-  'navigation', 'banner', 'contentinfo', 'search', 'complementary',
-  'menubar', 'menu', 'toolbar', 'tablist', 'alert', 'status', 'dialog',
+  'navigation',
+  'banner',
+  'contentinfo',
+  'search',
+  'complementary',
+  'menubar',
+  'menu',
+  'toolbar',
+  'tablist',
+  'alert',
+  'status',
+  'dialog',
 ]);
 
 /** Where the main content usually is, best guess first. */
@@ -120,7 +148,10 @@ export function extractPage(doc: Document, options: ExtractOptions = {}): Extrac
   if (selection && selection.length > 40) {
     const text = clamp(selection, opts.maxChars);
     return {
-      title, url, selection, text,
+      title,
+      url,
+      selection,
+      text,
       meta: {
         strategy: 'selection',
         sourceChars,
@@ -135,18 +166,59 @@ export function extractPage(doc: Document, options: ExtractOptions = {}): Extrac
   const body = doc.body;
   if (!body) {
     return {
-      title, url, text: '',
-      meta: { strategy: 'empty', sourceChars, extractedChars: 0, truncated: false, linkDensity: 0, skipped: 0 },
+      title,
+      url,
+      text: '',
+      meta: {
+        strategy: 'empty',
+        sourceChars,
+        extractedChars: 0,
+        truncated: false,
+        linkDensity: 0,
+        skipped: 0,
+      },
     };
   }
 
-  const { element, strategy } = findContent(doc, body, opts);
+  const found = findContent(doc, body, opts);
   const state = { skipped: 0 };
-  const linkDensity = densityOf(element);
-  const text = clamp(render(element, opts, state), opts.maxChars);
+  const linkDensity = densityOf(found.element);
+
+  let strategy = found.strategy;
+  let text = clamp(render(found.element, opts, state), opts.maxChars);
+
+  /*
+    An empty read is a failure, not a result.
+
+    Whatever the reason — a block chosen badly, a page that hides its content
+    behind rules this cannot follow — returning nothing while reporting success
+    is the worst available outcome. The panel said "0 tokens kept" and the model
+    was handed a title with no page under it, which reads to the user as the
+    companion having looked and found nothing there.
+
+    So try the whole body, then fall back to what the browser itself considers
+    rendered text. `innerText` is the browser's own answer to "what does a
+    person see here", already accounts for visibility, and carries navigation
+    along with the content — worse than a clean extraction and far better than
+    an empty one. The strategy says which happened, so a page that needed this
+    is identifiable rather than silently different.
+  */
+  if (text.length === 0 && found.element !== body) {
+    text = clamp(render(body, opts, state), opts.maxChars);
+    strategy = 'whole-body-fallback';
+  }
+
+  if (text.length === 0) {
+    const rendered = (body.innerText ?? '').replace(/\n{3,}/g, '\n\n').trim();
+    if (rendered) {
+      text = clamp(rendered, opts.maxChars);
+      strategy = 'innertext-fallback';
+    }
+  }
 
   return {
-    title, url,
+    title,
+    url,
     ...(selection ? { selection } : {}),
     text,
     meta: {
@@ -214,7 +286,7 @@ function isReadable(element: Element, opts: typeof DEFAULTS): boolean {
 function findContent(
   doc: Document,
   body: HTMLElement,
-  opts: typeof DEFAULTS
+  opts: typeof DEFAULTS,
 ): { element: HTMLElement; strategy: string } {
   for (const selector of CONTENT_HINTS) {
     const candidate = doc.querySelector<HTMLElement>(selector);
@@ -293,10 +365,28 @@ function render(root: HTMLElement, opts: typeof DEFAULTS, state: { skipped: numb
 
     const el = node as HTMLElement;
 
-    if (!isReadable(el, opts)) {
+    /*
+      The furniture and visibility rules apply to what is INSIDE the chosen
+      block, never to the block itself.
+
+      Testing the root was how a LinkedIn profile came back with exactly zero
+      characters. `findContent` picks a candidate on visibility alone, then this
+      re-tested it with the furniture rules as well, and the two disagreed:
+      LinkedIn marks `main` with `aria-hidden="true"` whenever an overlay is up
+      — the sign-in wall, a cookie prompt — to hold focus in the modal. So the
+      block was chosen, rejected on the first call, and the walk ended before it
+      began. Every page whose content sits under an open overlay read as blank.
+
+      A block that was deliberately selected as the content is the content. If
+      it was the wrong choice, that is a problem for `findContent`, not
+      something to express by discarding the page.
+    */
+    if (el !== root && !isReadable(el, opts)) {
       state.skipped++;
       return;
     }
+
+    if (el === root && NEVER_CONTENT.has(el.tagName)) return;
 
     const tag = el.tagName.toLowerCase();
 

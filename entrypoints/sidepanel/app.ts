@@ -1,8 +1,4 @@
-import { 
-  DEFAULT_ACTIVE_MODEL, 
-  OLLAMA_HOST, 
-  SIDEPANEL_CONNECTION_NAME 
-} from '../../lib/constants';
+import { DEFAULT_ACTIVE_MODEL, OLLAMA_HOST, SIDEPANEL_CONNECTION_NAME } from '../../lib/constants';
 import { PortAction, ToolAction } from '../../types/actions';
 import type { ExtensionSettings } from '../../types/state';
 import type { ChatUI } from '../../lib/sidepanel/ui';
@@ -53,7 +49,7 @@ export class SidepanelApp {
     private chatInput: HTMLTextAreaElement,
     private scrapeBtn: HTMLButtonElement | null,
     pulser: HTMLElement | null,
-    private backdrop: BackdropHandle
+    private backdrop: BackdropHandle,
   ) {
     this.port = this.connect();
 
@@ -89,7 +85,7 @@ export class SidepanelApp {
       // A reply was in flight. It is not coming back, so say so and unlock
       // rather than leaving the composer dead.
       this.chatUI.streamError(
-        'The extension restarted while replying. Your message was not answered — send it again.'
+        'The extension restarted while replying. Your message was not answered — send it again.',
       );
       this.endReply();
     });
@@ -238,7 +234,7 @@ export class SidepanelApp {
       // Nothing came back. Unlock regardless — a missing message must not cost
       // the user the ability to type.
       this.chatUI.streamError(
-        'No reply came back. The model may still be loading, or the extension may have restarted.'
+        'No reply came back. The model may still be loading, or the extension may have restarted.',
       );
       this.endReply();
     }, REPLY_WATCHDOG_MS);
@@ -298,6 +294,24 @@ export class SidepanelApp {
       first 8,868 characters were the navigation bar. The model was handed a
       menu and said, correctly, that no content had been provided.
     */
+    /*
+      Nothing read is its own outcome and says so.
+
+      This used to report "~0 tokens kept, 100% dropped" in the same shape as a
+      successful read, which reads as though the page were genuinely empty. It
+      was not — the extractor had failed on it — and the model still received
+      the title and URL, so it would answer as if it had read the page while
+      knowing only its name.
+    */
+    if (kept === 0) {
+      this.chatUI.appendSystemNotice(
+        'Nothing could be read from that page. Only its title and address will be ' +
+          'attached, so the model will know which page you mean but not what is on it. ' +
+          'Scrolling the content into view and reading again usually works.',
+      );
+      return;
+    }
+
     const tokens = Math.round(kept / 4).toLocaleString();
     const summary =
       source > kept
@@ -307,7 +321,7 @@ export class SidepanelApp {
     this.chatUI.appendSystemNotice(
       meta.truncated
         ? `${summary} It hit the size limit, so the end was cut.`
-        : `${summary} It attaches to your next message.`
+        : `${summary} It attaches to your next message.`,
     );
   }
 
@@ -331,8 +345,7 @@ export class SidepanelApp {
 
     this.chatInput.style.height = 'auto';
     this.chatInput.style.height = `${Math.min(this.chatInput.scrollHeight, maxHeight)}px`;
-    this.chatInput.style.overflowY =
-      this.chatInput.scrollHeight > maxHeight ? 'auto' : 'hidden';
+    this.chatInput.style.overflowY = this.chatInput.scrollHeight > maxHeight ? 'auto' : 'hidden';
   }
 
   private requestTabHistory(tabId: number): void {
