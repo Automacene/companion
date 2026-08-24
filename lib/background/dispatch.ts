@@ -1,5 +1,7 @@
 import { PortAction, ToolAction } from '../../types/actions';
 import { SIDEPANEL_CONNECTION_NAME } from '../constants';
+import { pageCharBudget } from '../mind/build';
+import { readThread, type PageContext } from './thread';
 import type { SessionManager } from './session';
 import type { SettingsManager } from './settings';
 import type { ScraperService } from './page';
@@ -12,6 +14,16 @@ export class MessageDispatcher {
     private scraperService: ScraperService,
     private streamService: StreamService
   ) {}
+
+  /**
+   * Page reads waiting to be attached, keyed by tab.
+   *
+   * In memory only. If the service worker is killed between reading a page and
+   * sending the message, the page is gone and the user reads "Scraped" against
+   * nothing — which is the honest outcome, since re-reading is one click and
+   * persisting it would mean a stale page attaching itself hours later.
+   */
+  private staged = new Map<number, PageContext>();
 
   public init(): void {
     // Long-lived Port connections (Sidepanel <-> Background)
@@ -38,7 +50,7 @@ export class MessageDispatcher {
         if (msg.action === PortAction.SAVE_SETTINGS) {
           try {
             await this.settingsManager.saveSettings(msg.settings);
-            this.sessionManager.applySettingsToAll(msg.settings);
+            void this.sessionManager.applySettings(msg.settings);
             port.postMessage({ success: true });
           } catch (err) {
             port.postMessage({
@@ -53,23 +65,45 @@ export class MessageDispatcher {
         if (tabId === -1) return;
 
         const currentSettings = await this.settingsManager.getSettings();
-        const conversation = this.sessionManager.getSession(tabId, currentSettings);
 
         switch (msg.action) {
-          case PortAction.GET_HISTORY:
+          case PortAction.GET_HISTORY: {
+            /*
+              The panel throws its DOM away and rebuilds from here on every tab
+              switch, so this is the scrollback.
+
+              It reads the thread pool rather than the window, because eviction
+              moves older turns into the shared archive and they would silently
+              disappear from the panel while the model could still recall them.
+              The thread holds ids in order and never evicts; each id is then
+              resolved wherever the node now lives.
+            */
+            const scope = await this.sessionManager.scopeFor(tabId);
             port.postMessage({
               action: PortAction.HISTORY_RESPONSE,
-              messages: conversation.getHistory(), // <-- Calls getHistory() instead of getMessages()
+              turns: await readThread(scope),
             });
             break;
+          }
 
           case ToolAction.SCRAPE_DOM: {
-            const targetTabId = msg.tabId;
-            const session = this.sessionManager.getSession(targetTabId);
+            /*
+              A page read is STAGED, not stored. It waits here until the next
+              message, then rides on that turn as its own field.
 
+              The old version wrote it into a slot on the conversation and
+              spliced it into the message text, which is why a scraped page
+              reappeared in the visible history when switching tabs.
+            */
             this.scraperService
-              .scrapeTab(targetTabId, session)
+              .scrapeTab(tabId, { maxChars: pageCharBudget(currentSettings) })
               .then((result) => {
+                this.staged.set(tabId, {
+                  title: result.title,
+                  url: result.url,
+                  content: result.content,
+                });
+
                 port.postMessage({
                   action: 'SCRAPE_COMPLETE',
                   result: {
@@ -82,7 +116,7 @@ export class MessageDispatcher {
               .catch((error) => {
                 port.postMessage({
                   action: 'SCRAPE_ERROR',
-                  error: error.message || 'Scrape pipeline failed',
+                  error: error.message || 'The page could not be read.',
                 });
               });
             break;
@@ -90,16 +124,17 @@ export class MessageDispatcher {
 
           case PortAction.SEND_MESSAGE:
             if (msg.prompt) {
+              const context = this.staged.get(tabId);
+              // One message, one page. Consumed whether the turn succeeds or
+              // fails, so a stale page cannot attach itself to a later question.
+              this.staged.delete(tabId);
+
               await this.streamService.handleUserMessage(
                 port,
-                conversation,
+                tabId,
                 msg.prompt,
-                // Already read at the top of this handler. It was being used
-                // only to pick the session, while every sampling parameter in
-                // it went unused.
                 currentSettings,
-                msg.hostUrl,
-                msg.modelName
+                context
               );
             }
             break;
@@ -124,7 +159,7 @@ export class MessageDispatcher {
 
       write
         .then((settings) => {
-          this.sessionManager.applySettingsToAll(settings);
+          void this.sessionManager.applySettings(settings);
           sendResponse({ success: true, settings });
         })
         .catch((err) => {

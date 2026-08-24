@@ -1,7 +1,6 @@
 import { ToolAction } from '../../types/actions';
 import { DEFAULT_PROCESSOR_NAME, DEFAULT_MAX_CHAR_BUDGET } from '../constants';
 import type { ProcessedResult } from '../processors/types';
-import type { VercelConversation } from '../conversation';
 
 export interface ScrapeOptions {
   processor?: string;
@@ -18,11 +17,7 @@ export interface ScrapeOptions {
  * of text rather than the entire document.
  */
 export class ScraperService {
-  public async scrapeTab(
-    tabId: number,
-    conversation: VercelConversation,
-    options: ScrapeOptions = {}
-  ): Promise<ProcessedResult> {
+  public async scrapeTab(tabId: number, options: ScrapeOptions = {}): Promise<ProcessedResult> {
     let response;
 
     try {
@@ -45,12 +40,14 @@ export class ScraperService {
       throw new Error(response?.error || 'The page could not be read.');
     }
 
-    const result = response.data as ProcessedResult;
+    /*
+      Returned rather than stored. The dispatcher holds it until the next
+      message, then it rides on that turn as its own field.
 
-    if (result.content) {
-      conversation.setContext(result.title || 'Untitled Page', result.url || '', result.content);
-    }
-
-    return result;
+      This used to call `conversation.setContext`, which put the page in a slot
+      that the next message spliced into its own text — which is why a scraped
+      page came back in the visible history on every tab switch.
+    */
+    return response.data as ProcessedResult;
   }
 }
