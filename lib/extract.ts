@@ -135,6 +135,35 @@ export interface ExtractResult {
 
 const DEFAULTS = { maxChars: 12000, keepLinks: false, visibleOnly: true };
 
+/**
+ * Below this share of the painted text, the walk is treated as having failed.
+ *
+ * Set well under half deliberately. Dropping navigation, headers, and footers
+ * legitimately removes a large slice of a page — a third gone is an ordinary
+ * result and must not trigger this. Only a near-total loss does.
+ */
+const SALVAGE_RATIO = 0.25;
+
+/** Too little painted text to judge a ratio against. */
+const MIN_PAINTED = 200;
+
+/**
+ * What the browser actually laid out, as text.
+ *
+ * `innerText` rather than `textContent`: the first is computed from layout and
+ * so reflects what a person sees, the second returns every character in the
+ * tree whether or not it was ever painted. Outside a browser there is no layout
+ * to ask, so it is absent and this returns nothing.
+ */
+function renderedText(element: HTMLElement): string {
+  const text = element?.innerText;
+  if (typeof text !== 'string') return '';
+  return text
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 export function extractPage(doc: Document, options: ExtractOptions = {}): ExtractResult {
   const opts = { ...DEFAULTS, ...options };
 
@@ -188,32 +217,32 @@ export function extractPage(doc: Document, options: ExtractOptions = {}): Extrac
   let text = clamp(render(found.element, opts, state), opts.maxChars);
 
   /*
-    An empty read is a failure, not a result.
+    Check the walk against what the browser actually painted.
 
-    Whatever the reason — a block chosen badly, a page that hides its content
-    behind rules this cannot follow — returning nothing while reporting success
-    is the worst available outcome. The panel said "0 tokens kept" and the model
-    was handed a title with no page under it, which reads to the user as the
-    companion having looked and found nothing there.
+    The walk above reads the DOM tree and applies this file's own rules about
+    what counts as content. Those rules are guesses, and on a site that builds
+    its page unusually they can be badly wrong in a way nothing here would
+    notice — a LinkedIn profile came back with exactly zero characters while the
+    page was plainly full of text.
 
-    So try the whole body, then fall back to what the browser itself considers
-    rendered text. `innerText` is the browser's own answer to "what does a
-    person see here", already accounts for visibility, and carries navigation
-    along with the content — worse than a clean extraction and far better than
-    an empty one. The strategy says which happened, so a page that needed this
-    is identifiable rather than silently different.
+    `innerText` answers a different question and is not a guess: it is the
+    browser's own layout-aware account of what a person sees, so it already
+    respects every CSS rule, every hidden subtree, and every collapsed section
+    without being told about any of them. It makes worse output than the walk —
+    no headings, no list structure, and navigation left in — which is why it is
+    not the primary path.
+
+    But it is the honest measure of how much text is really there. When the walk
+    keeps only a small fraction of it, the rules misfired rather than the page
+    being empty, and the browser's flawed answer beats this file's broken one.
+    Losing a third of a page to navigation removal is normal and stays; losing
+    nearly all of it is a failure and gets replaced.
   */
-  if (text.length === 0 && found.element !== body) {
-    text = clamp(render(body, opts, state), opts.maxChars);
-    strategy = 'whole-body-fallback';
-  }
+  const painted = renderedText(found.element) || renderedText(body);
 
-  if (text.length === 0) {
-    const rendered = (body.innerText ?? '').replace(/\n{3,}/g, '\n\n').trim();
-    if (rendered) {
-      text = clamp(rendered, opts.maxChars);
-      strategy = 'innertext-fallback';
-    }
+  if (painted.length >= MIN_PAINTED && text.length < painted.length * SALVAGE_RATIO) {
+    text = clamp(painted, opts.maxChars);
+    strategy = `${found.strategy}+painted`;
   }
 
   return {
