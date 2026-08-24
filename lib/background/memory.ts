@@ -119,9 +119,15 @@ export class MemoryService {
     return { removed: ids.length };
   }
 
-  private async stats(): Promise<{ pools: { name: string; size: number }[] }> {
+  private async stats(): Promise<{
+    pools: { name: string; size: number }[];
+    storageFailure: string | null;
+  }> {
     const convo = await this.sessions.ready();
     return {
+      // Reported rather than hidden. Without it, memory that failed to load
+      // looks exactly like memory that was never written.
+      storageFailure: this.sessions.storageFailure,
       /*
         Every pool, empty ones included.
 

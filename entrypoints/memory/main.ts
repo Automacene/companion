@@ -71,6 +71,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     setReachable(true);
     statsHost.replaceChildren();
 
+    // Storage failing is different from storage being empty, and only one of
+    // them means history was lost.
+    if (result.storageFailure) {
+      statsHost.appendChild(
+        problem(`${result.storageFailure} Anything from before this session is not loaded.`)
+      );
+    }
+
     // Every pool, including empty ones. A pool that exists and holds nothing is
     // different information from a pool that does not exist, and on a
     // diagnostic page both are worth seeing.

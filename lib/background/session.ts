@@ -24,6 +24,22 @@ import type { ExtensionSettings } from '../../types/state';
 /** A tab that crashes never fires `onRemoved`, so idle scopes are reaped. */
 const SCOPE_IDLE_MS = 6 * 60 * 60 * 1000;
 
+/**
+ * How long to wait for stored memory before giving up on it.
+ *
+ * `indexedDB.open()` fires `onsuccess`, `onerror`, or `onblocked`, and the
+ * storage addon only listens for the first two. A blocked open therefore
+ * settles nothing at all, and every caller awaiting it waits forever.
+ *
+ * That is not hypothetical: it wedges the whole worker. `handleUserMessage`
+ * awaits the same load, so a hang there means STREAM_COMPLETE never fires and
+ * the panel's composer locks; the memory page reports that the worker never
+ * answered, because it never did.
+ *
+ * Starting without stored memory loses history. Hanging loses the extension.
+ */
+const STORAGE_TIMEOUT_MS = 4000;
+
 export function scopeNameFor(tabId: number): string {
   return `tab:${tabId}`;
 }
@@ -31,6 +47,9 @@ export function scopeNameFor(tabId: number): string {
 export class SessionManager {
   private convo: Conversation | null = null;
   private loading: Promise<void> | null = null;
+
+  /** Why stored memory is unavailable, or null when it loaded. */
+  public storageFailure: string | null = null;
   private settings: ExtensionSettings;
 
   constructor(settings: ExtensionSettings) {
@@ -48,12 +67,15 @@ export class SessionManager {
     if (!this.convo) this.convo = this.construct();
 
     if (!this.loading) {
-      this.loading = this.convo
-        .load()
-        .then(() => undefined)
+      this.loading = withTimeout(this.convo.load(), STORAGE_TIMEOUT_MS)
+        .then(() => {
+          this.storageFailure = null;
+        })
         .catch((error: unknown) => {
-          // An unreadable store is not a reason to refuse to run. Starting
-          // empty loses history; throwing here would lose the extension.
+          // Recorded rather than swallowed, so the memory page can say that
+          // history is missing because storage failed rather than showing an
+          // empty archive as though that were the truth.
+          this.storageFailure = error instanceof Error ? error.message : String(error);
           console.warn('[session] could not load stored memory:', error);
         });
     }
@@ -121,4 +143,29 @@ export class SessionManager {
       scopeIdleMs: SCOPE_IDLE_MS,
     });
   }
+}
+
+/**
+ * Reject rather than wait forever.
+ *
+ * Written here rather than assumed of the caller because the thing being waited
+ * on is a promise that can legitimately never settle, and `await` has no
+ * opinion about that.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(
+        () =>
+          reject(
+            new Error(
+              `Stored memory did not load within ${ms}ms. ` +
+                'IndexedDB may be blocked or unavailable in this browser profile.'
+            )
+          ),
+        ms
+      )
+    ),
+  ]);
 }
