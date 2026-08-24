@@ -1,56 +1,46 @@
-import type { PostProcessor, RawDOMPayload, ProcessedResult } from './types';
+import { extractPage } from '../extract';
+import type { PageSource, PostProcessor, ProcessedResult } from './types';
 
+/**
+ * The default processor: what a person would read, and nothing else.
+ *
+ * Everything it drops is dropped for a stated reason rather than by pattern
+ * matching on tags. Script and style never held readable text. Navigation,
+ * headers, footers and sidebars are furniture. Anything not currently on screen
+ * was not being read by anyone, which covers collapsed menus, inactive tabs,
+ * and the duplicate copy of a layout that sites render for a different screen
+ * width and hide with CSS.
+ *
+ * What survives is the block with the most text that is not link text, rendered
+ * with its headings, lists and code blocks intact.
+ */
 export class BasicProcessor implements PostProcessor {
   name = 'basic';
-  description = 'Strips out noise (scripts, styles, nav) and extracts clean text and links.';
+  description = 'Keeps the readable content and drops navigation, chrome, and anything off screen.';
 
-  async process(payload: RawDOMPayload): Promise<ProcessedResult> {
-    let html = payload.html || '';
-
-    // Remove <script>, <style>, <noscript>, <iframe>, and <svg> blocks completely
-    html = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-    html = html.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
-    html = html.replace(/<noscript\b[^<]*(?:(?!<\/noscript>)<[^<]*)*<\/noscript>/gi, '');
-    html = html.replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '');
-    html = html.replace(/<svg\b[^<]*(?:(?!<\/svg>)<[^<]*)*<\/svg>/gi, '');
-
-    // Remove HTML comments
-    html = html.replace(/<!--[\s\S]*?-->/gi, '');
-
-    // Normalize anchor tags to preserve link targets alongside text: [Link Text](href)
-    html = html.replace(/<a\b[^>]*href=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi, (_match, href, text) => {
-      const cleanText = text.replace(/<[^>]+>/g, '').trim();
-      return cleanText ? ` [${cleanText}](${href}) ` : '';
+  async process(source: PageSource): Promise<ProcessedResult> {
+    const result = extractPage(source.document, {
+      maxChars: source.maxChars,
+      visibleOnly: true,
+      // Link targets roughly double the cost of a link and the model can rarely
+      // act on them. Off unless somebody asks.
+      keepLinks: false,
     });
-
-    // Strip remaining HTML tags while preserving spaces where block tags existed
-    html = html.replace(/<\/(p|div|h[1-6]|li|tr|section|article|header|footer)>|<br\s*\/?>/gi, '\n');
-    html = html.replace(/<[^>]+>/g, '');
-
-    // Decode common HTML entities
-    html = html
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/&nbsp;/g, ' ');
-
-    //Collapse excessive whitespace and blank lines
-    const cleanedContent = html
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0)
-      .join('\n');
 
     return {
       processorName: this.name,
       contentType: 'text/markdown',
-      content: cleanedContent,
+      content: result.text,
+      title: result.title,
+      url: result.url,
       metadata: {
-        rawLength: payload.html.length,
-        processedLength: cleanedContent.length,
-        url: payload.url,
+        ...result.meta,
+        // The ratio that matters when judging whether a scrape went well. A
+        // page reporting 600,000 source characters and 4,000 extracted ones did
+        // its job; one reporting 600,000 and 400,000 did not.
+        reduction: result.meta.sourceChars
+          ? Math.round((1 - result.meta.extractedChars / result.meta.sourceChars) * 100)
+          : 0,
       },
     };
   }

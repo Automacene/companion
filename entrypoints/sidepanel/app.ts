@@ -172,13 +172,37 @@ export class SidepanelApp {
 
     if (this.scrapeBtn) {
       this.scrapeBtn.disabled = false;
-      this.scrapeBtn.innerText = 'Scraped!';
+      this.scrapeBtn.textContent = 'Scraped';
       setTimeout(() => {
-        if (this.scrapeBtn) this.scrapeBtn.innerText = 'Scrape';
+        if (this.scrapeBtn) this.scrapeBtn.textContent = 'Scrape';
       }, 2000);
     }
-    const charCount = result?.metadata?.rawLength || 0;
-    this.chatUI.appendSystemNotice(`Page context staged (${charCount.toLocaleString()} chars). It will attach to your next message.`);
+
+    const meta = result?.metadata ?? {};
+    const kept: number = meta.extractedChars ?? 0;
+    const source: number = meta.sourceChars ?? 0;
+    const reduction: number = meta.reduction ?? 0;
+
+    /*
+      Report what was KEPT, not what was found.
+
+      The old notice said "Page context staged (603,821 chars)", which reads as
+      a success and was the opposite. That figure was the whole document; the
+      budget then kept the first 8,868 characters of it, and on that page the
+      first 8,868 characters were the navigation bar. The model was handed a
+      menu and said, correctly, that no content had been provided.
+    */
+    const tokens = Math.round(kept / 4).toLocaleString();
+    const summary =
+      source > kept
+        ? `Page read: ~${tokens} tokens kept, ${reduction}% of the page dropped as navigation and chrome.`
+        : `Page read: ~${tokens} tokens.`;
+
+    this.chatUI.appendSystemNotice(
+      meta.truncated
+        ? `${summary} It hit the size limit, so the end was cut.`
+        : `${summary} It attaches to your next message.`
+    );
   }
 
   private handleScrapeError(error: string): void {
