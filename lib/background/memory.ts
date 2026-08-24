@@ -1,5 +1,6 @@
 import { splitPoolName } from '@automacene/conversation';
 import { MemoryAction } from '../../types/actions';
+import { announceMemoryChanged } from './memory-events';
 import type { SessionManager } from './session';
 
 /**
@@ -162,6 +163,7 @@ export class MemoryService {
     if (!scope || !convo.hasScope(scope)) return { closed: false };
 
     await convo.closeScope(scope);
+    announceMemoryChanged();
     return { closed: true };
   }
 
@@ -176,13 +178,16 @@ export class MemoryService {
    */
   private async forget(id: string): Promise<{ removed: boolean }> {
     const convo = await this.sessions.ready();
-    return { removed: convo.unregister(id) };
+    const removed = convo.unregister(id);
+    if (removed) announceMemoryChanged();
+    return { removed };
   }
 
   private async forgetAll(): Promise<{ removed: number }> {
     const { pool } = await this.archive();
     const ids = pool.ids();
     for (const id of ids) pool.remove(id);
+    if (ids.length) announceMemoryChanged();
     return { removed: ids.length };
   }
 

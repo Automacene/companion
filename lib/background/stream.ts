@@ -5,6 +5,7 @@ import { PortAction } from '../../types/actions';
 import type { ExtensionSettings } from '../../types/state';
 import { syncThread } from './thread';
 import { keepAwake } from './keepalive';
+import { announceMemoryChanged } from './memory-events';
 import type { SessionManager } from './session';
 
 /**
@@ -89,6 +90,10 @@ export class StreamService {
         return { record, accumulated };
       });
 
+      // A completed turn is a write. The memory page has no other way to know
+      // one just happened, since it never touches IndexedDB itself.
+      announceMemoryChanged();
+
       port.postMessage({
         action: PortAction.STREAM_COMPLETE,
         fullText: accumulated,
@@ -112,6 +117,7 @@ export class StreamService {
       */
       try {
         await syncThread(await this.sessions.scopeFor(tabId));
+        announceMemoryChanged();
       } catch {
         // Indexing is best effort. The error below is what matters.
       }

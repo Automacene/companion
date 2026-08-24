@@ -17,6 +17,7 @@ import { startAppearance } from '../../lib/appearance';
 import { readSettings } from '../../lib/settings-client';
 import { MemoryAction } from '../../types/actions';
 import { askWorker } from '../../lib/worker-client';
+import { onMemoryChanged } from '../../lib/background/memory-events';
 import type { MemoryEntry, PoolCount, ConversationStat } from '../../lib/background/memory';
 
 /**
@@ -206,6 +207,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   search?.addEventListener('input', debounce(refreshList, 200));
+
+  /*
+    Redrawing when storage changes, not only when this page caused it.
+
+    Without this, a second tab finishing a turn — or the panel closing that
+    tab and archiving what it held — left the page showing whatever it looked
+    like on open until somebody manually reloaded it. IndexedDB has nothing
+    like `browser.storage.onChanged` to notice that by itself, so the
+    background worker says so directly after every write; see
+    `lib/background/memory-events.ts` for why a broadcast rather than a
+    message. Debounced because a tab closing runs a turn's save and the
+    scope's close-save within the same moment.
+  */
+  onMemoryChanged(debounce(refresh, 150));
 
   document.getElementById('forget-all')?.addEventListener('click', async () => {
     // Deliberately blunt. This is the one irreversible control on the page, and
