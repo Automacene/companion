@@ -1,6 +1,7 @@
 import type { ExtensionSettings } from '../types/state';
 import { DEFAULT_THEME_PREFERENCE } from './theme';
 import { DEFAULT_PRESET_ID } from './backdrop/presets';
+import { DEFAULT_MEMORY } from './mind/memory-params';
 
 export const OLLAMA_HOST = 'http://localhost:11434';
 export const MODEL_NAME = 'llama3';
@@ -21,6 +22,7 @@ export const SIDEPANEL_CONNECTION_NAME = 'sidepanel-connection';
 export const DEFAULT_SETTINGS: ExtensionSettings = {
   theme: DEFAULT_THEME_PREFERENCE,
   themeOverrides: {},
+  memory: DEFAULT_MEMORY,
   backdrop: { preset: DEFAULT_PRESET_ID },
   ollamaHost: OLLAMA_HOST,
   connTimeout: DEFAULT_CONN_TIMEOUT,

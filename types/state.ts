@@ -62,6 +62,17 @@ export interface ExtensionSettings {
    */
   modelParams?: Record<string, string | number | boolean>;
 
+  /**
+   * How the context window is divided, as shares of `num_ctx` keyed by the ids
+   * in `lib/mind/memory-params.ts`. Shares rather than token counts, because
+   * `num_ctx` is itself a setting and the split should follow it.
+   *
+   * Replaces `maxMemory`, which was a character budget belonging to the old
+   * conversation class — the one that truncated a scraped page to its first
+   * few thousand characters, which on most sites is the navigation bar.
+   */
+  memory?: Record<string, number>;
+
   ollamaHost?: string;
   connTimeout?: number;
   keepAlive?: string;
