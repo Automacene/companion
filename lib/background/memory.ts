@@ -122,10 +122,16 @@ export class MemoryService {
   private async stats(): Promise<{ pools: { name: string; size: number }[] }> {
     const convo = await this.sessions.ready();
     return {
+      /*
+        Every pool, empty ones included.
+
+        Filtering out the empty ones made a working conversation look like
+        nothing at all, because a fresh window holds one turn and everything
+        else is legitimately zero until eviction has run at least once.
+      */
       pools: convo.memory
         .pools()
-        .map((name: string) => ({ name, size: convo.memory.pool(name).size }))
-        .filter((p: { size: number }) => p.size > 0),
+        .map((name: string) => ({ name, size: convo.memory.pool(name).size })),
     };
   }
 }

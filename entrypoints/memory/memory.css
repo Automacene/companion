@@ -172,3 +172,14 @@
   padding: var(--ac-space-6);
   text-align: center;
 }
+
+/* A failed request must not look like an empty archive — on this page in
+   particular, since telling you what is stored is the entire job. */
+.memory-page__problem {
+  padding: var(--ac-space-5);
+  border: 1px dashed var(--ac-color-danger-border);
+  border-radius: var(--ac-radius-md);
+  background: var(--ac-color-danger-soft);
+  color: var(--ac-color-danger);
+  font-size: var(--ac-text-sm);
+}

@@ -18,15 +18,19 @@ import { readSettings } from '../../lib/settings-client';
 import { MemoryAction } from '../../types/actions';
 import type { MemoryEntry } from '../../lib/background/memory';
 
+/**
+ * Ask the worker something, and report a failure AS a failure.
+ *
+ * This used to catch and return null, which the page then rendered through
+ * `?? []` — so a request that never reached the worker looked exactly like an
+ * empty archive. On a page whose whole job is telling you what is stored, those
+ * two must never look the same.
+ */
 async function ask(action: string, payload: object = {}): Promise<any> {
-  try {
-    const response = await browser.runtime.sendMessage({ action, ...payload });
-    if (!response?.success) throw new Error(response?.error ?? 'No response');
-    return response;
-  } catch (error) {
-    console.error('[memory]', error);
-    return null;
-  }
+  const response = await browser.runtime.sendMessage({ action, ...payload });
+  if (!response) throw new Error('The background worker did not answer.');
+  if (!response.success) throw new Error(response.error ?? 'The request failed.');
+  return response;
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -36,18 +40,43 @@ document.addEventListener('DOMContentLoaded', async () => {
   const hub = document.getElementById('open-hub') as HTMLAnchorElement | null;
   if (hub) hub.href = browser.runtime.getURL('/options.html');
 
+  /*
+    The dot reports whether the WORKER answered, not whether Ollama is up.
+    Ollama is irrelevant here — this page only reads storage — and a dot that
+    sits grey forever because nothing ever sets it is worse than no dot.
+  */
+  const statusDot = document.getElementById('status-dot');
+  const setReachable = (ok: boolean) => {
+    if (statusDot) statusDot.className = `ac-status-dot ac-status-dot--${ok ? 'ok' : 'error'}`;
+  };
+
   const listHost = document.getElementById('memory-list');
   const statsHost = document.getElementById('memory-stats');
   const search = document.getElementById('memory-search') as HTMLInputElement | null;
 
   async function refreshStats(): Promise<void> {
     if (!statsHost) return;
-    const result = await ask(MemoryAction.MEMORY_STATS);
+
+    let result;
+    try {
+      result = await ask(MemoryAction.MEMORY_STATS);
+    } catch (error) {
+      setReachable(false);
+      statsHost.replaceChildren(
+        problem(error instanceof Error ? error.message : 'Could not read memory.')
+      );
+      return;
+    }
+
+    setReachable(true);
     statsHost.replaceChildren();
 
-    const pools: { name: string; size: number }[] = result?.pools ?? [];
+    // Every pool, including empty ones. A pool that exists and holds nothing is
+    // different information from a pool that does not exist, and on a
+    // diagnostic page both are worth seeing.
+    const pools: { name: string; size: number }[] = result.pools ?? [];
     if (pools.length === 0) {
-      statsHost.appendChild(note('Nothing stored yet.'));
+      statsHost.appendChild(note('No pools exist yet. Send a message to start a conversation.'));
       return;
     }
 
@@ -74,11 +103,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!listHost) return;
 
     const query = search?.value.trim() ?? '';
-    const result = query
-      ? await ask(MemoryAction.MEMORY_SEARCH, { query })
-      : await ask(MemoryAction.MEMORY_LIST);
 
-    const entries: MemoryEntry[] = result?.entries ?? [];
+    let result;
+    try {
+      result = query
+        ? await ask(MemoryAction.MEMORY_SEARCH, { query })
+        : await ask(MemoryAction.MEMORY_LIST);
+    } catch (error) {
+      listHost.replaceChildren(
+        problem(error instanceof Error ? error.message : 'Could not read memory.')
+      );
+      return;
+    }
+
+    const entries: MemoryEntry[] = result.entries ?? [];
     listHost.replaceChildren();
 
     if (entries.length === 0) {
@@ -168,6 +206,14 @@ function labelForPool(name: string): string {
   if (name.startsWith('action')) return 'Tool results';
   if (name.startsWith('thread')) return 'Scrollback index';
   return name;
+}
+
+/** A failure, said plainly rather than shown as emptiness. */
+function problem(message: string): HTMLElement {
+  const element = document.createElement('p');
+  element.className = 'memory-page__problem';
+  element.textContent = `Could not read memory: ${message}`;
+  return element;
 }
 
 function note(text: string): HTMLElement {
