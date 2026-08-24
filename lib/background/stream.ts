@@ -4,6 +4,7 @@ import { saveLastRun } from '../last-run';
 import { PortAction } from '../../types/actions';
 import type { ExtensionSettings } from '../../types/state';
 import { syncThread } from './thread';
+import { keepAwake } from './keepalive';
 import type { SessionManager } from './session';
 
 /**
@@ -26,7 +27,7 @@ export class StreamService {
     tabId: number,
     prompt: string,
     settings: ExtensionSettings,
-    context?: unknown
+    context?: unknown,
   ): Promise<void> {
     /*
       Inside the try, not before it.
@@ -37,44 +38,56 @@ export class StreamService {
       terminal message that was never going to come.
     */
     try {
-      const scope = await this.sessions.scopeFor(tabId);
+      /*
+        Wrapped for the whole turn, not just the fetch. Loading memory and
+        closing the turn both touch IndexedDB, and neither is worth being
+        collected in the middle of either.
+      */
+      const { record, accumulated } = await keepAwake(async () => {
+        const scope = await this.sessions.scopeFor(tabId);
 
-      let accumulated = '';
+        let accumulated = '';
 
-      const record = await scope.turn(
-        prompt,
-        async (step: { prompt: any }) => {
-          const model = settings.activeModel ?? '';
+        const record = await scope.turn(
+          prompt,
+          async (step: { prompt: any }) => {
+            const model = settings.activeModel ?? '';
 
-          await streamChatResponse(
-            {
-              ollamaHost: settings.ollamaHost ?? '',
-              activeModel: model,
-              // Every sampling parameter the user set. Without this the request
-              // carries only the model and the messages, which is what made the
-              // whole settings page decorative.
-              request: buildRequestShape(settings, model),
-            },
-            step.prompt,
-            (delta) => {
-              accumulated += delta;
-              port.postMessage({ action: PortAction.STREAM_CHUNK, fullText: accumulated });
-            },
-            undefined,
-            (metrics) => void saveLastRun(metrics)
-          );
+            await streamChatResponse(
+              {
+                ollamaHost: settings.ollamaHost ?? '',
+                activeModel: model,
+                // Every sampling parameter the user set. Without this the request
+                // carries only the model and the messages, which is what made the
+                // whole settings page decorative.
+                request: buildRequestShape(settings, model),
+              },
+              step.prompt,
+              (delta) => {
+                accumulated += delta;
+                port.postMessage({
+                  action: PortAction.STREAM_CHUNK,
+                  fullText: accumulated,
+                });
+              },
+              undefined,
+              (metrics) => void saveLastRun(metrics),
+            );
 
-          // A string closes the turn. Returning nothing would run another pass,
-          // which is how tool use will work once tools are registered.
-          return accumulated;
-        },
-        // The page read rides on the turn as its own field rather than being
-        // spliced into the text, so it never enters the stored history.
-        context ? { context } : {}
-      );
+            // A string closes the turn. Returning nothing would run another pass,
+            // which is how tool use will work once tools are registered.
+            return accumulated;
+          },
+          // The page read rides on the turn as its own field rather than being
+          // spliced into the text, so it never enters the stored history.
+          context ? { context } : {},
+        );
 
-      // Index it for the panel's scrollback before telling the panel it is done.
-      await syncThread(scope);
+        // Index it for the panel's scrollback before telling the panel it is done.
+        await syncThread(scope);
+
+        return { record, accumulated };
+      });
 
       port.postMessage({
         action: PortAction.STREAM_COMPLETE,

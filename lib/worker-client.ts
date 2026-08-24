@@ -62,6 +62,6 @@ export async function askWorker<T = any>(message: object): Promise<T> {
 
   throw new Error(
     `The background worker did not answer after ${ATTEMPTS} attempts. ` +
-      'Open its console from the extensions page to see whether it failed to start.'
+      'Open its console from the extensions page to see whether it failed to start.',
   );
 }
