@@ -19,6 +19,7 @@
  */
 import { Conversation } from '@automacene/conversation';
 import { buildMind, buildHooks } from '../mind/build';
+import type { PageContext } from './thread';
 import type { ExtensionSettings } from '../../types/state';
 
 /** A tab that crashes never fires `onRemoved`, so idle scopes are reaped. */
@@ -88,6 +89,44 @@ export class SessionManager {
   public async scopeFor(tabId: number) {
     const convo = await this.ready();
     return convo.scope(scopeNameFor(tabId));
+  }
+
+  /**
+   * Make a page the one this tab is looking at.
+   *
+   * The context pool holds a single node, so writing the new page is what
+   * evicts the old one — and the old one does not move across whole, it is cut
+   * into pieces on the way to `scraped`. That is the entire lifecycle of a page
+   * read, and it is expressed by the mind rather than coded here.
+   */
+  public async attachPage(tabId: number, page: PageContext): Promise<void> {
+    const scope = await this.scopeFor(tabId);
+    // `evict()` runs the pool's own policy, which is what enforces the count of
+    // one. Creating alone would leave both pages sitting there.
+    await scope.ensurePool('context').create({ content: page });
+    await scope.evict();
+  }
+
+  /**
+   * The page this tab currently has attached, or null.
+   *
+   * Returned as title and address only. It is what a turn records, so history
+   * can say which page a question was asked against without storing the text a
+   * second time — the text is in the pool while it is current and in `scraped`
+   * afterwards.
+   */
+  public async attachedPage(tabId: number): Promise<{ title?: string; url?: string } | null> {
+    const convo = await this.ready();
+    const name = scopeNameFor(tabId);
+    const resolved = `context:${name}`;
+
+    if (!convo.memory.hasPool(resolved)) return null;
+
+    const node = convo.memory.pool(resolved).list().at(-1);
+    const page = node?.content;
+    if (!page) return null;
+
+    return { title: page.title, url: page.url };
   }
 
   /**
@@ -161,11 +200,11 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
           reject(
             new Error(
               `Stored memory did not load within ${ms}ms. ` +
-                'IndexedDB may be blocked or unavailable in this browser profile.'
-            )
+                'IndexedDB may be blocked or unavailable in this browser profile.',
+            ),
           ),
-        ms
-      )
+        ms,
+      ),
     ),
   ]);
 }

@@ -2,32 +2,49 @@
  * Companion's mind, built from settings rather than stored as a file.
  *
  * A static mind file would contradict the model settings the moment somebody
- * changed `num_ctx`. The library's own default budgets 8,000 tokens for the
- * window plus 4,000 each for thinking and action — 16,000 before the archive
- * and tools are counted, against a window that defaults to 4,096. Nothing warns
- * you. Deriving the mind from the same `num_ctx` the user already sets means
- * the two can never disagree.
+ * changed `num_ctx`. Deriving the mind from the same number the user already
+ * sets means the two can never disagree.
  *
- * The pools:
+ * ── The pools ──────────────────────────────────────────────────
  *
- *   window    this tab's closed turns, sent verbatim, ages into the archive
- *   thinking  a reasoning model's working, stored not sent
- *   action    what tools returned, stored not sent
- *   archive   shared by every tab, searched not replayed — browsing history
- *   tools     shared, ranked per query, offered under masked ids
- *   thread    this tab's turn ids, in order, never evicted
+ *   window   this tab's closed turns, sent verbatim, ages into the archive
+ *   context  this tab's current page, exactly one, ages into the scrapes
+ *   thread   this tab's turn ids, in order, never evicted
+ *   archive  every tab's past turns, searched not replayed
+ *   scraped  every page ever read, in pieces, searched not replayed
  *
- * `thread` is the one that is not in the library's default. The panel rebuilds
- * itself from storage whenever you switch tabs, and it cannot use the window
- * pool for that, because eviction moves older turns to the archive and they
- * would silently vanish from the scrollback while the model could still recall
- * them. An ordered list of ids survives eviction — liminal ids are unique
+ * `extends: false` matters. Without it the library layers this onto
+ * DEFAULT_MIND, and the thinking, action, and tool pools come back — which is
+ * the opposite of the intent, since none of them are used and a tool pool will
+ * want a different arrangement when tools do arrive.
+ *
+ * ── Why a page gets its own pool ───────────────────────────────
+ *
+ * A page used to ride on the turn as a field, which put it in two bad places at
+ * once. In history it had to be suppressed, because replaying a twelve-thousand
+ * character page on every subsequent turn grows the prompt without bound — so
+ * the page became unreachable the moment its turn closed. And in the archive it
+ * was indexed as part of the turn, so the whole page matched as one unit: a
+ * question answered by one paragraph would recall all of it or none of it.
+ *
+ * Its own pool fixes both. The current page is held once per tab and sent whole
+ * while it is current. When the next page replaces it, it is cut into pieces
+ * and those go to `scraped`, where recall can return the paragraph that matched
+ * rather than the document that contained it.
+ *
+ * ── Why `thread` exists ────────────────────────────────────────
+ *
+ * The panel rebuilds itself from storage whenever you switch tabs, and it
+ * cannot use the window pool for that: eviction moves older turns to the
+ * archive and they would vanish from the scrollback while the model could still
+ * recall them. An ordered list of ids survives eviction — liminal ids are unique
  * across pools and `moveTo` carries them over — so rendering reads the list and
  * fetches each turn wherever it now lives.
  */
-import { DEFAULT_MIND, tokenBudget, moveTo } from '@automacene/conversation';
+import { DEFAULT_MIND, tokenBudget, nodeCount, moveTo, KIND } from '@automacene/conversation';
 import { resolveBudgets, type MemoryShares } from './memory-params';
-import { assembleChat } from './assemble';
+import { makeAssembler } from './assemble';
+import { chunkTo } from './chunk-evict';
 import { DEFAULT_SYSTEM_PROMPT } from '../constants';
 import type { ExtensionSettings } from '../../types/state';
 
@@ -51,7 +68,7 @@ export function contextTokensOf(settings: ExtensionSettings): number {
 export function pageCharBudget(settings: ExtensionSettings): number {
   const { tokens } = resolveBudgets(
     settings.memory as MemoryShares | undefined,
-    contextTokensOf(settings)
+    contextTokensOf(settings),
   );
   return Math.max(1000, tokens.pageShare * CHARS_PER_TOKEN);
 }
@@ -63,43 +80,90 @@ export function buildMind(settings: ExtensionSettings) {
   const systemPrompt = settings.systemPrompt?.trim() || DEFAULT_SYSTEM_PROMPT;
 
   return {
-    ...DEFAULT_MIND,
     name: 'companion',
 
-    pools: {
-      ...DEFAULT_MIND.pools,
+    /*
+      Stands alone rather than layering onto the library's default, so removing
+      a pool actually removes it. Thinking, action, and tools are gone: nothing
+      produces into them, an empty pool still costs a scope entry per tab, and
+      leaving a `tools` pool shaped by the default would prejudge an
+      arrangement that is not designed yet.
+    */
+    extends: false as const,
 
-      window: { ...DEFAULT_MIND.pools.window, eviction: 'windowEviction', onEvict: 'toArchive' },
-      thinking: { ...DEFAULT_MIND.pools.thinking, eviction: 'thinkingEviction' },
-      action: { ...DEFAULT_MIND.pools.action, eviction: 'actionEviction' },
+    /*
+      Which pool the library's own `search`, `appendNote`, and `prune` default
+      to. It has to be named now that two pools declare `holds: "*"` — the
+      fallback is "whichever catch-all comes first", and that is not a thing to
+      leave to key order.
+    */
+    archive: 'archive',
+
+    pools: {
+      window: {
+        holds: KIND.TURN,
+        scoped: true,
+        eviction: 'windowEviction',
+        onEvict: 'toArchive',
+        context: { mode: 'whole' as const },
+      },
 
       /*
-        How many memories a question may bring back.
+        The page currently attached to this tab.
 
-        This was hardcoded at 5 and ignored the archive budget completely, so a
-        128k window with 19,661 tokens allocated to recall was using a few
-        hundred of them. It is a setting now.
+        One node, because "the page you are looking at" is singular. Replacing
+        it is what evicts the old one, so `nodeCount` is the whole policy: put a
+        second page in and the first leaves.
+
+        This replaces a Map held in the dispatcher that was consumed by the very
+        next message. A pool persists, so the page survives the worker being
+        killed and stays attached across several questions instead of one.
+      */
+      context: {
+        holds: '*',
+        scoped: true,
+        eviction: 'contextEviction',
+        onEvict: 'toScraped',
+        context: { mode: 'whole' as const },
+      },
+
+      // Scrollback ids. No eviction at all — that is the point of it. It only
+      // holds ids, so a year of browsing is still a few hundred kilobytes.
+      thread: {
+        holds: '*',
+        scoped: true,
+        context: null,
+      },
+
+      /*
+        Past conversation, from every tab.
 
         Recall is keyword matching, so the count is what decides whether an
         older memory can surface at all — the token budget only caps how much of
         what surfaced is kept.
       */
       archive: {
-        ...DEFAULT_MIND.pools.archive,
-        context: { mode: 'ranked', limit: tokens.recallCount, rerank: true },
+        holds: '*',
+        context: { mode: 'ranked' as const, limit: tokens.recallCount, rerank: true },
       },
 
       /*
-        The scrollback index. Scoped so each tab has its own, and with no
-        eviction at all — that is the point of it. It only ever holds ids, so a
-        year of browsing is still a few hundred kilobytes.
+        Every page ever read, in pieces.
+
+        Separate from the conversation archive because the two answer different
+        questions and compete badly in one index. A page fragment is dense
+        reference text; a turn is an exchange. Ranking them together means a
+        long page outscores a short answer on term overlap alone, and the
+        exchange that actually addressed the question loses to the document it
+        was about.
       */
-      thread: {
+      scraped: {
         holds: '*',
-        scoped: true,
-        context: null,
+        context: { mode: 'ranked' as const, limit: tokens.scrapeRecallCount, rerank: true },
       },
     },
+
+    turn: DEFAULT_MIND.turn,
 
     /*
       The system prompt lives in the template, and companion's assembler reads
@@ -108,8 +172,14 @@ export function buildMind(settings: ExtensionSettings) {
       if the hook is ever removed.
     */
     assemble: {
-      ...DEFAULT_MIND.assemble,
-      template: `${systemPrompt}\n\n{tools}\n\n{archive}\n\n{window}\n\n{query}`,
+      template: `${systemPrompt}\n\n{scraped}\n\n{archive}\n\n{context}\n\n{window}\n\n{query}`,
+      headings: {
+        scraped: '# From pages you have read',
+        archive: '# Recalled from earlier browsing',
+        context: '# The page you are looking at',
+        window: '# Conversation so far',
+        query: '# Current message',
+      },
     },
   };
 }
@@ -124,17 +194,18 @@ export function buildMind(settings: ExtensionSettings) {
 export function buildHooks(settings: ExtensionSettings) {
   const { tokens } = resolveBudgets(
     settings.memory as MemoryShares | undefined,
-    contextTokensOf(settings)
+    contextTokensOf(settings),
   );
 
   return {
-    // Attached page text is excluded from the count. Otherwise one large page
-    // read would evict an entire conversation on the turn it arrived.
     windowEviction: tokenBudget({ tokens: tokens.windowShare, fields: ['query', 'response'] }),
-    thinkingEviction: tokenBudget({ tokens: tokens.thinkingShare }),
-    actionEviction: tokenBudget({ tokens: tokens.actionShare }),
-
     toArchive: moveTo(),
-    assemble: assembleChat,
+
+    // One page at a time. A second arriving is what sends the first to be cut up.
+    contextEviction: nodeCount({ max: 1 }),
+    toScraped: chunkTo('scraped'),
+
+    // Recalled material shares one token budget across both ranked pools.
+    assemble: makeAssembler(tokens.archiveShare),
   };
 }

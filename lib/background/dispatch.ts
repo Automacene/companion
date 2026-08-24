@@ -1,7 +1,7 @@
 import { PortAction, ToolAction } from '../../types/actions';
 import { SIDEPANEL_CONNECTION_NAME } from '../constants';
 import { pageCharBudget } from '../mind/build';
-import { readThread, type PageContext } from './thread';
+import { readThread } from './thread';
 import type { SessionManager } from './session';
 import type { SettingsManager } from './settings';
 import type { ScraperService } from './page';
@@ -12,18 +12,8 @@ export class MessageDispatcher {
     private sessionManager: SessionManager,
     private settingsManager: SettingsManager,
     private scraperService: ScraperService,
-    private streamService: StreamService
+    private streamService: StreamService,
   ) {}
-
-  /**
-   * Page reads waiting to be attached, keyed by tab.
-   *
-   * In memory only. If the service worker is killed between reading a page and
-   * sending the message, the page is gone and the user reads "Scraped" against
-   * nothing — which is the honest outcome, since re-reading is one click and
-   * persisting it would mean a stale page attaching itself hours later.
-   */
-  private staged = new Map<number, PageContext>();
 
   public init(): void {
     // Long-lived Port connections (Sidepanel <-> Background)
@@ -88,17 +78,19 @@ export class MessageDispatcher {
 
           case ToolAction.SCRAPE_DOM: {
             /*
-              A page read is STAGED, not stored. It waits here until the next
-              message, then rides on that turn as its own field.
+              A page read goes into this tab's context pool, which holds exactly
+              one. Putting the new page in is what evicts the old one, and the
+              old one is cut into pieces on its way to `scraped`.
 
-              The old version wrote it into a slot on the conversation and
-              spliced it into the message text, which is why a scraped page
-              reappeared in the visible history when switching tabs.
+              This used to be a Map on this class, consumed by the very next
+              message. A pool survives the worker being killed and keeps the
+              page attached across several questions rather than one, which is
+              what somebody means by "the page I am looking at".
             */
             this.scraperService
               .scrapeTab(tabId, { maxChars: pageCharBudget(currentSettings) })
-              .then((result) => {
-                this.staged.set(tabId, {
+              .then(async (result) => {
+                await this.sessionManager.attachPage(tabId, {
                   title: result.title,
                   url: result.url,
                   content: result.content,
@@ -124,18 +116,7 @@ export class MessageDispatcher {
 
           case PortAction.SEND_MESSAGE:
             if (msg.prompt) {
-              const context = this.staged.get(tabId);
-              // One message, one page. Consumed whether the turn succeeds or
-              // fails, so a stale page cannot attach itself to a later question.
-              this.staged.delete(tabId);
-
-              await this.streamService.handleUserMessage(
-                port,
-                tabId,
-                msg.prompt,
-                currentSettings,
-                context
-              );
+              await this.streamService.handleUserMessage(port, tabId, msg.prompt, currentSettings);
             }
             break;
         }

@@ -32,7 +32,7 @@ export class ScraperService {
       // "could not establish connection".
       throw new Error(
         'No content script on that tab. Reload the page and try again. ' +
-          `(${cause instanceof Error ? cause.message : String(cause)})`
+          `(${cause instanceof Error ? cause.message : String(cause)})`,
       );
     }
 

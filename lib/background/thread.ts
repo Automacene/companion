@@ -14,10 +14,18 @@
  * ids for a year of browsing is a few hundred kilobytes.
  */
 
+/**
+ * A page read.
+ *
+ * `content` is the text and is only present while the page is the one held in
+ * a tab's context pool. What a turn records is the title and address alone —
+ * enough to say which page a question was asked against, without a second copy
+ * of text that already lives in the pool and then in `scraped`.
+ */
 export interface PageContext {
-  title: string;
-  url: string;
-  content: string;
+  title?: string;
+  url?: string;
+  content?: string;
 }
 
 /** One entry as the panel renders it. */
@@ -52,7 +60,10 @@ export async function syncThread(scope: any): Promise<void> {
     const pool = scope.ensurePool(THREAD_POOL);
 
     const known = new Set<string>(
-      pool.list().map((entry: any) => entry.content?.turnId).filter(Boolean)
+      pool
+        .list()
+        .map((entry: any) => entry.content?.turnId)
+        .filter(Boolean),
     );
 
     for (const turn of scope.getTurns()) {

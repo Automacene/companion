@@ -273,8 +273,7 @@ function conversationCard(
   counts.className = 'memory-page__convo-counts ac-mono';
   counts.textContent = [
     `${convo.turns} turns`,
-    `${convo.thinking} reasoning`,
-    `${convo.actions} tool results`,
+    convo.page > 0 ? 'a page attached' : 'no page attached',
     `${convo.indexed} indexed`,
   ].join(' · ');
 
@@ -454,7 +453,8 @@ function sizeOf(chars: number): string {
  * conversation before rendering instead.
  */
 function labelForPool(name: string): string {
-  if (name === 'archive') return 'Archive (shared)';
+  if (name === 'archive') return 'Conversations (shared)';
+  if (name === 'scraped') return 'Page fragments (shared)';
   if (name === 'tools') return 'Tools';
   return name;
 }

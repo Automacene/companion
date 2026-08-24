@@ -14,7 +14,9 @@ import type { ExtensionSettings } from '../../types/state';
  * Only runs when `modelParams` is absent, so it cannot overwrite newer values,
  * and skips zeroes because the old options page stored a cleared box as 0.
  */
-function migrateLegacyParams(saved: Partial<ExtensionSettings>): Record<string, string | number | boolean> {
+function migrateLegacyParams(
+  saved: Partial<ExtensionSettings>,
+): Record<string, string | number | boolean> {
   if (saved.modelParams) return saved.modelParams;
 
   const migrated: Record<string, string | number | boolean> = {};

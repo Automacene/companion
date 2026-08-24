@@ -26,7 +26,7 @@ const LIST_CAP = 300;
  * turn, and an entry without either is not a shorter entry, it is a broken one.
  * Removing those means removing the entry.
  */
-export type MemoryPartId = 'context' | 'thinking' | 'actions';
+export type MemoryPartId = 'context';
 
 /**
  * One piece of an entry, sized so it can be judged before it is removed.
@@ -335,8 +335,7 @@ export class MemoryService {
         title,
         live,
         turns: counts.window ?? 0,
-        thinking: counts.thinking ?? 0,
-        actions: counts.action ?? 0,
+        page: counts.context ?? 0,
         indexed: counts.thread ?? 0,
       });
     }
@@ -369,8 +368,8 @@ export interface ConversationStat {
   /** Whether the tab is still open. False means it crashed or was lost. */
   live: boolean;
   turns: number;
-  thinking: number;
-  actions: number;
+  /** 1 when a page is attached to this tab, 0 otherwise. */
+  page: number;
   indexed: number;
 }
 
@@ -449,31 +448,6 @@ function partsOf(content: any, metadata: any, convo?: any): MemoryPart[] {
       chars: text.length,
       note: page.title || page.url || 'an attached page',
       detail: [page.title, page.url, '', text].filter((line) => line != null).join('\n'),
-    });
-  }
-
-  // Thinking and actions live as their own nodes in their own pools; the turn
-  // only holds their ids. Resolving them is what makes the size meaningful.
-  for (const [id, label, ids] of [
-    ['thinking', 'reasoning', metadata.thinking],
-    ['actions', 'tool results', metadata.actions],
-  ] as const) {
-    if (!Array.isArray(ids) || ids.length === 0) continue;
-
-    const bodies = ids
-      .map((nodeId: string) => {
-        const found = convo?.get?.(nodeId);
-        if (!found) return null;
-        return typeof found.text === 'string' ? found.text : JSON.stringify(found, null, 2);
-      })
-      .filter((body: string | null): body is string => typeof body === 'string');
-
-    parts.push({
-      id,
-      label,
-      count: ids.length,
-      note: `${ids.length} ${ids.length === 1 ? 'item' : 'items'}`,
-      detail: bodies.length > 0 ? bodies.join('\n\n---\n\n') : '(no longer stored)',
     });
   }
 

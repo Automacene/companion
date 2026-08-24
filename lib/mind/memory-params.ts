@@ -47,11 +47,29 @@ export const MEMORY_PARAMS: MemoryParamDef[] = [
     */
     id: 'recallCount',
     inPrompt: false,
-    label: 'Memories recalled',
+    label: 'Conversations recalled',
     description:
-      'How many past items a question may bring back. Recall is keyword matching, so a higher number widens what can surface, and the archive budget above still caps how much of it is used.',
-    defaultShare: 12,
-    min: 1,
+      'How many past exchanges a question may bring back from other tabs and earlier browsing. Recall is keyword matching, so this decides what can surface at all; the recalled-memory budget caps how much of it is kept.',
+    defaultShare: 8,
+    min: 0,
+    max: 40,
+    step: 1,
+  },
+  {
+    /*
+      Page fragments are counted separately from conversations because they are
+      a different kind of memory and compete badly for one number. A page is
+      dense reference text and a turn is an exchange, so ranking them together
+      lets a long page outscore the answer that actually addressed the question.
+      Two counts means neither can crowd the other out.
+    */
+    id: 'scrapeRecallCount',
+    inPrompt: false,
+    label: 'Page fragments recalled',
+    description:
+      'How many pieces of pages you have read a question may bring back. Pages are stored in fragments rather than whole, so recall returns the paragraph that matched instead of the entire document.',
+    defaultShare: 4,
+    min: 0,
     max: 40,
     step: 1,
   },
@@ -59,8 +77,7 @@ export const MEMORY_PARAMS: MemoryParamDef[] = [
     id: 'replyShare',
     inPrompt: true,
     label: 'Room to answer',
-    description:
-      'Held back so the model has space to reply. Everything else divides what is left.',
+    description: 'Held back so the model has space to reply. Everything else divides what is left.',
     defaultShare: 0.25,
     min: 0.05,
     max: 0.6,
@@ -92,37 +109,23 @@ export const MEMORY_PARAMS: MemoryParamDef[] = [
     id: 'archiveShare',
     inPrompt: true,
     label: 'Recalled memory',
-    description:
-      'Room for what gets recalled from other tabs and earlier browsing.',
+    description: 'Room for what gets recalled from other tabs and earlier browsing.',
     defaultShare: 0.15,
     min: 0,
     max: 0.5,
     step: 0.01,
   },
-  {
-    id: 'thinkingShare',
-    inPrompt: false,
-    label: 'Reasoning',
-    description:
-      'Kept for a reasoning model to work in. Not sent in the prompt; it is stored and archived.',
-    defaultShare: 0.08,
-    min: 0,
-    max: 0.4,
-    step: 0.01,
-  },
-  {
-    id: 'actionShare',
-    inPrompt: false,
-    label: 'Tool results',
-    description: 'Kept for what tools returned. Also stored rather than sent.',
-    defaultShare: 0.08,
-    min: 0,
-    max: 0.4,
-    step: 0.01,
-  },
 ];
 
 export const MEMORY_PARAMS_BY_ID = new Map(MEMORY_PARAMS.map((p) => [p.id, p]));
+
+/**
+ * The ones that are counts of items rather than shares of the window.
+ *
+ * They are taken as written instead of being multiplied by the context length,
+ * which is the whole difference between "twelve memories" and "twelve tokens".
+ */
+const COUNT_PARAMS = new Set<MemoryParamId>(['recallCount', 'scrapeRecallCount']);
 
 export type MemoryShares = Record<string, number>;
 
@@ -134,18 +137,12 @@ export type MemoryShares = Record<string, number>;
  * silently resolving to zero tokens.
  */
 export type MemoryParamId =
-  | 'recallCount'
-  | 'replyShare'
-  | 'pageShare'
-  | 'windowShare'
-  | 'archiveShare'
-  | 'thinkingShare'
-  | 'actionShare';
+  'recallCount' | 'scrapeRecallCount' | 'replyShare' | 'pageShare' | 'windowShare' | 'archiveShare';
 
 export type Budgets = Record<MemoryParamId, number>;
 
 export const DEFAULT_MEMORY: MemoryShares = Object.fromEntries(
-  MEMORY_PARAMS.map((p) => [p.id, p.defaultShare])
+  MEMORY_PARAMS.map((p) => [p.id, p.defaultShare]),
 );
 
 /** A share, falling back to its default and clamped to its own range. */
@@ -172,7 +169,7 @@ export function shareOf(memory: MemoryShares | undefined, id: MemoryParamId): nu
  */
 export function resolveBudgets(
   memory: MemoryShares | undefined,
-  contextTokens: number
+  contextTokens: number,
 ): { tokens: Budgets; total: number; over: boolean } {
   const tokens = {} as Budgets;
   let total = 0;
@@ -180,15 +177,13 @@ export function resolveBudgets(
   for (const param of MEMORY_PARAMS) {
     // `recallCount` is a count of items, not a share of the window, so it is
     // taken as written rather than multiplied by the context length.
-    const value =
-      param.id === 'recallCount'
-        ? Math.round(shareOf(memory, param.id))
-        : Math.max(0, Math.round(contextTokens * shareOf(memory, param.id)));
+    const value = COUNT_PARAMS.has(param.id)
+      ? Math.round(shareOf(memory, param.id))
+      : Math.max(0, Math.round(contextTokens * shareOf(memory, param.id)));
 
     tokens[param.id] = value;
     if (param.inPrompt) total += value;
   }
-
 
   return { tokens, total, over: total > contextTokens };
 }

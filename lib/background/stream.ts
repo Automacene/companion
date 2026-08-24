@@ -28,7 +28,6 @@ export class StreamService {
     tabId: number,
     prompt: string,
     settings: ExtensionSettings,
-    context?: unknown,
   ): Promise<void> {
     /*
       Inside the try, not before it.
@@ -46,6 +45,16 @@ export class StreamService {
       */
       const { record, accumulated } = await keepAwake(async () => {
         const scope = await this.sessions.scopeFor(tabId);
+
+        /*
+          Which page was open, as title and address only.
+
+          The text is not copied onto the turn. It lives in the context pool
+          while it is current and in `scraped` once replaced, so putting it here
+          too would store and index the same page twice and make history
+          something that has to be suppressed at assembly.
+        */
+        const context = await this.sessions.attachedPage(tabId);
 
         let accumulated = '';
 
@@ -79,8 +88,7 @@ export class StreamService {
             // which is how tool use will work once tools are registered.
             return accumulated;
           },
-          // The page read rides on the turn as its own field rather than being
-          // spliced into the text, so it never enters the stored history.
+          // A note of which page was open, not the page. See above.
           context ? { context } : {},
         );
 
