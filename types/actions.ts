@@ -57,6 +57,14 @@ export const MemoryAction = {
   MEMORY_FORGET_ALL: 'MEMORY_FORGET_ALL',
   /** Counts per pool, for the summary. */
   MEMORY_STATS: 'MEMORY_STATS',
+  /**
+   * End one conversation and let its turns age into the shared archive.
+   *
+   * Normally a tab closing does this. A tab that crashed never fires
+   * `onRemoved`, so its conversation sits open forever holding turns that no
+   * other tab can recall — this is how you finish one by hand.
+   */
+  MEMORY_CLOSE: 'MEMORY_CLOSE',
 } as const;
 
 export type MemoryAction = (typeof MemoryAction)[keyof typeof MemoryAction];

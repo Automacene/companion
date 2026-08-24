@@ -45,7 +45,21 @@
 }
 
 /* ---- Counts ---- */
+
+/*
+  The container stacks; the counts inside it are the grid.
+
+  These were the same element, which worked while the page showed nothing but
+  a row of numbers. It now holds the shared counts, a heading, and one card per
+  conversation, and those must not be laid out as equal grid cells.
+*/
 .memory-page__stats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-4);
+}
+
+.memory-page__stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
   gap: 1px;
@@ -53,6 +67,72 @@
   border: 1px solid var(--ac-color-border);
   border-radius: var(--ac-radius-md);
   overflow: hidden;
+}
+
+.memory-page__subhead {
+  font-family: var(--ac-font-mono);
+  font-size: var(--ac-text-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--ac-tracking-wide);
+  color: var(--ac-color-text-subtle);
+  margin: 0;
+}
+
+/* ---- One conversation ---- */
+.memory-page__convo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-2);
+  padding: var(--ac-space-4) var(--ac-space-5);
+  background: var(--ac-color-raised);
+  border: 1px solid var(--ac-color-border);
+  border-radius: var(--ac-radius-md);
+}
+
+/*
+  A conversation whose tab is gone needs to read as unfinished business rather
+  than as a warning. The left edge marks it without colouring the whole card.
+*/
+.memory-page__convo--stale {
+  border-left: 2px solid var(--ac-color-warning);
+}
+
+.memory-page__convo-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ac-space-3);
+}
+
+.memory-page__convo-title {
+  font-weight: var(--ac-weight-bold);
+  /* Page titles run long, and the badge beside it must not be pushed off. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memory-page__convo-counts {
+  margin: 0;
+  font-size: var(--ac-text-2xs);
+  color: var(--ac-color-text-subtle);
+}
+
+.memory-page__convo-why {
+  margin: 0;
+  font-size: var(--ac-text-xs);
+  color: var(--ac-color-text-muted);
+  max-width: 62ch;
+}
+
+.memory-page__convo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-2);
+}
+
+.memory-page__scope-back {
+  align-self: flex-start;
 }
 
 .memory-page__stat {

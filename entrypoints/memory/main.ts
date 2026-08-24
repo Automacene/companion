@@ -17,7 +17,11 @@ import { startAppearance } from '../../lib/appearance';
 import { readSettings } from '../../lib/settings-client';
 import { MemoryAction } from '../../types/actions';
 import { askWorker } from '../../lib/worker-client';
-import type { MemoryEntry } from '../../lib/background/memory';
+import type {
+  MemoryEntry,
+  PoolCount,
+  ConversationStat,
+} from '../../lib/background/memory';
 
 /**
  * Ask the worker something, and report a failure AS a failure.
@@ -26,12 +30,9 @@ import type { MemoryEntry } from '../../lib/background/memory';
  * `?? []` — so a request that never reached the worker looked exactly like an
  * empty archive. On a page whose whole job is telling you what is stored, those
  * two must never look the same.
- */
-/**
- * Ask the worker something.
  *
- * This page is opened from a link on the settings hub, so it is very often the
- * thing that wakes the worker up. `askWorker` handles that; see the note there
+ * The page is opened from a link on the settings hub, so it is very often the
+ * thing that wakes the worker up. `askWorker` covers that; see the note there
  * for why a cold worker drops the first message without reporting anything.
  */
 async function ask(action: string, payload: object = {}): Promise<any> {
@@ -86,44 +87,87 @@ document.addEventListener('DOMContentLoaded', async () => {
       );
     }
 
-    // Every pool, including empty ones. A pool that exists and holds nothing is
-    // different information from a pool that does not exist, and on a
-    // diagnostic page both are worth seeing.
-    const pools: { name: string; size: number }[] = result.pools ?? [];
-    if (pools.length === 0) {
-      statsHost.appendChild(note('No pools exist yet. Send a message to start a conversation.'));
+    /*
+      Shared memory first, then conversations.
+
+      These used to be one flat grid of pool names, which printed "OPEN
+      CONVERSATION" once per tab with nothing to tell them apart — the window,
+      thinking, action, and thread pools are all per-tab, so four tabs produced
+      sixteen identically labelled cells. Splitting them by what they belong to
+      is the whole difference between a diagnostic dump and a page you can read.
+    */
+    const shared: PoolCount[] = result.shared ?? [];
+    const conversations: ConversationStat[] = result.conversations ?? [];
+
+    if (shared.length > 0) {
+      const grid = document.createElement('div');
+      grid.className = 'memory-page__stats-grid';
+
+      for (const pool of shared) {
+        const cell = document.createElement('div');
+        cell.className = 'memory-page__stat';
+
+        const key = document.createElement('span');
+        key.className = 'memory-page__stat-key';
+        key.textContent = labelForPool(pool.name);
+
+        const value = document.createElement('span');
+        value.className = 'memory-page__stat-value';
+        value.textContent = String(pool.size);
+
+        cell.append(key, value);
+        grid.appendChild(cell);
+      }
+
+      statsHost.appendChild(grid);
+    }
+
+    if (conversations.length === 0) {
+      statsHost.appendChild(
+        note('No conversations are open. Send a message in the sidepanel to start one.')
+      );
       return;
     }
 
-    for (const pool of pools) {
-      const cell = document.createElement('div');
-      cell.className = 'memory-page__stat';
+    const heading = document.createElement('h3');
+    heading.className = 'memory-page__subhead';
+    heading.textContent = 'Conversations';
+    statsHost.appendChild(heading);
 
-      const key = document.createElement('span');
-      key.className = 'memory-page__stat-key';
-      // Pool names carry their scope, so `window:tab:412` becomes a readable
-      // "this tab's conversation" rather than an internal identifier.
-      key.textContent = labelForPool(pool.name);
-
-      const value = document.createElement('span');
-      value.className = 'memory-page__stat-value';
-      value.textContent = String(pool.size);
-
-      cell.append(key, value);
-      statsHost.appendChild(cell);
+    for (const convo of conversations) {
+      statsHost.appendChild(conversationCard(convo, refresh, searchWithin));
     }
+  }
+
+  /*
+    What the list below is showing.
+
+    'archive' is the shared memory every tab can recall. Anything else is one
+    conversation's own turns, which the archive cannot answer for: a turn only
+    reaches the archive once it has aged out of its window or the tab has
+    closed, so the conversation you are currently having is precisely the one
+    the archive knows nothing about.
+  */
+  let target = 'archive';
+
+  function searchWithin(scope: string): void {
+    target = scope;
+    if (search) search.value = '';
+    void refreshList();
   }
 
   async function refreshList(): Promise<void> {
     if (!listHost) return;
 
     const query = search?.value.trim() ?? '';
+    const inArchive = target === 'archive';
 
     let result;
     try {
-      result = query
-        ? await ask(MemoryAction.MEMORY_SEARCH, { query })
-        : await ask(MemoryAction.MEMORY_LIST);
+      result =
+        query || !inArchive
+          ? await ask(MemoryAction.MEMORY_SEARCH, { query, target })
+          : await ask(MemoryAction.MEMORY_LIST);
     } catch (error) {
       listHost.replaceChildren(
         problem(error instanceof Error ? error.message : 'Could not read memory.')
@@ -134,12 +178,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     const entries: MemoryEntry[] = result.entries ?? [];
     listHost.replaceChildren();
 
+    // Which memory is being read. Without this the results look like the
+    // archive and it is not obvious why the archive suddenly changed.
+    if (!inArchive) {
+      const back = document.createElement('button');
+      back.type = 'button';
+      back.className = 'ac-btn ac-btn--ghost memory-page__scope-back';
+      back.textContent = `Showing ${target} · back to the shared archive`;
+      back.addEventListener('click', () => searchWithin('archive'));
+      listHost.appendChild(back);
+    }
+
     if (entries.length === 0) {
       listHost.appendChild(
         note(
           query
             ? 'Nothing matches those words. Recall is keyword matching, so a memory only comes back when the question shares words with it.'
-            : 'The archive is empty. It fills when a conversation grows past its budget, or when you close a tab.'
+            : inArchive
+              ? 'The archive is empty. It fills when a conversation grows past its budget, or when you close a tab.'
+              : 'This conversation holds nothing yet.'
         )
       );
       return;
@@ -164,6 +221,99 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   await refresh();
 });
+
+/**
+ * One conversation, with what it holds and what can be done to it.
+ *
+ * The close button is the point of this card. A tab that crashed never fires
+ * `onRemoved`, so nothing ever ends its conversation — the turns sit in a scope
+ * that no tab will read again and that no other tab can recall from, because
+ * reaching the shared archive is exactly what closing does. Before this there
+ * was no way to finish one by hand.
+ *
+ * Closing is not deleting. Each pool runs its own eviction first, so the turns
+ * move into the archive rather than being discarded, and the button says so.
+ */
+function conversationCard(
+  convo: ConversationStat,
+  onChange: () => void,
+  onSearch: (scope: string) => void
+): HTMLElement {
+  const card = document.createElement('div');
+  card.className = `memory-page__convo${convo.live ? '' : ' memory-page__convo--stale'}`;
+
+  const head = document.createElement('div');
+  head.className = 'memory-page__convo-head';
+
+  const name = document.createElement('span');
+  name.className = 'memory-page__convo-title';
+  // The tab's title when it is still open, the scope name when it is not —
+  // which is the only identifier a lost conversation still has.
+  name.textContent = convo.title ?? convo.scope;
+  name.title = convo.scope;
+
+  const state = document.createElement('span');
+  state.className = `ac-badge ac-badge--${convo.live ? 'ok' : 'warn'}`;
+  state.textContent = convo.live ? '[ OPEN ]' : '[ TAB GONE ]';
+
+  head.append(name, state);
+
+  const counts = document.createElement('p');
+  counts.className = 'memory-page__convo-counts ac-mono';
+  counts.textContent = [
+    `${convo.turns} turns`,
+    `${convo.thinking} reasoning`,
+    `${convo.actions} tool results`,
+    `${convo.indexed} indexed`,
+  ].join(' · ');
+
+  const actions = document.createElement('div');
+  actions.className = 'memory-page__convo-actions';
+
+  const look = document.createElement('button');
+  look.type = 'button';
+  look.className = 'ac-btn ac-btn--ghost';
+  look.textContent = 'Search this conversation';
+  look.addEventListener('click', () => onSearch(convo.scope));
+
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'ac-btn ac-btn--ghost';
+  close.textContent = 'Close and archive';
+  close.addEventListener('click', async () => {
+    const where = convo.title ?? convo.scope;
+    if (
+      !confirm(
+        `End the conversation "${where}"?\n\n` +
+          'Its turns move into the shared archive, where every tab can recall ' +
+          'them. Nothing is deleted.'
+      )
+    ) {
+      return;
+    }
+
+    close.disabled = true;
+    close.textContent = 'Closing…';
+    await ask(MemoryAction.MEMORY_CLOSE, { scope: convo.scope });
+    onChange();
+  });
+
+  actions.append(look, close);
+
+  if (!convo.live) {
+    const why = document.createElement('p');
+    why.className = 'memory-page__convo-why';
+    why.textContent =
+      'This tab is gone but its conversation was never ended, so its turns have ' +
+      'not reached the shared archive and no other tab can recall them. Closing ' +
+      'it moves them across.';
+    card.append(head, counts, why, actions);
+    return card;
+  }
+
+  card.append(head, counts, actions);
+  return card;
+}
 
 function row(entry: MemoryEntry, onChange: () => void): HTMLElement {
   const wrap = document.createElement('details');
@@ -213,13 +363,17 @@ function row(entry: MemoryEntry, onChange: () => void): HTMLElement {
 }
 
 /** `window:tab:412` is an internal name; this is what it means. */
+/**
+ * A shared pool's name, as a person would say it.
+ *
+ * Only pools belonging to no conversation reach this now. The per-tab ones used
+ * to come through here too and lost their scope on the way, which is what
+ * produced a grid of identical "OPEN CONVERSATION" cells; they are grouped by
+ * conversation before rendering instead.
+ */
 function labelForPool(name: string): string {
   if (name === 'archive') return 'Archive (shared)';
   if (name === 'tools') return 'Tools';
-  if (name.startsWith('window')) return 'Open conversation';
-  if (name.startsWith('thinking')) return 'Reasoning';
-  if (name.startsWith('action')) return 'Tool results';
-  if (name.startsWith('thread')) return 'Scrollback index';
   return name;
 }
 
