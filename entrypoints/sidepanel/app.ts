@@ -9,9 +9,42 @@ import type { ChatUI } from '../../lib/sidepanel/ui';
 import type { ConnectionManager } from '../../lib/sidepanel/connection';
 import type { BackdropHandle } from '../../lib/backdrop';
 
+/**
+ * If a turn produces no terminal message within this, the composer unlocks
+ * anyway. A model loading cold can legitimately take a minute, so this is long
+ * — it exists to stop the panel becoming permanently unusable, not to time
+ * anything out.
+ */
+const REPLY_WATCHDOG_MS = 5 * 60 * 1000;
+
 export class SidepanelApp {
   private port: Browser.runtime.Port;
   private currentActiveTabId = -1;
+
+  /**
+   * Whether a reply is in flight.
+   *
+   * Held here rather than read off the submit button's `disabled` state, which
+   * is what it used to be. Two things went wrong with that. `requestSubmit()`
+   * behaves as if the default submit button were clicked, so while the button
+   * was disabled every Enter press was silently swallowed — a typed message
+   * would vanish with no indication. And if a terminal message was ever missed,
+   * the button stayed disabled forever, which made the composer permanently
+   * dead rather than briefly stuck.
+   */
+  private awaitingReply = false;
+
+  /** Cleared whenever the turn ends, however it ends. */
+  private watchdog: number | undefined;
+
+  /**
+   * Settings, kept rather than re-fetched on every send.
+   *
+   * Each send used to make a round trip to the worker before it could post
+   * anything, which widened the window in which a second submit could arrive
+   * and be swallowed.
+   */
+  private settings: ExtensionSettings = {};
 
   constructor(
     private chatUI: ChatUI,
@@ -22,7 +55,7 @@ export class SidepanelApp {
     pulser: HTMLElement | null,
     private backdrop: BackdropHandle
   ) {
-    this.port = browser.runtime.connect({ name: SIDEPANEL_CONNECTION_NAME });
+    this.port = this.connect();
 
     // Toggle, not just expand: the mark is the only way back in either
     // direction once the conversation has started.
@@ -33,11 +66,50 @@ export class SidepanelApp {
     this.chatInput.addEventListener('input', () => this.backdrop.markActive());
   }
 
+  /**
+   * Open the port, and notice when it dies.
+   *
+   * MV3 stops the service worker whenever it decides the worker is idle, and
+   * that tears down every port with it. If it happens mid-reply the panel is
+   * left waiting for a STREAM_COMPLETE that nothing can send any more, which
+   * is the most likely way the composer ends up locked after a few turns.
+   *
+   * Reconnecting on demand is the documented way to handle this: the next
+   * message wakes a fresh worker.
+   */
+  private connect(): Browser.runtime.Port {
+    const port = browser.runtime.connect({ name: SIDEPANEL_CONNECTION_NAME });
+
+    port.onDisconnect.addListener(() => {
+      this.port = this.connect();
+      this.bindPortListeners();
+
+      if (!this.awaitingReply) return;
+
+      // A reply was in flight. It is not coming back, so say so and unlock
+      // rather than leaving the composer dead.
+      this.chatUI.streamError(
+        'The extension restarted while replying. Your message was not answered — send it again.'
+      );
+      this.endReply();
+    });
+
+    return port;
+  }
+
   public async init(): Promise<void> {
     this.currentActiveTabId = await this.getCurrentTabId();
 
-    const settings = await this.fetchSettings();
-    await this.connectionManager.updateStatus(settings.ollamaHost || OLLAMA_HOST);
+    this.settings = await this.fetchSettings();
+    await this.connectionManager.updateStatus(this.settings.ollamaHost || OLLAMA_HOST);
+
+    // Settings are shared through storage, so the panel follows a change made
+    // on either settings page without asking the worker again.
+    browser.storage.onChanged.addListener((changes, area) => {
+      if (area !== 'local') return;
+      const updated = changes.extensionSettings?.newValue as ExtensionSettings | undefined;
+      if (updated) this.settings = updated;
+    });
 
     // Size it once before anything is typed. The CSS height and the height
     // computed from scrollHeight differ by a couple of pixels, and without this
@@ -63,11 +135,11 @@ export class SidepanelApp {
           break;
         case PortAction.STREAM_COMPLETE:
           this.chatUI.completeStream();
-          this.backdrop.setStreaming(false);
+          this.endReply();
           break;
         case PortAction.STREAM_ERROR:
           this.chatUI.streamError(msg.error);
-          this.backdrop.setStreaming(false);
+          this.endReply();
           break;
         case 'SCRAPE_COMPLETE':
           this.handleScrapeComplete(msg.result);
@@ -111,39 +183,73 @@ export class SidepanelApp {
     // message can genuinely be several lines long.
     this.chatInput.addEventListener('input', () => this.resizeComposer());
 
-    // Form submission
     this.chatForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+
+      /*
+        Refuse rather than swallow.
+
+        A submit arriving mid-reply used to disappear: the button was disabled,
+        so `requestSubmit()` did nothing at all and the text stayed in the box
+        with no explanation. Saying so is the whole difference.
+      */
+      if (this.awaitingReply) {
+        this.chatUI.appendSystemNotice('Still replying — wait for this one to finish.');
+        return;
+      }
+
       const prompt = this.chatInput.value.trim();
       if (!prompt) return;
 
       const targetTabId = this.currentActiveTabId;
-      const currentSettings = await this.fetchSettings();
-      const hostUrl = currentSettings.ollamaHost || OLLAMA_HOST;
-      const modelName = currentSettings.activeModel || DEFAULT_ACTIVE_MODEL;
-
-      const isConnected = await this.connectionManager.updateStatus(hostUrl);
-      if (!isConnected) {
-        alert(
-          `Ollama is not reachable at ${hostUrl}. Make sure Ollama is open and the host/model settings are correct.`
-        );
-        return;
-      }
 
       this.chatUI.appendBubble('user', prompt);
       this.chatInput.value = '';
       this.resizeComposer();
-      this.chatUI.startStream();
-      this.backdrop.setStreaming(true);
+
+      this.beginReply();
 
       this.port.postMessage({
         action: PortAction.SEND_MESSAGE,
         tabId: targetTabId,
         prompt,
-        hostUrl,
-        modelName,
       });
+
+      /*
+        The connectivity check happens AFTER the send, not before it.
+
+        It used to be awaited first and used to decide whether to send at all,
+        which put a network round trip between pressing Enter and anything
+        happening. The worker reports a failure through STREAM_ERROR anyway, so
+        this only updates the status light.
+      */
+      void this.connectionManager.updateStatus(this.settings.ollamaHost || OLLAMA_HOST);
     });
+  }
+
+  /** Lock the composer and arm the watchdog. */
+  private beginReply(): void {
+    this.awaitingReply = true;
+    this.chatUI.startStream();
+    this.backdrop.setStreaming(true);
+
+    window.clearTimeout(this.watchdog);
+    this.watchdog = window.setTimeout(() => {
+      // Nothing came back. Unlock regardless — a missing message must not cost
+      // the user the ability to type.
+      this.chatUI.streamError(
+        'No reply came back. The model may still be loading, or the extension may have restarted.'
+      );
+      this.endReply();
+    }, REPLY_WATCHDOG_MS);
+  }
+
+  /** Unlock the composer. Safe to call twice. */
+  private endReply(): void {
+    this.awaitingReply = false;
+    window.clearTimeout(this.watchdog);
+    this.watchdog = undefined;
+    this.backdrop.setStreaming(false);
   }
 
   private bindScrapeButton(): void {

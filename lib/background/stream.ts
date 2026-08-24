@@ -28,9 +28,17 @@ export class StreamService {
     settings: ExtensionSettings,
     context?: unknown
   ): Promise<void> {
-    const scope = await this.sessions.scopeFor(tabId);
+    /*
+      Inside the try, not before it.
 
+      This was above the try, so anything it threw — IndexedDB refusing to open,
+      a scope closed by a tab that had just gone away — escaped without posting
+      STREAM_ERROR. The panel had already locked its composer waiting for a
+      terminal message that was never going to come.
+    */
     try {
+      const scope = await this.sessions.scopeFor(tabId);
+
       let accumulated = '';
 
       const record = await scope.turn(
@@ -81,9 +89,19 @@ export class StreamService {
         },
       });
     } catch (cause) {
-      // A failed turn is still a turn: `turn()` closes it with stopped:"error"
-      // and it stays in the window, so the panel should still show the question.
-      await syncThread(scope);
+      /*
+        A failed turn is still a turn: `turn()` closes it with stopped:"error"
+        and it stays in the window, so the panel should still show the question.
+
+        Resolved again here rather than reused, because the failure may have
+        been `scopeFor` itself — in which case there is nothing to index and
+        this quietly does nothing.
+      */
+      try {
+        await syncThread(await this.sessions.scopeFor(tabId));
+      } catch {
+        // Indexing is best effort. The error below is what matters.
+      }
 
       port.postMessage({
         action: PortAction.STREAM_ERROR,
