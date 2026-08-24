@@ -69,6 +69,19 @@ export function renderMemory({
       const readout = readouts.get(param.id);
       if (!readout) continue;
 
+      /*
+        `recallCount` is a count of items, not a share of `num_ctx` — see the
+        comment on it in memory-params.ts. Running it through the same
+        "share% · tokens" formatting as everything else printed "1500% · 15
+        tokens" for a value of 15: `shareOf` returned the raw count, multiplying
+        by 100 turned 15 into 1500, and it is not a token figure at all.
+      */
+      if (param.id === 'recallCount') {
+        const count = tokens[param.id];
+        readout.textContent = `${count} ${count === 1 ? 'memory' : 'memories'}`;
+        continue;
+      }
+
       const share = Math.round(shareOf(current, param.id) * 100);
       // Thinking and action never enter the prompt, so saying "of context"
       // about them would be wrong.
