@@ -137,34 +137,101 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   /*
-    What the list below is showing.
+    The filter, as one object.
 
-    'archive' is the shared memory every tab can recall. Anything else is one
-    conversation's own turns, which the archive cannot answer for: a turn only
-    reaches the archive once it has aged out of its window or the tab has
-    closed, so the conversation you are currently having is precisely the one
-    the archive knows nothing about.
+    Everything on this page narrows one list rather than choosing between
+    several. That is the difference between a history window and a set of
+    category buttons: "pages, from the last day, mentioning pensions" is three
+    filters composed, and nobody had to anticipate that combination.
   */
-  let target = 'archive';
+  const filter: {
+    query: string;
+    source: 'all' | 'conversations' | 'pages';
+    within: number | null;
+    scope?: string;
+  } = { query: '', source: 'all', within: null };
+
+  /** Ids ticked right now. Cleared whenever the list underneath changes. */
+  let selected = new Set<string>();
+  /** What is currently rendered, so "select all" knows what it means. */
+  let shown: MemoryEntry[] = [];
+
+  const SOURCES: [typeof filter.source, string][] = [
+    ['all', 'Everything'],
+    ['conversations', 'Conversations'],
+    ['pages', 'Pages'],
+  ];
+
+  // Matching Brave's ranges, because they are the ones people already reach for.
+  const WHENS: [number | null, string][] = [
+    [null, 'All time'],
+    [15 * 60_000, 'Last 15 min'],
+    [60 * 60_000, 'Last hour'],
+    [24 * 60 * 60_000, 'Last 24 hours'],
+    [7 * 24 * 60 * 60_000, 'Last 7 days'],
+  ];
+
+  function drawChips(): void {
+    const sourceHost = document.getElementById('filter-source');
+    const whenHost = document.getElementById('filter-when');
+    if (!sourceHost || !whenHost) return;
+
+    sourceHost.replaceChildren(
+      ...SOURCES.map(([value, label]) =>
+        chip(label, filter.source === value, () => {
+          filter.source = value;
+          void refreshList();
+        }),
+      ),
+    );
+
+    whenHost.replaceChildren(
+      ...WHENS.map(([value, label]) =>
+        chip(label, filter.within === value, () => {
+          filter.within = value;
+          void refreshList();
+        }),
+      ),
+    );
+  }
 
   function searchWithin(scope: string): void {
-    target = scope;
+    filter.scope = scope;
+    filter.query = '';
     if (search) search.value = '';
     void refreshList();
+  }
+
+  /** The selection bar, which only exists while something is ticked. */
+  function drawSelection(): void {
+    const bar = document.getElementById('memory-selection');
+    const all = document.getElementById('select-all') as HTMLInputElement | null;
+    const label = document.getElementById('select-all-label');
+    const del = document.getElementById('delete-selected');
+    if (!bar || !all || !label || !del) return;
+
+    bar.hidden = selected.size === 0;
+    all.checked = shown.length > 0 && selected.size === shown.length;
+    all.indeterminate = selected.size > 0 && selected.size < shown.length;
+    label.textContent = `${selected.size} of ${shown.length} selected`;
+    del.textContent = `Delete ${selected.size} ${selected.size === 1 ? 'item' : 'items'}`;
   }
 
   async function refreshList(): Promise<void> {
     if (!listHost) return;
 
-    const query = search?.value.trim() ?? '';
-    const inArchive = target === 'archive';
+    filter.query = search?.value.trim() ?? '';
 
     let result;
     try {
-      result =
-        query || !inArchive
-          ? await ask(MemoryAction.MEMORY_SEARCH, { query, target })
-          : await ask(MemoryAction.MEMORY_LIST);
+      result = await ask(MemoryAction.MEMORY_LIST, {
+        filter: {
+          query: filter.query,
+          source: filter.source,
+          scope: filter.scope,
+          since: filter.within ? Date.now() - filter.within : undefined,
+        },
+      });
     } catch (error) {
       listHost.replaceChildren(
         problem(error instanceof Error ? error.message : 'Could not read memory.'),
@@ -172,35 +239,76 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    const entries: MemoryEntry[] = result.entries ?? [];
+    shown = result.entries ?? [];
+    // A row that is no longer listed cannot stay ticked, or "delete selected"
+    // would remove things the list is not showing.
+    selected = new Set([...selected].filter((id) => shown.some((entry) => entry.id === id)));
+
+    drawChips();
     listHost.replaceChildren();
 
-    // Which memory is being read. Without this the results look like the
-    // archive and it is not obvious why the archive suddenly changed.
-    if (!inArchive) {
+    if (filter.scope) {
       const back = document.createElement('button');
       back.type = 'button';
       back.className = 'ac-btn ac-btn--ghost memory-page__scope-back';
-      back.textContent = `Showing ${target} · back to the shared archive`;
-      back.addEventListener('click', () => searchWithin('archive'));
+      back.textContent = `Showing the conversation ${filter.scope} · back to everything`;
+      back.addEventListener('click', () => {
+        delete filter.scope;
+        void refreshList();
+      });
       listHost.appendChild(back);
     }
 
-    if (entries.length === 0) {
-      listHost.appendChild(
-        note(
-          query
-            ? 'Nothing matches those words. Recall is keyword matching, so a memory only comes back when the question shares words with it.'
-            : inArchive
-              ? 'The archive is empty. It fills when a conversation grows past its budget, or when you close a tab.'
-              : 'This conversation holds nothing yet.',
-        ),
-      );
+    if (shown.length === 0) {
+      listHost.appendChild(note(emptyMessage(filter)));
+      drawSelection();
       return;
     }
 
-    for (const entry of entries) listHost.appendChild(row(entry, refresh));
+    for (const entry of shown) {
+      listHost.appendChild(
+        row(entry, refresh, {
+          checked: selected.has(entry.id),
+          onToggle: (on) => {
+            if (on) selected.add(entry.id);
+            else selected.delete(entry.id);
+            drawSelection();
+          },
+        }),
+      );
+    }
+
+    drawSelection();
   }
+
+  document.getElementById('select-all')?.addEventListener('change', (event) => {
+    const on = (event.target as HTMLInputElement).checked;
+    selected = on ? new Set(shown.map((entry) => entry.id)) : new Set();
+    void refreshList();
+  });
+
+  document.getElementById('delete-selected')?.addEventListener('click', async () => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+
+    /*
+      Named counts rather than "this cannot be undone" alone. The stakes are
+      obvious; what is worth confirming is the scope, and that is the part a
+      blunt wipe button always got wrong.
+    */
+    const pages = shown.filter((e) => selected.has(e.id) && e.source === 'page').length;
+    const talk = ids.length - pages;
+    const parts = [
+      talk > 0 ? `${talk} ${talk === 1 ? 'exchange' : 'exchanges'}` : null,
+      pages > 0 ? `${pages} page ${pages === 1 ? 'fragment' : 'fragments'}` : null,
+    ].filter(Boolean);
+
+    if (!confirm(`Delete ${parts.join(' and ')}? This cannot be undone.`)) return;
+
+    await ask(MemoryAction.MEMORY_FORGET, { ids });
+    selected = new Set();
+    await refresh();
+  });
 
   async function refresh(): Promise<void> {
     await Promise.all([refreshStats(), refreshList()]);
@@ -221,14 +329,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     scope's close-save within the same moment.
   */
   onMemoryChanged(debounce(refresh, 150));
-
-  document.getElementById('forget-all')?.addEventListener('click', async () => {
-    // Deliberately blunt. This is the one irreversible control on the page, and
-    // it should feel like it.
-    if (!confirm('Forget everything in the archive? This cannot be undone.')) return;
-    await ask(MemoryAction.MEMORY_FORGET_ALL);
-    await refresh();
-  });
 
   await refresh();
 });
@@ -308,7 +408,41 @@ function conversationCard(
     onChange();
   });
 
-  actions.append(look, close);
+  /*
+    Deleting outright, as a peer of closing rather than a step after it.
+
+    Closing was the only thing on offer, and closing preserves — it moves the
+    turns into the shared archive. So erasing a conversation meant archiving it
+    first and then finding its turns again among everything else, which is
+    asking somebody to file a thing in order to shred it.
+
+    The two are one word apart and opposite in effect, so the confirm says
+    plainly what survives in each case.
+  */
+  const drop = document.createElement('button');
+  drop.type = 'button';
+  drop.className = 'ac-btn ac-btn--ghost memory-page__convo-danger';
+  drop.textContent = 'Delete without keeping';
+  drop.addEventListener('click', async () => {
+    const where = convo.title ?? convo.scope;
+    if (
+      !confirm(
+        `Delete the conversation "${where}" and keep none of it?\n\n` +
+          `Its ${convo.turns} turns and anything attached to it go for good, ` +
+          'without passing through the archive. Anything of its that already ' +
+          'reached the shared archive stays there.\n\nThis cannot be undone.',
+      )
+    ) {
+      return;
+    }
+
+    drop.disabled = true;
+    drop.textContent = 'Deleting…';
+    await ask(MemoryAction.MEMORY_DELETE_SCOPE, { scope: convo.scope });
+    onChange();
+  });
+
+  actions.append(look, close, drop);
 
   if (!convo.live) {
     const why = document.createElement('p');
@@ -325,16 +459,36 @@ function conversationCard(
   return card;
 }
 
-function row(entry: MemoryEntry, onChange: () => void): HTMLElement {
+interface RowSelection {
+  checked: boolean;
+  onToggle(on: boolean): void;
+}
+
+function row(entry: MemoryEntry, onChange: () => void, select: RowSelection): HTMLElement {
   const wrap = document.createElement('details');
   wrap.className = 'memory-page__entry';
 
   const summary = document.createElement('summary');
   summary.className = 'memory-page__entry-summary';
 
+  /*
+    The tick box, outside the disclosure.
+
+    Clicking a `summary` toggles the `details` it belongs to, so a checkbox
+    inside one would open the row every time you tried to select it. Stopping
+    propagation keeps the two gestures separate: tick to select, click the text
+    to read.
+  */
+  const box = document.createElement('input');
+  box.type = 'checkbox';
+  box.className = 'memory-page__check';
+  box.checked = select.checked;
+  box.addEventListener('click', (event) => event.stopPropagation());
+  box.addEventListener('change', () => select.onToggle(box.checked));
+
   const kind = document.createElement('span');
   kind.className = `memory-page__kind memory-page__kind--${entry.kind}`;
-  kind.textContent = entry.kind;
+  kind.textContent = entry.source === 'page' ? 'page' : entry.kind;
 
   const text = document.createElement('span');
   text.className = 'memory-page__entry-text';
@@ -369,7 +523,17 @@ function row(entry: MemoryEntry, onChange: () => void): HTMLElement {
     tags.appendChild(tag);
   }
 
-  summary.append(kind, text, tags, meta);
+  // A fragment says which page and where in it, since the text alone is a
+  // paragraph from the middle of something.
+  if (entry.page) {
+    const from = document.createElement('span');
+    from.className = 'memory-page__from';
+    from.textContent = `${entry.page.title ?? entry.page.url ?? 'a page'} · ${entry.page.part}/${entry.page.of}`;
+    from.title = entry.page.url ?? '';
+    tags.prepend(from);
+  }
+
+  summary.append(box, kind, text, tags, meta);
 
   const body = document.createElement('div');
   body.className = 'memory-page__entry-body';
@@ -436,6 +600,46 @@ function row(entry: MemoryEntry, onChange: () => void): HTMLElement {
   body.appendChild(forget);
   wrap.append(summary, body);
   return wrap;
+}
+
+/** One filter chip. Pressed state is the filter, not a style flourish. */
+function chip(label: string, on: boolean, onPick: () => void): HTMLElement {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = `memory-page__chip${on ? ' is-on' : ''}`;
+  button.setAttribute('aria-pressed', String(on));
+  button.textContent = label;
+  button.addEventListener('click', onPick);
+  return button;
+}
+
+/**
+ * Why the list is empty, in terms of the filter that emptied it.
+ *
+ * "Nothing here" is useless when three filters are applied — the useful thing
+ * is which one to loosen.
+ */
+function emptyMessage(filter: {
+  query: string;
+  source: string;
+  within: number | null;
+  scope?: string;
+}): string {
+  if (filter.query) {
+    return (
+      'Nothing matches those words. Recall is keyword matching, so something ' +
+      'only comes back when the question shares words with it.'
+    );
+  }
+  if (filter.scope) return 'This conversation holds nothing yet.';
+  if (filter.within) return 'Nothing was stored in that period. Try a longer one.';
+  if (filter.source === 'pages') {
+    return 'No pages stored yet. A page is kept once you read another one in the same tab.';
+  }
+  if (filter.source === 'conversations') {
+    return 'No past exchanges yet. They arrive as a conversation grows or a tab closes.';
+  }
+  return 'Nothing stored yet.';
 }
 
 /** Characters as something readable at a glance. */

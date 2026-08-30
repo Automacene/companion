@@ -47,14 +47,32 @@ export type ToolAction = (typeof ToolAction)[keyof typeof ToolAction];
  * conversation in it.
  */
 export const MemoryAction = {
-  /** Recent entries, newest first. */
+  /**
+   * Browse what is stored: filtered, sorted, and paged like a history list.
+   *
+   * Takes a filter rather than being one of several fixed listings, because
+   * this page is a history browser and a history browser has one list you
+   * narrow, not a menu of separate views.
+   */
   MEMORY_LIST: 'MEMORY_LIST',
-  /** The same ranking the model gets, so the page shows what it would recall. */
-  MEMORY_SEARCH: 'MEMORY_SEARCH',
-  /** Forget one entry. */
+  /**
+   * Forget the entries whose ids are given.
+   *
+   * Takes a list because deleting is a selection, the way it is in a history
+   * window: tick the rows you do not want and remove those. It took a single id
+   * and was partnered with category-wide wipe buttons, which meant the only
+   * choices were one at a time or all of a kind.
+   */
   MEMORY_FORGET: 'MEMORY_FORGET',
-  /** Forget everything in the archive. */
-  MEMORY_FORGET_ALL: 'MEMORY_FORGET_ALL',
+  /**
+   * Delete a conversation outright, keeping none of it.
+   *
+   * The counterpart to MEMORY_CLOSE, which ends a conversation by moving its
+   * turns into the archive. Closing was the only thing on offer, so erasing one
+   * meant archiving it first and then hunting its turns down in the archive —
+   * asking someone to file something in order to shred it.
+   */
+  MEMORY_DELETE_SCOPE: 'MEMORY_DELETE_SCOPE',
   /** Counts per pool, for the summary. */
   MEMORY_STATS: 'MEMORY_STATS',
   /**

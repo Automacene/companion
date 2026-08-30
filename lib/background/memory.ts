@@ -28,6 +28,27 @@ const LIST_CAP = 300;
  */
 export type MemoryPartId = 'context';
 
+/** What an entry came from, so one list can carry both and say which is which. */
+export type EntrySource = 'conversation' | 'page';
+
+/**
+ * How the history list is narrowed.
+ *
+ * Every field is optional and they compose, which is the point — "pages, from
+ * the last day, mentioning pensions" is three filters over one list rather than
+ * a view somebody had to think of in advance.
+ */
+export interface BrowseFilter {
+  /** Ranked by the same search the model uses. Empty means chronological. */
+  query?: string;
+  /** Which store to read. Defaults to both. */
+  source?: 'all' | 'conversations' | 'pages';
+  /** Only entries at or after this epoch millisecond. */
+  since?: number;
+  /** One conversation's own turns instead of the shared stores. */
+  scope?: string;
+}
+
 /**
  * One piece of an entry, sized so it can be judged before it is removed.
  *
@@ -63,6 +84,10 @@ export interface MemoryEntry {
   score?: number;
   /** Removable pieces this entry holds. Empty for a plain exchange. */
   parts: MemoryPart[];
+  /** Which store this came from. Shown as a badge and used by the filters. */
+  source: EntrySource;
+  /** For a page fragment: which page, and where it sat in it. */
+  page?: { title: string | null; url: string | null; part: number; of: number };
 }
 
 export class MemoryService {
@@ -89,19 +114,17 @@ export class MemoryService {
   private handlerFor(action: string): ((msg: any) => Promise<object>) | null {
     switch (action) {
       case MemoryAction.MEMORY_LIST:
-        return () => this.list();
-      case MemoryAction.MEMORY_SEARCH:
-        return (msg) => this.search(msg.query, msg.target);
+        return (msg) => this.browse(msg.filter ?? {});
       case MemoryAction.MEMORY_FORGET:
-        return (msg) => this.forget(msg.id);
-      case MemoryAction.MEMORY_FORGET_ALL:
-        return () => this.forgetAll();
+        return (msg) => this.forget(msg.ids ?? []);
       case MemoryAction.MEMORY_STATS:
         return () => this.stats();
       case MemoryAction.MEMORY_CLOSE:
         return (msg) => this.close(msg.scope);
       case MemoryAction.MEMORY_FORGET_PART:
         return (msg) => this.forgetPart(msg.id, msg.part);
+      case MemoryAction.MEMORY_DELETE_SCOPE:
+        return (msg) => this.deleteScope(msg.scope);
       default:
         return null;
     }
@@ -112,76 +135,75 @@ export class MemoryService {
     return { convo, pool: convo.memory.pool('archive') };
   }
 
-  /** Newest first, because that is the order a history is read in. */
-  private async list(): Promise<{ entries: MemoryEntry[]; total: number }> {
-    const { convo, pool } = await this.archive();
-    const all = pool.list();
-
-    const entries = all
-      .slice(-LIST_CAP)
-      .reverse()
-      .map((node: any) => toEntry(node, convo));
-
-    return { entries, total: all.length };
-  }
-
   /**
-   * The same ranking the model gets.
+   * One list of everything stored, narrowed by a filter.
    *
-   * Deliberately the same call rather than a separate text match, so what the
-   * page shows for a query is what would actually be recalled for it. A search
-   * that found things the model could not would be worse than none.
+   * Built the way a browser history window is, because that is what this is:
+   * one list you narrow and pick from, not a menu of separate views with a
+   * blunt "delete all of this kind" button on each. Conversations and page
+   * fragments appear together, sorted newest first, each saying which it is —
+   * so "what did I look at on Tuesday" and "what does it know about pensions"
+   * are the same question asked with different filters.
+   *
+   * With a query the order is relevance, using the same ranking the model gets
+   * so that what appears here is genuinely what a question would bring back.
+   * Without one it is chronological, which is how you read a history.
    */
-  private async search(
-    query: string,
-    target?: string,
-  ): Promise<{ entries: MemoryEntry[]; total: number }> {
+  private async browse(filter: BrowseFilter): Promise<{ entries: MemoryEntry[]; total: number }> {
     const convo = await this.sessions.ready();
+    const query = filter.query?.trim() ?? '';
+    const source = filter.source ?? 'all';
 
     /*
-      A conversation's own turns, rather than the shared archive.
+      One conversation's own turns, when the list is pointed at a scope.
 
-      The archive only receives a turn once it has aged out or the tab has
-      closed, so searching the archive alone cannot find anything said in a
-      conversation that is still open — which is exactly the conversation you
-      are most likely to be looking for. Searching the scope's window covers it.
+      Its window has not reached the archive yet — that only happens as turns
+      age out or the tab closes — so the conversation you are having right now
+      is exactly the one the shared stores know nothing about.
     */
-    if (target && target !== 'archive') {
-      if (!convo.hasScope(target)) return { entries: [], total: 0 };
+    if (filter.scope) {
+      if (!convo.hasScope(filter.scope)) return { entries: [], total: 0 };
 
-      const scope = convo.scope(target);
-      const resolved = `window:${target}`;
-
-      // A scope can exist with no window pool yet — it is created on the first
-      // turn, so a conversation that was opened and never used has none.
-      const hits = query?.trim()
-        ? await scope.search(query, { pool: 'window', limit: 50 })
+      const resolved = `window:${filter.scope}`;
+      const hits = query
+        ? await convo.scope(filter.scope).search(query, { pool: 'window', limit: LIST_CAP })
         : convo.memory.hasPool(resolved)
           ? convo.memory
               .pool(resolved)
               .list()
-              .slice(-LIST_CAP)
-              .reverse()
-              .map((node: any) => ({ node, score: 0 }))
+              .map((node: any) => ({ node, score: undefined }))
           : [];
 
-      return {
-        entries: hits.map((hit: any) => ({
-          ...toEntry(hit.node, convo),
-          ...(query?.trim() ? { score: round(hit.score) } : {}),
+      return finish(
+        hits.map((hit: any) => ({
+          ...toEntry(hit.node, convo, 'conversation'),
+          score: score(hit),
         })),
-        total: hits.length,
-      };
+        filter,
+      );
     }
 
-    if (!query?.trim()) return this.list();
+    const pools: [string, EntrySource][] = [];
+    if (source !== 'pages') pools.push(['archive', 'conversation']);
+    if (source !== 'conversations') pools.push(['scraped', 'page']);
 
-    const hits = await convo.scope('memory-page').search(query, { pool: 'archive', limit: 50 });
+    const entries: MemoryEntry[] = [];
 
-    return {
-      entries: hits.map((hit: any) => ({ ...toEntry(hit.node, convo), score: round(hit.score) })),
-      total: hits.length,
-    };
+    for (const [name, kind] of pools) {
+      if (!convo.memory.hasPool(name)) continue;
+
+      const hits = query
+        ? await convo.scope('memory-page').search(query, { pool: name, limit: LIST_CAP })
+        : convo.memory
+            .pool(name)
+            .list()
+            .map((node: any) => ({ node, score: undefined }));
+
+      for (const hit of hits)
+        entries.push({ ...toEntry(hit.node, convo, kind), score: score(hit) });
+    }
+
+    return finish(entries, filter);
   }
 
   /**
@@ -203,18 +225,23 @@ export class MemoryService {
   }
 
   /**
-   * Drop one entry, from whichever pool actually holds it.
+   * Forget the given entries, wherever each of them lives.
    *
-   * This used to only look in the archive, which was correct as long as the
-   * page only ever listed the archive. Now that a conversation's own turns can
-   * be searched and shown with the same "Forget this" button, an id can just as
-   * easily live in a live tab's window pool — `unregister` finds it in any
-   * scope instead of the button silently doing nothing outside the archive.
+   * A list rather than one id, because deleting from a history list is a
+   * selection. `unregister` finds each wherever it is — the shared archive, the
+   * page fragments, or a live tab's window — so the caller never has to know
+   * which store a row came from, and a mixed selection needs no special case.
    */
-  private async forget(id: string): Promise<{ removed: boolean }> {
+  private async forget(ids: string[]): Promise<{ removed: number }> {
     const convo = await this.sessions.ready();
-    const removed = convo.unregister(id);
-    if (removed) announceMemoryChanged();
+
+    let removed = 0;
+    for (const id of ids) if (convo.unregister(id)) removed++;
+
+    if (removed) {
+      await convo.persist();
+      announceMemoryChanged();
+    }
     return { removed };
   }
 
@@ -262,12 +289,42 @@ export class MemoryService {
     return { removed: true };
   }
 
-  private async forgetAll(): Promise<{ removed: number }> {
-    const { pool } = await this.archive();
-    const ids = pool.ids();
-    for (const id of ids) pool.remove(id);
-    if (ids.length) announceMemoryChanged();
-    return { removed: ids.length };
+  /**
+   * Delete a conversation and keep none of it.
+   *
+   * `closeScope` evicts first, and eviction is what moves turns into the
+   * archive — so closing preserves. Emptying the scope's own pools beforehand
+   * leaves eviction nothing to carry across, and the same call then becomes a
+   * deletion. That is the whole trick, and it means this cannot drift out of
+   * step with however closing works later.
+   *
+   * Only the pools this scope owns are touched. Anything of its that already
+   * reached the shared archive stays there, because it belongs to the browser
+   * now rather than to the tab, and removing it would delete history the user
+   * did not point at.
+   */
+  private async deleteScope(scope: string): Promise<{ deleted: boolean; removed: number }> {
+    const convo = await this.sessions.ready();
+    if (!scope || !convo.hasScope(scope)) return { deleted: false, removed: 0 };
+
+    let removed = 0;
+    for (const resolved of convo.memory.pools()) {
+      const { scope: owner } = splitPoolName(convo.mind, resolved);
+      if (owner !== scope) continue;
+
+      const pool = convo.memory.pool(resolved);
+      for (const id of pool.ids()) {
+        pool.remove(id);
+        removed++;
+      }
+    }
+
+    // Now a no-op as far as archiving goes, and it still drops the pools and
+    // retires the scope name properly.
+    await convo.closeScope(scope);
+
+    announceMemoryChanged();
+    return { deleted: true, removed };
   }
 
   /**
@@ -386,15 +443,44 @@ export interface MemoryStats {
  * thinking and action ids into something worth showing. A node listed without
  * one still renders, just without those parts.
  */
-function toEntry(node: any, convo?: any): MemoryEntry {
+function toEntry(node: any, convo?: any, source: EntrySource = 'conversation'): MemoryEntry {
   const content = node?.content ?? {};
   const metadata = node?.metadata ?? {};
-  const createdAt = Number(metadata.createdAt ?? 0);
+  // `readAt` for a page fragment: it is when the page was read, where
+  // `createdAt` is when the fragment was cut, which happens later when the next
+  // page displaces it. A history sorted by filing time reads wrong.
+  const createdAt = Number(metadata.readAt ?? metadata.createdAt ?? 0);
+
+  /*
+    A piece of a page. Its text already opens with the provenance line the
+    chunker wrote, so the summary drops that and shows the prose — the title is
+    carried alongside and rendered as its own thing.
+  */
+  if (source === 'page' || metadata.pageTitle !== undefined) {
+    const text = String(content.text ?? '');
+    const body = text.replace(/^From [^\n]*\n\n/, '');
+    return {
+      id: node.id,
+      kind: 'page',
+      source: 'page',
+      summary: body.slice(0, 240),
+      detail: text,
+      createdAt,
+      parts: [],
+      page: {
+        title: metadata.pageTitle ?? null,
+        url: metadata.pageUrl ?? null,
+        part: Number(metadata.part ?? 1),
+        of: Number(metadata.of ?? 1),
+      },
+    };
+  }
 
   if (content.query !== undefined) {
     return {
       id: node.id,
       kind: 'turn',
+      source,
       summary: String(content.query || '(no question)'),
       detail: `Asked: ${content.query ?? ''}\n\nAnswered: ${content.response ?? '(no answer recorded)'}`,
       createdAt,
@@ -406,6 +492,7 @@ function toEntry(node: any, convo?: any): MemoryEntry {
     return {
       id: node.id,
       kind: 'action',
+      source,
       summary: `${content.tool}(${JSON.stringify(content.params ?? {})})`,
       detail: JSON.stringify(content, null, 2),
       createdAt,
@@ -417,6 +504,7 @@ function toEntry(node: any, convo?: any): MemoryEntry {
     return {
       id: node.id,
       kind: typeof content.text === 'string' && content.text.length > 0 ? 'thinking' : 'note',
+      source,
       summary: String(content.text).slice(0, 200),
       detail: String(content.text),
       createdAt,
@@ -428,6 +516,7 @@ function toEntry(node: any, convo?: any): MemoryEntry {
   return {
     id: node.id,
     kind: 'note',
+    source,
     summary: raw.slice(0, 200),
     detail: raw,
     createdAt,
@@ -462,6 +551,32 @@ function partsOf(content: any, metadata: any, convo?: any): MemoryPart[] {
  * itself, so the walk is repeated here. Ids are unique across pools, so the
  * first hit is the only hit.
  */
+/** A hit's score, when there was a query to score against. */
+function score(hit: any): number | undefined {
+  return typeof hit.score === 'number' ? round(hit.score) : undefined;
+}
+
+/**
+ * Sort, apply the date filter, and cap.
+ *
+ * Relevance order when a query produced scores, newest-first otherwise. Both
+ * stores are merged before this runs, so a ranked search returns the best
+ * matches across conversations and pages together rather than the best of each.
+ */
+function finish(
+  entries: MemoryEntry[],
+  filter: BrowseFilter,
+): { entries: MemoryEntry[]; total: number } {
+  const since = filter.since;
+  const kept = since ? entries.filter((entry) => entry.createdAt >= since) : entries;
+
+  kept.sort((a, b) =>
+    a.score !== undefined && b.score !== undefined ? b.score - a.score : b.createdAt - a.createdAt,
+  );
+
+  return { entries: kept.slice(0, LIST_CAP), total: kept.length };
+}
+
 function poolHolding(convo: any, id: string): any | null {
   for (const name of convo.memory.pools()) {
     const pool = convo.memory.pool(name);

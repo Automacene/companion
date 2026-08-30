@@ -28,7 +28,6 @@
         <section class="ac-card ac-card--stack">
           <div class="ac-card__header">
             <h2 class="ac-card__title">What is stored</h2>
-            <button id="forget-all" type="button" class="ac-btn ac-btn--ghost">Forget everything</button>
           </div>
           <div id="memory-stats" class="memory-page__stats"></div>
         </section>
@@ -44,10 +43,29 @@
               autocomplete="off"
             />
             <p class="ac-field__hint">
-              This runs the same ranking the model does, so what appears here is what a
-              question using these words would actually bring back. Empty shows the most
-              recent instead.
+              With words, this ranks the way the model does, so what you see is what a
+              question would actually bring back. Empty, it lists everything newest first.
             </p>
+          </div>
+
+          <!-- Narrow the one list, rather than switching between several. -->
+          <div class="memory-page__filters">
+            <div id="filter-source" class="memory-page__chips" role="group" aria-label="Kind"></div>
+            <div id="filter-when" class="memory-page__chips" role="group" aria-label="When"></div>
+          </div>
+
+          <!--
+            The selection bar. Hidden until something is ticked, so the page is
+            not shouting about deletion while you are only reading.
+          -->
+          <div id="memory-selection" class="memory-page__selection" hidden>
+            <label class="memory-page__select-all">
+              <input id="select-all" type="checkbox" />
+              <span id="select-all-label">Select all</span>
+            </label>
+            <button id="delete-selected" type="button" class="ac-btn memory-page__delete">
+              Delete selected
+            </button>
           </div>
 
           <div id="memory-list" class="memory-page__list"></div>
