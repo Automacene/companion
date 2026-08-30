@@ -125,6 +125,8 @@ export class MemoryService {
         return (msg) => this.forgetPart(msg.id, msg.part);
       case MemoryAction.MEMORY_DELETE_SCOPE:
         return (msg) => this.deleteScope(msg.scope);
+      case MemoryAction.MEMORY_PURGE_ORPHANS:
+        return () => this.purgeOrphans();
       default:
         return null;
     }
@@ -328,6 +330,35 @@ export class MemoryService {
   }
 
   /**
+   * Drop every pool the current mind does not declare.
+   *
+   * These cost a little storage each and, more to the point, are serialized
+   * into every save — the whole of memory is written out on each change, so
+   * dead pools are paid for on every write forever. Nothing reads them and
+   * nothing will, because the names are not in the mind any more.
+   */
+  private async purgeOrphans(): Promise<{ removed: number; pools: string[] }> {
+    const convo = await this.sessions.ready();
+    const pools: string[] = [];
+    let removed = 0;
+
+    for (const resolved of convo.memory.pools()) {
+      const { base } = splitPoolName(convo.mind, resolved);
+      if ((convo.mind.pools as Record<string, unknown>)[base]) continue;
+
+      removed += convo.memory.pool(resolved).size;
+      convo.memory.dropPool(resolved);
+      pools.push(resolved);
+    }
+
+    if (pools.length) {
+      await convo.persist();
+      announceMemoryChanged();
+    }
+    return { removed, pools };
+  }
+
+  /**
    * What is stored, grouped the way a person thinks about it.
    *
    * This used to return one flat list of pool names. Because the window,
@@ -345,11 +376,40 @@ export class MemoryService {
     const convo = await this.sessions.ready();
 
     const shared: PoolCount[] = [];
+    const orphans: PoolCount[] = [];
     const byScope = new Map<string, Record<string, number>>();
 
     for (const resolved of convo.memory.pools()) {
       const { base, scope } = splitPoolName(convo.mind, resolved);
       const size = convo.memory.pool(resolved).size;
+      const declared = (convo.mind.pools as Record<string, { scoped?: boolean }>)[base];
+
+      /*
+        A pool the current mind knows nothing about.
+
+        Storage outlives the mind. Changing which pools exist leaves whatever
+        the previous arrangement wrote sitting in IndexedDB under names nothing
+        reads any more — `thinking`, `action`, and `tools` after they were
+        dropped, and any per-tab pools they had spawned. `splitPoolName` cannot
+        even take those apart, because it matches against the mind's own keys,
+        so `thinking:tab:9` comes back whole and unattributable.
+
+        They were being counted as shared memory, which put five dead pools in
+        the same grid as the archive and made both harder to read.
+      */
+      if (!declared) {
+        orphans.push({ name: resolved, size });
+        continue;
+      }
+
+      /*
+        The library instantiates an unscoped copy of every declared pool for the
+        default scope, whether or not the pool is scoped. So `window`, `context`,
+        and `thread` each show up with no scope attached, always empty, on every
+        single load. They are an artifact of how scopes are rebuilt, not
+        somewhere anything is stored, and listing them is noise.
+      */
+      if (declared.scoped && !scope) continue;
 
       if (!scope) {
         shared.push({ name: base, size });
@@ -405,6 +465,7 @@ export class MemoryService {
       // looks exactly like memory that was never written.
       storageFailure: this.sessions.storageFailure,
       shared,
+      orphans,
       conversations,
     };
   }
@@ -433,6 +494,8 @@ export interface ConversationStat {
 export interface MemoryStats {
   storageFailure: string | null;
   shared: PoolCount[];
+  /** Pools left behind by an older arrangement. Nothing reads these. */
+  orphans: PoolCount[];
   conversations: ConversationStat[];
 }
 

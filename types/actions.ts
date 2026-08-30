@@ -73,6 +73,14 @@ export const MemoryAction = {
    * asking someone to file something in order to shred it.
    */
   MEMORY_DELETE_SCOPE: 'MEMORY_DELETE_SCOPE',
+  /**
+   * Drop pools the current mind no longer declares.
+   *
+   * Storage outlives the mind, so changing which pools exist strands whatever
+   * the old arrangement wrote. Those are serialized into every save from then
+   * on, because saving writes the whole of memory each time.
+   */
+  MEMORY_PURGE_ORPHANS: 'MEMORY_PURGE_ORPHANS',
   /** Counts per pool, for the summary. */
   MEMORY_STATS: 'MEMORY_STATS',
   /**

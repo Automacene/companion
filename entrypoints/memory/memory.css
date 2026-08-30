@@ -439,3 +439,27 @@
   background: var(--ac-color-info-soft);
   border-color: var(--ac-color-info-border);
 }
+
+/* Pools from an older arrangement. Named plainly, not dressed as an error. */
+.memory-page__orphans {
+  padding: var(--ac-space-3);
+  margin-top: var(--ac-space-3);
+  border-radius: var(--ac-radius-sm);
+
+  background: var(--ac-color-sunken);
+  border: 1px solid var(--ac-color-border-subtle);
+}
+
+.memory-page__orphans-text {
+  margin: 0 0 var(--ac-space-2);
+  font-size: var(--ac-text-xs);
+  color: var(--ac-color-text-muted);
+}
+
+.memory-page__orphans-list {
+  overflow-x: auto;
+  margin: 0 0 var(--ac-space-3);
+  font-size: var(--ac-text-2xs);
+  white-space: nowrap;
+  color: var(--ac-color-text-subtle);
+}

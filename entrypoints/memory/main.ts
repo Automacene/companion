@@ -94,6 +94,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       is the whole difference between a diagnostic dump and a page you can read.
     */
     const shared: PoolCount[] = result.shared ?? [];
+    const orphans: PoolCount[] = result.orphans ?? [];
     const conversations: ConversationStat[] = result.conversations ?? [];
 
     if (shared.length > 0) {
@@ -117,6 +118,56 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       statsHost.appendChild(grid);
+    }
+
+    /*
+      Pools from an older arrangement, named and offered for removal.
+
+      These were being counted as shared memory, so the grid showed `thinking`,
+      `action`, `tools` and a couple of per-tab leftovers next to the archive as
+      though they were all the same sort of thing. They are dead: nothing reads
+      them, and they are written out again on every save.
+    */
+    if (orphans.length > 0) {
+      const held = orphans.reduce((sum, pool) => sum + pool.size, 0);
+
+      const box = document.createElement('div');
+      box.className = 'memory-page__orphans';
+
+      const what = document.createElement('p');
+      what.className = 'memory-page__orphans-text';
+      what.textContent =
+        `${orphans.length} ${orphans.length === 1 ? 'store is' : 'stores are'} left over ` +
+        `from an earlier version of the extension, holding ${held} ` +
+        `${held === 1 ? 'item' : 'items'}. Nothing reads them, and they are written ` +
+        'to disk again every time memory is saved.';
+
+      const which = document.createElement('p');
+      which.className = 'memory-page__orphans-list ac-mono';
+      which.textContent = orphans.map((pool) => `${pool.name} (${pool.size})`).join('  ·  ');
+
+      const purge = document.createElement('button');
+      purge.type = 'button';
+      purge.className = 'ac-btn ac-btn--ghost';
+      purge.textContent = 'Remove them';
+      purge.addEventListener('click', async () => {
+        if (
+          !confirm(
+            `Remove ${orphans.length} leftover ${orphans.length === 1 ? 'store' : 'stores'} ` +
+              `holding ${held} ${held === 1 ? 'item' : 'items'}?\n\n` +
+              'The current extension cannot read them either way. This cannot be undone.',
+          )
+        ) {
+          return;
+        }
+        purge.disabled = true;
+        purge.textContent = 'Removing…';
+        await ask(MemoryAction.MEMORY_PURGE_ORPHANS);
+        await refresh();
+      });
+
+      box.append(what, which, purge);
+      statsHost.appendChild(box);
     }
 
     if (conversations.length === 0) {
