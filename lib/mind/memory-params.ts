@@ -127,6 +127,24 @@ export const MEMORY_PARAMS_BY_ID = new Map(MEMORY_PARAMS.map((p) => [p.id, p]));
  */
 const COUNT_PARAMS = new Set<MemoryParamId>(['recallCount', 'scrapeRecallCount']);
 
+/**
+ * Whether a param counts items rather than claiming a share of the window.
+ *
+ * Exported because the model page needs the same answer and was hardcoding one
+ * id by name to get it. That is what let `scrapeRecallCount` render as
+ * "400% · 4 tokens": it is a count of four, and every formatting rule for
+ * shares is wrong about it.
+ */
+export function isCountParam(id: MemoryParamId): boolean {
+  return COUNT_PARAMS.has(id);
+}
+
+/** What a count is counting, for the readout. */
+export const COUNT_UNITS: Partial<Record<MemoryParamId, { one: string; many: string }>> = {
+  recallCount: { one: 'memory', many: 'memories' },
+  scrapeRecallCount: { one: 'fragment', many: 'fragments' },
+};
+
 export type MemoryShares = Record<string, number>;
 
 /**

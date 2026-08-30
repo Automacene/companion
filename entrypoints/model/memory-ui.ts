@@ -1,5 +1,7 @@
 import {
+  COUNT_UNITS,
   MEMORY_PARAMS,
+  isCountParam,
   resolveBudgets,
   shareOf,
   type MemoryShares,
@@ -70,15 +72,20 @@ export function renderMemory({
       if (!readout) continue;
 
       /*
-        `recallCount` is a count of items, not a share of `num_ctx` — see the
-        comment on it in memory-params.ts. Running it through the same
-        "share% · tokens" formatting as everything else printed "1500% · 15
-        tokens" for a value of 15: `shareOf` returned the raw count, multiplying
-        by 100 turned 15 into 1500, and it is not a token figure at all.
+        Counts are not shares and must not be formatted as one. Running a count
+        through "share% · tokens" printed "1500% · 15 tokens" for a value of 15:
+        `shareOf` returns the raw count, multiplying by 100 turns 15 into 1500,
+        and it was never a token figure at all.
+
+        Asked of the params rather than by naming an id, which is the actual
+        repair. The first version of this tested `param.id === 'recallCount'`,
+        so when a second count was added it inherited the bug untouched and
+        rendered "400% · 4 tokens".
       */
-      if (param.id === 'recallCount') {
+      if (isCountParam(param.id)) {
         const count = tokens[param.id];
-        readout.textContent = `${count} ${count === 1 ? 'memory' : 'memories'}`;
+        const unit = COUNT_UNITS[param.id] ?? { one: 'item', many: 'items' };
+        readout.textContent = `${count} ${count === 1 ? unit.one : unit.many}`;
         continue;
       }
 
