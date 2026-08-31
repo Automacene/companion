@@ -209,3 +209,26 @@
 .sidepanel__detach {
   flex-shrink: 0;
 }
+
+/*
+  How much of a reread was already stored, coloured by how redundant it was.
+
+  Green when nothing was already held, red when all of it was. That is the
+  direction the news runs in: rereading a page that had not changed cost a
+  duplicate copy and the recall slots that come with it, while a page that had
+  turned over completely was worth the second read.
+
+  The hue is set per notice from the measured ratio. Saturation and lightness
+  come from the palette, because one pair of values cannot serve both
+  backgrounds — and because HSL lightness is not perceptual luminance. Green
+  carries far more of it than red at the same nominal lightness, so the
+  mid-range of this gradient is the part that fails first: at 34% lightness the
+  yellow-green around 60% measured 3.22 against the light background, under the
+  4.5 that normal text needs. The values below were measured across the whole
+  range rather than picked by eye.
+*/
+.sidepanel__overlap {
+  color: hsl(
+    var(--ac-overlap-hue, 161) var(--ac-overlap-saturation, 78%) var(--ac-overlap-lightness, 24%)
+  );
+}

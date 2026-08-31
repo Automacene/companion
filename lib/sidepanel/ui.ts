@@ -20,7 +20,7 @@ export class ChatUI {
      * The mark. Collapsing the hero reduces it to the pulsing square, which
      * stays clickable and is the way back.
      */
-    private logo: HTMLElement | null = null
+    private logo: HTMLElement | null = null,
   ) {}
 
   /**
@@ -53,13 +53,22 @@ export class ChatUI {
   /**
    * A non-message notice in the stream, for staged context and the like.
    */
-  public appendSystemNotice(text: string): void {
+  /**
+   * A non-message notice in the stream.
+   *
+   * `tail` is appended after the text as a real node, for the rare case where
+   * part of a notice needs its own styling. Text stays `textContent` so nothing
+   * a page supplied can be interpreted as markup; the caller builds the node it
+   * wants instead of handing over a string of HTML.
+   */
+  public appendSystemNotice(text: string, tail?: Node): void {
     const row = document.createElement('div');
     row.className = 'ac-message ac-message--system';
 
     const body = document.createElement('div');
     body.className = 'ac-message__body';
     body.textContent = text;
+    if (tail) body.appendChild(tail);
 
     row.appendChild(body);
     this.chatContainer.appendChild(row);

@@ -54,6 +54,11 @@
   /* ---- Status ----
      Each state carries the same three parts as the accent so
      badges, dots, and toasts all read from one place. */
+  /* Saturation and lightness for the reread-overlap gradient. Only the hue
+     varies at runtime; these keep it legible against this background. */
+  --ac-overlap-saturation: 78%;
+  --ac-overlap-lightness: 24%;
+
   --ac-color-success: #059669;
   --ac-color-success-soft: #dcfef3;
   --ac-color-success-border: #a6fce1;

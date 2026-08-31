@@ -28,6 +28,38 @@ function describeAge(ms: number): string {
 }
 
 /**
+ * The overlap sentence, coloured by how much of the reading was redundant.
+ *
+ * Green for nothing already stored through to red for all of it, because that
+ * is the direction the news is good in: a reread that learned nothing cost a
+ * duplicate copy and the recall slots that come with it, while a page that had
+ * changed completely was worth reading again.
+ *
+ * Only the hue is set here. Saturation and lightness are palette tokens, so the
+ * colour stays legible on both the light and dark backgrounds instead of a
+ * single pair of values washing out on one of them. The endpoints are the hues
+ * of the palette's own success and danger colours rather than pure green and
+ * red, so this reads as part of the same set.
+ */
+const OVERLAP_HUE_CLEAR = 161;
+const OVERLAP_HUE_STALE = 0;
+
+function overlapText(sentence: string, ratio: number): HTMLElement {
+  const span = document.createElement('span');
+  span.className = 'sidepanel__overlap';
+  span.textContent = sentence;
+
+  const hue = OVERLAP_HUE_CLEAR + (OVERLAP_HUE_STALE - OVERLAP_HUE_CLEAR) * clamp01(ratio);
+  span.style.setProperty('--ac-overlap-hue', Math.round(hue).toString());
+
+  return span;
+}
+
+function clamp01(value: number): number {
+  return Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0));
+}
+
+/**
  * If a turn produces no terminal message within this, the composer unlocks
  * anyway. A model loading cold can legitimately take a minute, so this is long
  * — it exists to stop the panel becoming permanently unusable, not to time
@@ -422,22 +454,25 @@ export class SidepanelApp {
       character ratio swings for reasons nobody cares about, where a paragraph
       either came back or it did not.
     */
-    let overlap = '';
+    let overlap: HTMLElement | undefined;
     if (comparison?.hadPrevious && comparison.total > 0) {
       const percent = Math.round(comparison.ratio * 100);
 
+      let sentence: string;
       if (comparison.identical) {
-        overlap = ' Identical to what was already stored — nothing new was learned.';
+        sentence = ' Identical to what was already stored — nothing new was learned.';
       } else if (comparison.unchanged === 0) {
         // Worth saying out loud rather than staying silent. On a front page
         // that turns over daily this is the normal answer, and it is the reason
         // rereading was worth it.
-        overlap = ` None of it was already stored — all ${comparison.total} sections are new.`;
+        sentence = ` None of it was already stored — all ${comparison.total} sections are new.`;
       } else {
-        overlap =
+        sentence =
           ` ${percent}% of it was already stored ` +
           `(${comparison.unchanged} of ${comparison.total} sections unchanged).`;
       }
+
+      overlap = overlapText(sentence, comparison.ratio);
     }
 
     const tokens = Math.round(kept / 4).toLocaleString();
@@ -448,8 +483,9 @@ export class SidepanelApp {
 
     this.chatUI.appendSystemNotice(
       meta.truncated
-        ? `${summary} It hit the size limit, so the end was cut.${overlap}`
-        : `${summary} It attaches to your next message.${overlap}`,
+        ? `${summary} It hit the size limit, so the end was cut.`
+        : `${summary} It attaches to your next message.`,
+      overlap,
     );
 
     /*
