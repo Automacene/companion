@@ -123,6 +123,39 @@ export function assembleChat(gathered: Gathered): ModelMessage[] {
     system.push('# Recalled from earlier browsing\n' + fromTalk.join('\n'));
   }
 
+  /*
+    The page open in this tab, as standing context rather than as something the
+    user just said.
+
+    It used to be glued onto the front of the question, which made a follow-up
+    look like a document handoff: a 39-character question arrived as a 6,744
+    character message, positioned after the history, so the most recent thing in
+    the conversation was always "here is a large page". The model answered by
+    summarising it again from the top instead of continuing — asking about the
+    economy got back the same list of headlines it had already given.
+
+    In the system block the page is background that stays put between turns, and
+    the question is only the question. The mind's own template has ordered it
+    this way all along, `{context}` before `{window}` and `{query}`; this
+    assembler was the thing disagreeing.
+  */
+  const open = sources.context?.entries?.[0]?.node?.content as
+    { title?: string; url?: string; content?: string } | undefined;
+
+  if (open?.content) {
+    const where = [open.title, open.url].filter(Boolean).join(' — ');
+    system.push(
+      `# The page open in this tab
+${where}
+
+${open.content}
+
+` +
+        'This is what the user is looking at now. It stays open across questions, ' +
+        'so treat it as something already read rather than as newly handed over.',
+    );
+  }
+
   const messages: ModelMessage[] = [];
   if (system.length > 0) messages.push({ role: 'system', content: system.join('\n\n') });
 
@@ -156,18 +189,8 @@ export function assembleChat(gathered: Gathered): ModelMessage[] {
     }
   }
 
-  /*
-    The page currently open in this tab, sent in full with the question.
-
-    It comes from the context pool rather than from the turn, which is what
-    makes it reachable at all. As a turn field it could only ever appear on the
-    turn that created it: history has to suppress it, so the page went dark the
-    moment the next question was asked. Held in a pool it stays attached until
-    another page replaces it, which is what somebody means by "the page I am
-    looking at".
-  */
-  const open = sources.context?.entries?.[0]?.node?.content;
-  messages.push({ role: 'user', content: withContext(query, open) });
+  // Just the question. Whatever it is about is already above it.
+  messages.push({ role: 'user', content: String(query) });
 
   return messages;
 }
@@ -188,26 +211,4 @@ function pageMarkerFor(context: unknown): string {
   }
 
   return '[context was attached]';
-}
-
-/**
- * Attach page context to the message it belongs to.
- *
- * The old system spliced the page into the stored message text, which is why
- * scraped pages reappeared in the visible history when switching tabs. Here
- * the turn stores `context` as its own field and it is only merged at
- * assembly, so the stored conversation stays clean.
- */
-function withContext(query: string, context: unknown): string {
-  if (context == null) return String(query);
-
-  const page = context as { title?: string; url?: string; content?: string };
-  if (typeof page === 'object' && page.content) {
-    return (
-      `[Attached page: ${page.title ?? 'Untitled'}${page.url ? ` — ${page.url}` : ''}]\n` +
-      `${page.content}\n\n${query}`
-    );
-  }
-
-  return `[Attached context]\n${typeof context === 'string' ? context : JSON.stringify(context)}\n\n${query}`;
 }
