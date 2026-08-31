@@ -25,6 +25,14 @@ export const PortAction = {
   PAGE_STATUS: 'PAGE_STATUS',
   /** Drop the page attached to this tab, keeping none of it. */
   DETACH_PAGE: 'DETACH_PAGE',
+  /**
+   * Rename the conversation this tab is having.
+   *
+   * The name is a label on the conversation id, never the id itself — scope
+   * names are baked into every pool a conversation owns, so renaming the
+   * identifier would strand all of them. Which is also why renaming is free.
+   */
+  RENAME_CONVERSATION: 'RENAME_CONVERSATION',
 
   // Responses/Events from Background to Sidepanel
   HISTORY_RESPONSE: 'HISTORY_RESPONSE',

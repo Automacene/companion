@@ -20,6 +20,7 @@
 import { Conversation } from '@automacene/conversation';
 import { buildMind, buildHooks } from '../mind/build';
 import { comparePages, fingerprint, type PageComparison } from '../mind/blocks';
+import { ConversationNames } from './names';
 import { TabIdentity, scopeNameFor } from './tab-identity';
 import type { PageContext } from './thread';
 import type { ExtensionSettings } from '../../types/state';
@@ -59,6 +60,16 @@ export class SessionManager {
    * a name that survives one.
    */
   public readonly identity = new TabIdentity();
+
+  /**
+   * What each conversation is called.
+   *
+   * Recognition cannot be made reliable — two tabs that reached the same page
+   * by different routes are genuinely indistinguishable — so it is made visible
+   * instead, and a name is what makes a wrong guess obvious rather than
+   * something you deduce several questions later.
+   */
+  public readonly names = new ConversationNames();
 
   constructor(settings: ExtensionSettings) {
     this.settings = settings;
@@ -100,7 +111,31 @@ export class SessionManager {
 
   /** The scope name a tab currently answers to. */
   public async scopeNameOf(tabId: number): Promise<string> {
-    return scopeNameFor(await this.identity.conversationFor(tabId));
+    return scopeNameFor(await this.conversationIdOf(tabId));
+  }
+
+  /**
+   * The conversation a tab is having, named if it did not have one.
+   *
+   * Naming happens here rather than inside the recogniser because the two are
+   * different jobs — one decides which conversation this is, the other decides
+   * what to call it — and only this layer sees both the id and the tab it came
+   * from. Seeded from the page title, which is the only description available
+   * when a conversation begins: the first question would say more, but it has
+   * not been asked yet.
+   */
+  public async conversationIdOf(tabId: number): Promise<string> {
+    const id = await this.identity.conversationFor(tabId);
+
+    try {
+      const tab = await browser.tabs.get(tabId);
+      await this.names.ensure(id, tab.title, tab.url);
+    } catch {
+      // A tab that vanished mid-question. The conversation keeps whatever name
+      // it already had, or gets one the next time it is asked about.
+    }
+
+    return id;
   }
 
   /**

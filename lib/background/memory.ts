@@ -430,6 +430,7 @@ export class MemoryService {
       touched in a while, and it is what makes the close button meaningful.
     */
     const conversations: ConversationStat[] = [];
+    const names = await this.sessions.names.all();
 
     for (const [scope, counts] of byScope) {
       /*
@@ -459,6 +460,7 @@ export class MemoryService {
 
       conversations.push({
         scope,
+        name: names[scope.replace(/^convo:/, '')] ?? null,
         title,
         live,
         turns: counts.window ?? 0,
@@ -491,6 +493,8 @@ export interface PoolCount {
 export interface ConversationStat {
   /** The scope name, `convo:c-a1b2c3d4`. Pass this to close it. */
   scope: string;
+  /** What it is called. Null when it has never been named. */
+  name: string | null;
   /** The tab's title, when the tab still exists. */
   title: string | null;
   /** Whether the tab is still open. False means it crashed or was lost. */

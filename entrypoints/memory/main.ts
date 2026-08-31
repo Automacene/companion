@@ -407,12 +407,19 @@ function conversationCard(
   const head = document.createElement('div');
   head.className = 'memory-page__convo-head';
 
+  /*
+    The conversation's name, which is the thing a person recognises it by.
+
+    The tab title was standing in for this and drifts: it describes wherever the
+    tab happens to be now, not what the conversation is about. A name is set
+    once and stays put until somebody changes it, which is what makes this list
+    scannable.
+  */
   const name = document.createElement('span');
   name.className = 'memory-page__convo-title';
-  // The tab's title when it is still open, the scope name when it is not —
-  // which is the only identifier a lost conversation still has.
-  name.textContent = convo.title ?? convo.scope;
+  name.textContent = convo.name ?? convo.title ?? convo.scope;
   name.title = convo.scope;
+  if (!convo.name) name.classList.add('is-unnamed');
 
   const state = document.createElement('span');
   state.className = `ac-badge ac-badge--${convo.live ? 'ok' : 'warn'}`;
@@ -422,11 +429,20 @@ function conversationCard(
 
   const counts = document.createElement('p');
   counts.className = 'memory-page__convo-counts ac-mono';
+  /*
+    Facts underneath, not a second description.
+
+    Two generated summaries of the same thing will eventually disagree and one
+    of them will read as wrong. What the subtitle can say without ever being
+    stale is what is observably true: where the tab is, how much it holds.
+  */
   counts.textContent = [
-    `${convo.turns} turns`,
-    convo.page > 0 ? 'a page attached' : 'no page attached',
-    `${convo.indexed} indexed`,
-  ].join(' · ');
+    convo.title && convo.title !== convo.name ? convo.title : null,
+    `${convo.turns} ${convo.turns === 1 ? 'turn' : 'turns'}`,
+    convo.page > 0 ? 'a page attached' : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   const actions = document.createElement('div');
   actions.className = 'memory-page__convo-actions';

@@ -464,3 +464,9 @@
   white-space: nowrap;
   color: var(--ac-color-text-subtle);
 }
+
+/* A conversation nobody has named. Reads as absent rather than as a value. */
+.memory-page__convo-title.is-unnamed {
+  font-style: italic;
+  color: var(--ac-color-text-subtle);
+}

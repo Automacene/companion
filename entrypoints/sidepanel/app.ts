@@ -96,6 +96,9 @@ export class SidepanelApp {
    */
   private settings: ExtensionSettings = {};
 
+  /** The conversation this tab is having, as the header reports it. */
+  private conversation: { id: string; name: string | null } | null = null;
+
   constructor(
     private chatUI: ChatUI,
     private connectionManager: ConnectionManager,
@@ -171,6 +174,7 @@ export class SidepanelApp {
     this.bindFormEvents();
     this.bindScrapeButton();
     this.bindDetachButton();
+    this.bindConversationName();
 
     this.requestTabHistory(this.currentActiveTabId);
     this.requestPageStatus();
@@ -369,7 +373,18 @@ export class SidepanelApp {
     url?: string | null;
     lastReadAt?: number | null;
     attached?: { title?: string; url?: string } | null;
+    conversation?: { id: string; name: string | null } | null;
+    renamedOnly?: boolean;
   }): void {
+    if (msg.conversation) {
+      this.conversation = msg.conversation;
+      this.renderConversationName();
+    }
+
+    // A rename answers with the name and nothing else, so the page status
+    // below it would otherwise be rewritten from an empty message.
+    if (msg.renamedOnly) return;
+
     const status = document.getElementById('page-status');
     const detach = document.getElementById('detach-btn') as HTMLButtonElement | null;
 
@@ -395,6 +410,42 @@ export class SidepanelApp {
 
     status.classList.add('is-known');
     status.textContent = `read ${describeAge(Date.now() - msg.lastReadAt)}`;
+  }
+
+  /**
+   * The conversation name in the header.
+   *
+   * Always present when there is one, in the same place, so it can be glanced
+   * at rather than read. That is the whole point of it: recognising which
+   * conversation a restored tab belongs to cannot be made reliable, so the
+   * guess is shown instead of hidden.
+   */
+  private renderConversationName(): void {
+    const host = document.getElementById('conversation-name');
+    if (!host) return;
+
+    const name = this.conversation?.name;
+    host.textContent = name || 'Unnamed conversation';
+    host.classList.toggle('is-unnamed', !name);
+  }
+
+  private bindConversationName(): void {
+    const host = document.getElementById('conversation-name');
+    if (!host) return;
+
+    host.addEventListener('click', () => {
+      if (!this.conversation) return;
+
+      const next = prompt('Name this conversation', this.conversation.name ?? '');
+      // Cancel returns null, which must not be read as "clear the name".
+      if (next === null) return;
+
+      this.port.postMessage({
+        action: PortAction.RENAME_CONVERSATION,
+        tabId: this.currentActiveTabId,
+        name: next,
+      });
+    });
   }
 
   private bindDetachButton(): void {

@@ -66,16 +66,34 @@ export class MessageDispatcher {
             const history = await this.sessionManager.pageHistory(tab.url ?? '');
             const attached = await this.sessionManager.attachedPage(tabId);
 
+            // Carried on the status the panel already asks for on every tab
+            // change, rather than a second round trip for one string.
+            const conversationId = await this.sessionManager.conversationIdOf(tabId);
+            const name = await this.sessionManager.names.get(conversationId);
+
             port.postMessage({
               action: PortAction.PAGE_STATUS_RESPONSE,
               url: tab.url ?? null,
               attached,
+              conversation: { id: conversationId, name },
               ...history,
             });
           } catch {
             // A tab that vanished mid-question is not an error worth reporting;
             // the panel simply shows nothing for it.
           }
+          return;
+        }
+
+        if (msg.action === PortAction.RENAME_CONVERSATION) {
+          const conversationId = await this.sessionManager.conversationIdOf(tabId);
+          const name = await this.sessionManager.names.rename(conversationId, msg.name ?? '');
+
+          port.postMessage({
+            action: PortAction.PAGE_STATUS_RESPONSE,
+            conversation: { id: conversationId, name },
+            renamedOnly: true,
+          });
           return;
         }
 

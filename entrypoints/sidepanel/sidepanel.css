@@ -46,9 +46,11 @@
 }
 
 .sidepanel__header-title {
+  /* A column now: the product name on top, the conversation under it. */
   display: flex;
-  align-items: center;
-  gap: var(--ac-space-4);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
 
   /* Lets the name truncate before the action group is squeezed, since the
      panel can be dragged narrower than the header wants to be. */
@@ -231,4 +233,54 @@
   color: hsl(
     var(--ac-overlap-hue, 161) var(--ac-overlap-saturation, 78%) var(--ac-overlap-lightness, 24%)
   );
+}
+
+/* The product name and its status dot, which stay on one line. */
+.sidepanel__header-line {
+  display: flex;
+  align-items: center;
+  gap: var(--ac-space-4);
+}
+
+/*
+  Which conversation this tab is having.
+
+  In the header rather than the composer placeholder, because a placeholder
+  disappears on the first keystroke — exactly when you are committing a thought
+  to a particular conversation, and exactly when you would want to know which
+  one. Recognising a restored tab cannot be made reliable, so this is what turns
+  a wrong guess into something you notice rather than deduce.
+
+  Styled as text rather than a button until hovered. It is a label first and a
+  control second; making it look clickable all the time would give a quiet line
+  more weight than it deserves.
+*/
+.sidepanel__conversation {
+  overflow: hidden;
+  max-width: 100%;
+  padding: 0;
+
+  font-family: inherit;
+  font-size: var(--ac-text-xs);
+  text-align: left;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: pointer;
+
+  color: var(--ac-color-text-muted);
+  background: none;
+  border: none;
+  border-bottom: 1px dashed transparent;
+}
+
+.sidepanel__conversation:hover,
+.sidepanel__conversation:focus-visible {
+  color: var(--ac-color-text);
+  border-bottom-color: var(--ac-color-border);
+}
+
+/* Never named, so it reads as an invitation rather than as a value. */
+.sidepanel__conversation.is-unnamed {
+  font-style: italic;
+  color: var(--ac-color-text-subtle);
 }
