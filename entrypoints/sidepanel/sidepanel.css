@@ -178,3 +178,34 @@
   height: 1rem;
   fill: currentColor;
 }
+
+/*
+  What the companion already knows about the page beside you.
+
+  Quiet by design. It sits in the button row and never moves, so it can be
+  glanced at rather than read — the value is in always being in the same place,
+  which is what lets somebody build a habit around it. A popup would interrupt
+  and would be dismissed unread within a day.
+*/
+.sidepanel__page-status {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+
+  font-family: var(--ac-font-mono);
+  font-size: var(--ac-text-2xs);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+
+  color: var(--ac-color-text-subtle);
+}
+
+/* Read before, so rereading may be redundant. Warm enough to catch the eye
+   without claiming anything is wrong, because nothing is. */
+.sidepanel__page-status.is-known {
+  color: var(--ac-color-warning);
+}
+
+.sidepanel__detach {
+  flex-shrink: 0;
+}

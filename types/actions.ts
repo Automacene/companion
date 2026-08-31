@@ -15,6 +15,16 @@ export const PortAction = {
    */
   PATCH_SETTINGS: 'PATCH_SETTINGS',
   GET_SETTINGS: 'GET_SETTINGS',
+  /**
+   * When this tab's page was last read, and how much of it is already stored.
+   *
+   * Asked on every tab change so the composer can say so before you press
+   * anything. Rereading a page you already have is the common way the archive
+   * fills with duplicates, and it used to happen silently.
+   */
+  PAGE_STATUS: 'PAGE_STATUS',
+  /** Drop the page attached to this tab, keeping none of it. */
+  DETACH_PAGE: 'DETACH_PAGE',
 
   // Responses/Events from Background to Sidepanel
   HISTORY_RESPONSE: 'HISTORY_RESPONSE',
@@ -24,6 +34,8 @@ export const PortAction = {
   SCRAPE_COMPLETE: 'SCRAPE_COMPLETE',
   MAP_COMPLETE: 'MAP_COMPLETE',
   SCRAPE_ERROR: 'SCRAPE_ERROR',
+  /** The answer to PAGE_STATUS, and what a detach reports afterwards. */
+  PAGE_STATUS_RESPONSE: 'PAGE_STATUS_RESPONSE',
 } as const;
 
 export type PortAction = (typeof PortAction)[keyof typeof PortAction];

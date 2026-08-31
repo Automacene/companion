@@ -54,6 +54,45 @@ export class MessageDispatcher {
         // Tab-scoped actions require a valid tabId
         if (tabId === -1) return;
 
+        /*
+          What we already hold for the page this tab is showing.
+
+          The URL comes from the browser rather than from the panel, because the
+          panel cannot see the page it is beside — it only knows a tab id.
+        */
+        if (msg.action === PortAction.PAGE_STATUS) {
+          try {
+            const tab = await browser.tabs.get(tabId);
+            const history = await this.sessionManager.pageHistory(tab.url ?? '');
+            const attached = await this.sessionManager.attachedPage(tabId);
+
+            port.postMessage({
+              action: PortAction.PAGE_STATUS_RESPONSE,
+              url: tab.url ?? null,
+              attached,
+              ...history,
+            });
+          } catch {
+            // A tab that vanished mid-question is not an error worth reporting;
+            // the panel simply shows nothing for it.
+          }
+          return;
+        }
+
+        if (msg.action === PortAction.DETACH_PAGE) {
+          await this.sessionManager.detachPage(tabId);
+          const tab = await browser.tabs.get(tabId).catch(() => null);
+          const history = await this.sessionManager.pageHistory(tab?.url ?? '');
+
+          port.postMessage({
+            action: PortAction.PAGE_STATUS_RESPONSE,
+            url: tab?.url ?? null,
+            attached: null,
+            ...history,
+          });
+          return;
+        }
+
         const currentSettings = await this.settingsManager.getSettings();
 
         switch (msg.action) {
@@ -90,7 +129,9 @@ export class MessageDispatcher {
             this.scraperService
               .scrapeTab(tabId, { maxChars: pageCharBudget(currentSettings) })
               .then(async (result) => {
-                await this.sessionManager.attachPage(tabId, {
+                // How much of this reading was already stored. Computed before
+                // the page is added, or it would be compared against itself.
+                const comparison = await this.sessionManager.attachPage(tabId, {
                   title: result.title,
                   url: result.url,
                   content: result.content,
@@ -103,6 +144,8 @@ export class MessageDispatcher {
                     contentType: result.contentType,
                     metadata: result.metadata,
                   },
+                  comparison,
+                  page: { title: result.title, url: result.url },
                 });
               })
               .catch((error) => {

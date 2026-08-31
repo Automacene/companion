@@ -24,6 +24,7 @@
  * source is a floating claim, and the model has no way to weigh it or say where
  * it learned it.
  */
+import { blocksOf, hashBlock } from './blocks';
 
 /** What a piece aims for. Big enough to hold an argument, small enough to rank. */
 const TARGET_CHARS = 600;
@@ -46,6 +47,13 @@ export interface PageChunk {
   part: number;
   /** How many pieces the page became. */
   of: number;
+  /**
+   * Fingerprints of the blocks this piece covers.
+   *
+   * Carried so a later reading of the same page can be compared against what is
+   * already stored without keeping a second copy of the text to diff against.
+   */
+  blocks: string[];
 }
 
 export interface ChunkSource {
@@ -64,27 +72,38 @@ export function chunkPage(page: ChunkSource): PageChunk[] {
   const body = (page?.content ?? '').trim();
   if (!body) return [];
 
-  const blocks = body
-    .split(/\n{2,}/)
-    .map((block) => block.trim())
-    .filter(Boolean);
+  // Shared with the reread comparison, so the pieces being counted are always
+  // the pieces being stored.
+  const blocks = blocksOf(body);
 
-  const pieces: string[] = [];
+  /*
+    Each piece carries the fingerprints of the blocks that went into it.
+
+    Tracked as the piece is built rather than recovered afterwards, because
+    afterwards is guesswork: a heading is repeated onto continuation pieces and
+    an over-long block is split across several, so the text of a finished piece
+    no longer maps cleanly back onto the blocks it came from.
+  */
+  const pieces: { text: string; blocks: string[] }[] = [];
   let current = '';
+  let currentBlocks: string[] = [];
   /** The last heading seen, repeated onto pieces that start mid-section. */
   let heading = '';
+  let headingHash = '';
 
   const flush = () => {
     const text = current.trim();
-    if (text) pieces.push(text);
+    if (text) pieces.push({ text, blocks: [...new Set(currentBlocks)] });
     current = '';
+    currentBlocks = [];
   };
 
-  const add = (text: string) => {
+  const add = (text: string, hash: string) => {
     const candidate = current ? `${current}\n\n${text}` : text;
 
     if (candidate.length <= MAX_CHARS) {
       current = candidate;
+      currentBlocks.push(hash);
       if (current.length >= TARGET_CHARS) flush();
       return;
     }
@@ -92,23 +111,29 @@ export function chunkPage(page: ChunkSource): PageChunk[] {
     flush();
     // Repeat the section heading, so a piece taken from the middle of a section
     // still says what section it is.
-    current = heading && !text.startsWith('#') ? `${heading}\n\n${text}` : text;
+    const repeats = heading && !text.startsWith('#');
+    current = repeats ? `${heading}\n\n${text}` : text;
+    currentBlocks = repeats && headingHash ? [headingHash, hash] : [hash];
     if (current.length >= TARGET_CHARS) flush();
   };
 
   for (const block of blocks) {
+    const hash = hashBlock(block);
+
     if (/^#{1,6}\s/.test(block)) {
       heading = block;
-      add(block);
+      headingHash = hash;
+      add(block, hash);
       continue;
     }
 
     if (block.length <= MAX_CHARS) {
-      add(block);
+      add(block, hash);
       continue;
     }
 
-    for (const piece of splitLongBlock(block)) add(piece);
+    // Every piece of an over-long block still belongs to that one block.
+    for (const piece of splitLongBlock(block)) add(piece, hash);
   }
 
   flush();
@@ -116,18 +141,21 @@ export function chunkPage(page: ChunkSource): PageChunk[] {
   // Fold a runt tail back rather than storing it alone.
   if (pieces.length > 1) {
     const last = pieces[pieces.length - 1]!;
-    if (last.length < MIN_CHARS) {
-      pieces[pieces.length - 2] = `${pieces[pieces.length - 2]}\n\n${last}`;
+    if (last.text.length < MIN_CHARS) {
+      const previous = pieces[pieces.length - 2]!;
+      previous.text = `${previous.text}\n\n${last.text}`;
+      previous.blocks = [...new Set([...previous.blocks, ...last.blocks])];
       pieces.pop();
     }
   }
 
   const source = sourceLine(page);
 
-  return pieces.map((text, index) => ({
-    text: source ? `${source}\n\n${text}` : text,
+  return pieces.map((piece, index) => ({
+    text: source ? `${source}\n\n${piece.text}` : piece.text,
     part: index + 1,
     of: pieces.length,
+    blocks: piece.blocks,
   }));
 }
 

@@ -6,6 +6,28 @@ import type { ConnectionManager } from '../../lib/sidepanel/connection';
 import type { BackdropHandle } from '../../lib/backdrop';
 
 /**
+ * How long ago, in words.
+ *
+ * Rounded and plain rather than a timestamp. The question this answers is
+ * "have I read this recently enough that reading it again is pointless", and a
+ * date makes you do that arithmetic yourself.
+ */
+function describeAge(ms: number): string {
+  const minutes = Math.floor(ms / 60_000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes}m ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+
+  const months = Math.floor(days / 30);
+  return months < 12 ? `${months}mo ago` : `${Math.floor(months / 12)}y ago`;
+}
+
+/**
  * If a turn produces no terminal message within this, the composer unlocks
  * anyway. A model loading cold can legitimately take a minute, so this is long
  * — it exists to stop the panel becoming permanently unusable, not to time
@@ -116,8 +138,10 @@ export class SidepanelApp {
     this.bindTabListeners();
     this.bindFormEvents();
     this.bindScrapeButton();
+    this.bindDetachButton();
 
     this.requestTabHistory(this.currentActiveTabId);
+    this.requestPageStatus();
   }
 
   private bindPortListeners(): void {
@@ -138,7 +162,10 @@ export class SidepanelApp {
           this.endReply();
           break;
         case 'SCRAPE_COMPLETE':
-          this.handleScrapeComplete(msg.result);
+          this.handleScrapeComplete(msg.result, msg.comparison, msg.page);
+          break;
+        case PortAction.PAGE_STATUS_RESPONSE:
+          this.renderPageStatus(msg);
           break;
         case 'SCRAPE_ERROR':
           this.handleScrapeError(msg.error);
@@ -151,6 +178,18 @@ export class SidepanelApp {
     browser.tabs.onActivated.addListener(async (activeInfo) => {
       this.currentActiveTabId = activeInfo.tabId;
       this.requestTabHistory(this.currentActiveTabId);
+      this.requestPageStatus();
+    });
+
+    /*
+      Navigating within a tab changes the page without changing the tab, so
+      `onActivated` never fires. Without this the line would keep describing the
+      page you were on three links ago, which is the opposite of predictable.
+    */
+    browser.tabs.onUpdated.addListener((tabId, changed) => {
+      if (tabId !== this.currentActiveTabId) return;
+      if (!changed.url && changed.status !== 'complete') return;
+      this.requestPageStatus();
     });
   }
 
@@ -267,7 +306,70 @@ export class SidepanelApp {
     });
   }
 
-  private handleScrapeComplete(result: any): void {
+  /** Ask the worker what it already holds for the page this tab is showing. */
+  private requestPageStatus(): void {
+    if (this.currentActiveTabId === -1) return;
+    this.port.postMessage({ action: PortAction.PAGE_STATUS, tabId: this.currentActiveTabId });
+  }
+
+  /**
+   * The line beside the buttons, and whether the remove button is offered.
+   *
+   * Always says something when there is a page to say it about. A status that
+   * is blank half the time cannot be relied on, and the point of putting it
+   * here is that you glance at the same spot every time and know where you
+   * stand before pressing anything.
+   */
+  private renderPageStatus(msg: {
+    url?: string | null;
+    lastReadAt?: number | null;
+    attached?: { title?: string; url?: string } | null;
+  }): void {
+    const status = document.getElementById('page-status');
+    const detach = document.getElementById('detach-btn') as HTMLButtonElement | null;
+
+    if (detach) {
+      detach.hidden = !msg.attached;
+      detach.disabled = false;
+      detach.textContent = 'Remove page';
+    }
+
+    if (!status) return;
+
+    status.classList.remove('is-known');
+
+    if (!msg.url) {
+      status.textContent = '';
+      return;
+    }
+
+    if (!msg.lastReadAt) {
+      status.textContent = 'not read before';
+      return;
+    }
+
+    status.classList.add('is-known');
+    status.textContent = `read ${describeAge(Date.now() - msg.lastReadAt)}`;
+  }
+
+  private bindDetachButton(): void {
+    const detach = document.getElementById('detach-btn') as HTMLButtonElement | null;
+    if (!detach) return;
+
+    detach.addEventListener('click', () => {
+      if (this.currentActiveTabId === -1) return;
+
+      detach.disabled = true;
+      detach.textContent = 'Removing…';
+      this.port.postMessage({ action: PortAction.DETACH_PAGE, tabId: this.currentActiveTabId });
+
+      this.chatUI.appendSystemNotice(
+        'Page removed. It is no longer attached to your messages and none of it was kept.',
+      );
+    });
+  }
+
+  private handleScrapeComplete(result: any, comparison?: any, _page?: any): void {
     // Context landed. The field brightens for a moment, which is the one place
     // the backdrop reports something instead of only decorating.
     this.backdrop.pulse();
@@ -310,6 +412,22 @@ export class SidepanelApp {
           'Scrolling the content into view and reading again usually works.',
       );
       return;
+    }
+
+    /*
+      How much of this reading was already stored.
+
+      Reported as sections rather than characters. A site that reflows its
+      navigation changes a great many characters while saying nothing new, so a
+      character ratio swings for reasons nobody cares about, where a paragraph
+      either came back or it did not.
+    */
+    let overlap = '';
+    if (comparison && comparison.total > 0 && comparison.unchanged > 0) {
+      const percent = Math.round(comparison.ratio * 100);
+      overlap = comparison.identical
+        ? ' Identical to what was already stored — nothing new was learned.'
+        : ` ${percent}% of it was already stored (${comparison.unchanged} of ${comparison.total} sections unchanged).`;
     }
 
     const tokens = Math.round(kept / 4).toLocaleString();

@@ -382,18 +382,8 @@
   border-color: var(--ac-color-accent);
 }
 
-/*
-  Appears only once something is ticked.
-
-  The `[hidden]` rule has to be written out. `hidden` hides an element through
-  a `display: none` in the browser's own stylesheet, and any author `display`
-  on the same element beats it — so setting `.hidden = true` in script did
-  nothing here and the bar sat there reading "0 of 0 selected".
-*/
-.memory-page__selection[hidden] {
-  display: none;
-}
-
+/* Appears only once something is ticked. See the `[hidden]` rule in reset.css
+   for why the attribute is trusted to do the hiding. */
 .memory-page__selection {
   display: flex;
   gap: var(--ac-space-3);

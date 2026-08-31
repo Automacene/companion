@@ -19,6 +19,7 @@
  */
 import { Conversation } from '@automacene/conversation';
 import { buildMind, buildHooks } from '../mind/build';
+import { comparePages, fingerprint, type PageComparison } from '../mind/blocks';
 import type { PageContext } from './thread';
 import type { ExtensionSettings } from '../../types/state';
 
@@ -99,12 +100,95 @@ export class SessionManager {
    * into pieces on the way to `scraped`. That is the entire lifecycle of a page
    * read, and it is expressed by the mind rather than coded here.
    */
-  public async attachPage(tabId: number, page: PageContext): Promise<void> {
+  public async attachPage(tabId: number, page: PageContext): Promise<PageComparison> {
     const scope = await this.scopeFor(tabId);
+
+    // Measured against what is already stored BEFORE this reading is added, or
+    // the page would be compared against itself.
+    const previous = await this.knownBlocks(page.url ?? '');
+    const blocks = fingerprint(page.content ?? '');
+
+    await scope.ensurePool('context').create({
+      content: page,
+      metadata: { blocks, readAt: Date.now() },
+    });
     // `evict()` runs the pool's own policy, which is what enforces the count of
     // one. Creating alone would leave both pages sitting there.
-    await scope.ensurePool('context').create({ content: page });
     await scope.evict();
+
+    return comparePages(previous, blocks);
+  }
+
+  /**
+   * Detach the page from a tab and keep none of it.
+   *
+   * Deliberately not the eviction path. Replacing a page is a normal part of
+   * browsing and the old one is worth chunking into `scraped`; pressing remove
+   * says the read was a mistake, and filing a mistake is not what the button
+   * appears to offer. `remove` rather than `evict` is the whole difference.
+   */
+  public async detachPage(tabId: number): Promise<{ removed: boolean }> {
+    const convo = await this.ready();
+    const resolved = `context:${scopeNameFor(tabId)}`;
+
+    if (!convo.memory.hasPool(resolved)) return { removed: false };
+
+    const pool = convo.memory.pool(resolved);
+    const ids = pool.ids();
+    for (const id of ids) pool.remove(id);
+
+    if (ids.length) await convo.persist();
+    return { removed: ids.length > 0 };
+  }
+
+  /**
+   * What is already stored for a URL: when it was last read, and its blocks.
+   *
+   * Reads the fragments rather than a separate index. They already carry the
+   * URL they came from and now the fingerprints of the blocks they cover, so
+   * the answer is in the store that would otherwise be duplicated to hold it.
+   */
+  public async pageHistory(url: string): Promise<{ lastReadAt: number | null; blocks: number }> {
+    if (!url) return { lastReadAt: null, blocks: 0 };
+
+    const blocks = await this.knownBlocks(url);
+    const convo = await this.ready();
+
+    let lastReadAt: number | null = null;
+
+    for (const resolved of convo.memory.pools()) {
+      for (const node of convo.memory.pool(resolved).list()) {
+        const meta = (node?.metadata ?? {}) as Record<string, unknown>;
+        const at = Number(meta.readAt ?? 0);
+        if (urlOf(node) !== url || !at) continue;
+        if (lastReadAt === null || at > lastReadAt) lastReadAt = at;
+      }
+    }
+
+    return { lastReadAt, blocks: blocks.length };
+  }
+
+  /** Every block fingerprint stored for a URL, from wherever it is held. */
+  private async knownBlocks(url: string): Promise<string[]> {
+    if (!url) return [];
+
+    const convo = await this.ready();
+    const seen = new Set<string>();
+
+    /*
+      Both stores are searched. A page read a moment ago is still the attached
+      one and has not reached `scraped` yet, so looking only there would report
+      a page you just read as never seen.
+    */
+    for (const resolved of convo.memory.pools()) {
+      for (const node of convo.memory.pool(resolved).list()) {
+        if (urlOf(node) !== url) continue;
+        const stored = (node?.metadata as Record<string, unknown> | undefined)?.blocks;
+        if (Array.isArray(stored)) for (const hash of stored) seen.add(String(hash));
+      }
+    }
+
+    return [...seen];
   }
 
   /**
@@ -182,6 +266,11 @@ export class SessionManager {
       scopeIdleMs: SCOPE_IDLE_MS,
     });
   }
+}
+
+/** The URL a node came from, however it happens to record it. */
+function urlOf(node: any): string | null {
+  return node?.metadata?.pageUrl ?? node?.content?.url ?? null;
 }
 
 /**

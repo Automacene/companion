@@ -73,6 +73,23 @@
               <button id="map-btn" type="button" class="ac-btn ac-btn--secondary ac-btn--sm" disabled>
                 Map
               </button>
+
+              <!--
+                Quiet, always present, always in the same place. It says when
+                this page was last read and, after a scrape, how much of it was
+                already stored. Predictable enough to build a habit on, which a
+                popup would not be.
+              -->
+              <span id="page-status" class="sidepanel__page-status"></span>
+
+              <button
+                id="detach-btn"
+                type="button"
+                class="ac-btn ac-btn--ghost ac-btn--sm sidepanel__detach"
+                hidden
+              >
+                Remove page
+              </button>
             </div>
             <button id="run-btn" type="submit" class="ac-btn ac-btn--primary">Run →</button>
           </div>

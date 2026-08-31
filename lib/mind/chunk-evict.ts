@@ -77,7 +77,17 @@ export function chunkTo(target: string) {
             pageUrl: page.url ?? null,
             part: chunk.part,
             of: chunk.of,
-            readAt: node?.metadata?.createdAt ?? Date.now(),
+            readAt: node?.metadata?.readAt ?? node?.metadata?.createdAt ?? Date.now(),
+            /*
+              Which blocks of the page this piece covers.
+
+              Kept so a later reading can be compared against what is already
+              stored without holding a second copy of the text to diff against.
+              Metadata rather than content, because content is what the tagger
+              indexes and a list of fingerprints is not something anyone should
+              be able to match a question against.
+            */
+            blocks: chunk.blocks,
           },
         });
       }

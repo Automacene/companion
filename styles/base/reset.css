@@ -104,3 +104,21 @@ svg {
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/*
+  `hidden` hides things, including components that set their own display.
+
+  The attribute works through a `display: none` in the browser's own stylesheet,
+  which any author `display` on the same element beats — and most components
+  here set one. `.ac-btn` is `inline-flex`, so a button marked hidden in markup
+  stayed visible and `element.hidden = true` in script did nothing at all. It
+  cost an always-visible selection bar on the memory page and an always-visible
+  custom ramp field on the theme page before it was noticed.
+
+  Declared once, here, with `!important`, because the whole point of the
+  attribute is that it should win. Any component wanting to override it is
+  saying something contradictory.
+*/
+[hidden] {
+  display: none !important;
+}

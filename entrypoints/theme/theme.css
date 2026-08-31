@@ -121,16 +121,7 @@
 /* ---- Custom character ramp ----
    Indented and ruled so it reads as belonging to the select above it
    rather than as another field in the stack. */
-/*
-  Written out because `hidden` alone cannot win here. It hides through a
-  `display: none` in the browser's own stylesheet, which any author `display`
-  on the same element overrides — so the field stayed visible whichever ramp
-  was chosen.
-*/
-.theme-page__custom-ramp[hidden] {
-  display: none;
-}
-
+/* See the `[hidden]` rule in reset.css for why the attribute is trusted. */
 .theme-page__custom-ramp {
   display: flex;
   flex-direction: column;
