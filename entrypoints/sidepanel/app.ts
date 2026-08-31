@@ -221,7 +221,20 @@ export class SidepanelApp {
     browser.tabs.onUpdated.addListener((tabId, changed) => {
       if (tabId !== this.currentActiveTabId) return;
       if (!changed.url && changed.status !== 'complete') return;
+
       this.requestPageStatus();
+
+      /*
+        Ask for the scrollback again once the page has settled.
+
+        Opening the panel asks about the active tab immediately, and on a
+        restored tab that lands before the page has a url or a content script —
+        so the worker cannot yet tell which conversation the tab is having and
+        answers with an empty one. Asking again after the page finishes is what
+        lets a recovered conversation actually appear, rather than depending on
+        the panel having been open at the moment the browser started.
+      */
+      this.requestTabHistory(tabId);
     });
   }
 

@@ -432,11 +432,21 @@ export class MemoryService {
     const conversations: ConversationStat[] = [];
 
     for (const [scope, counts] of byScope) {
-      const tabId = scope.startsWith('tab:') ? Number(scope.slice(4)) : NaN;
+      /*
+        Which live tab, if any, is having this conversation.
+
+        The scope name used to be the tab id, so this parsed it back out. It is
+        a conversation id now — precisely so that it does NOT change when the
+        browser reassigns tab ids on a restart — so the live tab is looked up
+        through the same map the worker uses to route messages.
+      */
+      const conversationId = scope.startsWith('convo:') ? scope.slice(6) : scope;
+      const tabId = await this.sessions.identity.tabFor(conversationId);
+
       let title: string | null = null;
       let live = false;
 
-      if (Number.isFinite(tabId)) {
+      if (tabId !== null) {
         try {
           const tab = await browser.tabs.get(tabId);
           live = true;
@@ -479,7 +489,7 @@ export interface PoolCount {
 
 /** One conversation, with the counts that describe it. */
 export interface ConversationStat {
-  /** The scope name, `tab:412`. Pass this to close it. */
+  /** The scope name, `convo:c-a1b2c3d4`. Pass this to close it. */
   scope: string;
   /** The tab's title, when the tab still exists. */
   title: string | null;

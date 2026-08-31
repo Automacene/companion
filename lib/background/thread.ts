@@ -51,11 +51,11 @@ const THREAD_POOL = 'thread';
  * them up. A conversation with a hole where a failed question used to be is
  * worse than one showing a question that went nowhere.
  *
- * It reads the window rather than being told an id, so it cannot be given the
- * wrong one, and a caller that forgets to await it only delays the index by one
- * turn instead of corrupting it.
+ * The completed turn is named directly as well as swept for, because eviction
+ * runs inside `completeTurn` and can move a turn out of the window before this
+ * ever looks at it. See the note in the body.
  */
-export async function syncThread(scope: any): Promise<void> {
+export async function syncThread(scope: any, record?: { id: string; seq?: number }): Promise<void> {
   try {
     const pool = scope.ensurePool(THREAD_POOL);
 
@@ -66,10 +66,45 @@ export async function syncThread(scope: any): Promise<void> {
         .filter(Boolean),
     );
 
+    /*
+      The turn just completed is passed in, because reading the window is not
+      enough to find it.
+
+      `getTurns()` lists the window pool, and `completeTurn` runs eviction
+      before returning — so a turn that pushed the window over its budget is
+      already in the archive by the time this looks, and would never be
+      indexed. Not a rare case either: it is guaranteed for every turn once a
+      conversation reaches its budget, and the result is a scrollback that
+      silently stops growing while the model can still recall everything in it.
+
+      Naming the turn directly closes that hole. The window sweep stays for
+      anything else that arrived without passing through here.
+    */
+    if (record?.id && !known.has(record.id)) {
+      known.add(record.id);
+      await pool.create({ content: { turnId: record.id, seq: record.seq ?? 0 } });
+    }
+
+    let added = record?.id ? 1 : 0;
+
     for (const turn of scope.getTurns()) {
       if (known.has(turn.id)) continue;
+      known.add(turn.id);
+      added++;
       await pool.create({ content: { turnId: turn.id, seq: turn.seq } });
     }
+
+    /*
+      Written to disk explicitly, because nothing else will do it.
+
+      These go in through the pool directly rather than through the
+      conversation, and only the conversation's own writes trigger its autosave
+      — so every entry here lived in memory and died with the worker. The
+      scrollback was intact for as long as you kept the browser open and empty
+      the moment you did not, which reads exactly like a conversation that was
+      never saved even though the turns themselves were.
+    */
+    if (added > 0) await (scope.convo ?? scope._convo)?.persist?.();
   } catch (error) {
     // Losing an index entry costs scrollback, not the conversation.
     console.warn('[thread] could not record turns:', error);

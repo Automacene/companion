@@ -20,6 +20,7 @@
 import { Conversation } from '@automacene/conversation';
 import { buildMind, buildHooks } from '../mind/build';
 import { comparePages, fingerprint, type PageComparison } from '../mind/blocks';
+import { TabIdentity, scopeNameFor } from './tab-identity';
 import type { PageContext } from './thread';
 import type { ExtensionSettings } from '../../types/state';
 
@@ -42,10 +43,6 @@ const SCOPE_IDLE_MS = 6 * 60 * 60 * 1000;
  */
 const STORAGE_TIMEOUT_MS = 4000;
 
-export function scopeNameFor(tabId: number): string {
-  return `tab:${tabId}`;
-}
-
 export class SessionManager {
   private convo: Conversation | null = null;
   private loading: Promise<void> | null = null;
@@ -53,6 +50,15 @@ export class SessionManager {
   /** Why stored memory is unavailable, or null when it loaded. */
   public storageFailure: string | null = null;
   private settings: ExtensionSettings;
+
+  /**
+   * Which conversation each tab is having.
+   *
+   * Scopes used to be named after the tab id, which Chrome reassigns on every
+   * browser restart — so a restored tab found none of its history. This resolves
+   * a name that survives one.
+   */
+  public readonly identity = new TabIdentity();
 
   constructor(settings: ExtensionSettings) {
     this.settings = settings;
@@ -89,7 +95,12 @@ export class SessionManager {
   /** The scope for a tab, created on first mention. */
   public async scopeFor(tabId: number) {
     const convo = await this.ready();
-    return convo.scope(scopeNameFor(tabId));
+    return convo.scope(await this.scopeNameOf(tabId));
+  }
+
+  /** The scope name a tab currently answers to. */
+  public async scopeNameOf(tabId: number): Promise<string> {
+    return scopeNameFor(await this.identity.conversationFor(tabId));
   }
 
   /**
@@ -129,7 +140,7 @@ export class SessionManager {
    */
   public async detachPage(tabId: number): Promise<{ removed: boolean }> {
     const convo = await this.ready();
-    const resolved = `context:${scopeNameFor(tabId)}`;
+    const resolved = `context:${await this.scopeNameOf(tabId)}`;
 
     if (!convo.memory.hasPool(resolved)) return { removed: false };
 
@@ -201,8 +212,7 @@ export class SessionManager {
    */
   public async attachedPage(tabId: number): Promise<{ title?: string; url?: string } | null> {
     const convo = await this.ready();
-    const name = scopeNameFor(tabId);
-    const resolved = `context:${name}`;
+    const resolved = `context:${await this.scopeNameOf(tabId)}`;
 
     if (!convo.memory.hasPool(resolved)) return null;
 
@@ -222,7 +232,7 @@ export class SessionManager {
    */
   public async closeTab(tabId: number): Promise<void> {
     const convo = await this.ready();
-    const name = scopeNameFor(tabId);
+    const name = await this.scopeNameOf(tabId);
 
     if (!convo.hasScope(name)) return;
 

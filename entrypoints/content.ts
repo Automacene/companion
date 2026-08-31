@@ -19,6 +19,20 @@ export default defineContentScript({
   matches: ['<all_urls>'],
   main() {
     browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+      /*
+        How deep this tab's back/forward stack is.
+
+        The worker uses it to recognise a tab after a browser restart, when the
+        tab id it knew has been reassigned. Nothing is stored in the page: this
+        reports a number the browser already keeps, and a restored session
+        restores the stack it counts, which is why it survives when planted
+        markers do not.
+      */
+      if (message.action === ToolAction.TAB_IDENTITY) {
+        sendResponse({ depth: history.length });
+        return true;
+      }
+
       if (message.action !== ToolAction.SCRAPE_DOM) return;
 
       const started = performance.now();

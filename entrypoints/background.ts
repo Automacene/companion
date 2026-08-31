@@ -34,7 +34,22 @@ const scraperService = new ScraperService();
 const streamService = new StreamService(sessionManager);
 const memoryService = new MemoryService(sessionManager);
 
-const testServices = { sessionManager, settingsManager, scraperService, streamService, memoryService };
+const testServices = {
+  sessionManager,
+  settingsManager,
+  scraperService,
+  streamService,
+  memoryService,
+  /**
+   * Tab recognition, reachable from the service worker console as
+   * `__TEST_SERVICES__.identity.debug()`.
+   *
+   * Every failure inside it is caught, because none of them should be allowed
+   * to break a conversation — which also means none of them announce
+   * themselves. This is how to see what it decided and why.
+   */
+  identity: sessionManager.identity,
+};
 (globalThis as any).__TEST_SERVICES__ = testServices;
 (self as any).__TEST_SERVICES__ = testServices;
 
@@ -56,8 +71,39 @@ export default defineBackground(() => {
     the window, thinking, and actions all land in the archive before the pools
     are removed. Another tab can then recall them.
   */
-  browser.tabs.onRemoved.addListener((tabId) => {
-    void sessionManager.closeTab(tabId);
+  browser.tabs.onRemoved.addListener((tabId, removeInfo) => {
+    /*
+      A window closing is not the same as a tab being closed.
+
+      `onRemoved` fires for every tab when the browser quits, and closing a
+      scope ends the conversation: its turns are evicted into the archive and
+      its pools are dropped. So quitting Brave was dismantling every open
+      conversation moments before the restart that was meant to restore them —
+      the tab was recognised perfectly afterwards and found an empty scope
+      waiting, because the turns had already been filed away and the scrollback
+      index thrown out.
+
+      `isWindowClosing` separates the two. Deliberately closing a tab still ends
+      that conversation, which is what it has always meant.
+    */
+    if (removeInfo?.isWindowClosing) {
+      void sessionManager.identity.forget(tabId);
+      return;
+    }
+
+    void sessionManager.closeTab(tabId).then(() => sessionManager.identity.forget(tabId));
+  });
+
+  /*
+    Keep each conversation's description current as its tab moves.
+
+    A tab is recognised after a restart by the page it is on and how it got
+    there, so a description fixed at the moment the conversation started would
+    match nothing once the tab had navigated on.
+  */
+  browser.tabs.onUpdated.addListener((tabId, changed) => {
+    if (!changed.url && changed.status !== 'complete') return;
+    void sessionManager.identity.note(tabId);
   });
 
   // Changing `num_ctx` or the memory shares changes every budget, so the mind
@@ -70,10 +116,5 @@ export default defineBackground(() => {
   // not tab-scoped: the archive belongs to the browser, not to a conversation.
   memoryService.init();
 
-  new MessageDispatcher(
-    sessionManager,
-    settingsManager,
-    scraperService,
-    streamService
-  ).init();
+  new MessageDispatcher(sessionManager, settingsManager, scraperService, streamService).init();
 });

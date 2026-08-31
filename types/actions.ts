@@ -46,6 +46,14 @@ export type PortAction = (typeof PortAction)[keyof typeof PortAction];
 export const ToolAction = {
   SCRAPE_DOM: 'SCRAPE_DOM',
   MAP_DOM: 'MAP_DOM',
+  /**
+   * Ask a page how deep its back/forward stack is.
+   *
+   * `history.length` is a page API, so only the content script can read it. It
+   * is how a tab is recognised after a browser restart reassigns tab ids — see
+   * lib/background/tab-identity.ts for why nothing plantable survives.
+   */
+  TAB_IDENTITY: 'TAB_IDENTITY',
   EXECUTE_CALCULATOR: 'EXECUTE_CALCULATOR',
 } as const;
 

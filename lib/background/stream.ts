@@ -92,8 +92,10 @@ export class StreamService {
           context ? { context } : {},
         );
 
-        // Index it for the panel's scrollback before telling the panel it is done.
-        await syncThread(scope);
+        // Index it for the panel's scrollback before telling the panel it is
+        // done. The record is passed because eviction may already have moved it
+        // out of the window — see syncThread.
+        await syncThread(scope, record);
 
         return { record, accumulated };
       });
