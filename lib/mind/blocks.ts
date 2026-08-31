@@ -89,6 +89,15 @@ export interface PageComparison {
   ratio: number;
   /** Whether the two readings are the same set of blocks. */
   identical: boolean;
+  /**
+   * Whether anything was stored for this page before.
+   *
+   * Distinguishes "nothing of this was already stored" from "this page has
+   * never been read", which are different facts and want different words. A
+   * news front page that changed completely is the first, and reporting nothing
+   * for it would hide the most useful thing the comparison knows.
+   */
+  hadPrevious: boolean;
 }
 
 /**
@@ -121,5 +130,6 @@ export function comparePages(previous: string[], next: string[]): PageComparison
     gone,
     ratio: total === 0 ? 0 : unchanged / total,
     identical: total > 0 && unchanged === total && gone === 0,
+    hadPrevious: before.size > 0,
   };
 }

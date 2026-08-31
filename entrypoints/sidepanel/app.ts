@@ -423,11 +423,21 @@ export class SidepanelApp {
       either came back or it did not.
     */
     let overlap = '';
-    if (comparison && comparison.total > 0 && comparison.unchanged > 0) {
+    if (comparison?.hadPrevious && comparison.total > 0) {
       const percent = Math.round(comparison.ratio * 100);
-      overlap = comparison.identical
-        ? ' Identical to what was already stored — nothing new was learned.'
-        : ` ${percent}% of it was already stored (${comparison.unchanged} of ${comparison.total} sections unchanged).`;
+
+      if (comparison.identical) {
+        overlap = ' Identical to what was already stored — nothing new was learned.';
+      } else if (comparison.unchanged === 0) {
+        // Worth saying out loud rather than staying silent. On a front page
+        // that turns over daily this is the normal answer, and it is the reason
+        // rereading was worth it.
+        overlap = ` None of it was already stored — all ${comparison.total} sections are new.`;
+      } else {
+        overlap =
+          ` ${percent}% of it was already stored ` +
+          `(${comparison.unchanged} of ${comparison.total} sections unchanged).`;
+      }
     }
 
     const tokens = Math.round(kept / 4).toLocaleString();
@@ -438,9 +448,19 @@ export class SidepanelApp {
 
     this.chatUI.appendSystemNotice(
       meta.truncated
-        ? `${summary} It hit the size limit, so the end was cut.`
-        : `${summary} It attaches to your next message.`,
+        ? `${summary} It hit the size limit, so the end was cut.${overlap}`
+        : `${summary} It attaches to your next message.${overlap}`,
     );
+
+    /*
+      Refresh the line beside the button.
+
+      Without this the status keeps describing the state before the scrape —
+      still saying the page was read hours ago, still not offering to remove a
+      page that is now attached — until something else happens to refresh it.
+      Reloading the panel was the only way to see the truth.
+    */
+    this.requestPageStatus();
   }
 
   private handleScrapeError(error: string): void {
