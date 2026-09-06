@@ -13,7 +13,7 @@
 </p>
 
 <p style="font-size: 0.875rem; color: #71717a; margin-top: 0.75rem;">
-  <i>A 100% open-source, privacy-first AI companion for your browser—powered by your local hardware, not subscription fees.</i>
+  <i>A 100% open-source, privacy-first AI companion for your browser-powered by your local hardware, not subscription fees.</i>
 </p>
 
 Automacene Companion is a browser sidepanel extension designed to give you instant, context-aware AI assistance using self-hosted LLMs. By connecting directly to your local **Ollama** instance, Automacene Companion ensures your data stays private, your workflows remain uninterrupted, and you never have to pay a monthly fee to proprietary AI providers.
@@ -35,7 +35,7 @@ The goal of the Automacene ecosystem is simple: **democratize AI with a 100% ope
 * **Local Ollama Integration:** Connects to your local Ollama instance, `http://localhost:11434` by default.
 * **Reads the page you are on:** Extracts what a reader would actually see rather than scraping raw HTML, and tells you how much of a reread you already had before you store it again.
 * **Memory that spans tabs:** Every conversation writes into one shared archive, and pages are kept in fragments so recall returns the paragraph that matched rather than the whole document.
-* **Conversations survive a restart:** A tab is recognised after the browser reopens by the page it is on, how deep its history is, and where it sits in the strip — Chrome reassigns tab ids, so nothing else would find it.
+* **Conversations survive a restart:** A tab is recognised after the browser reopens by the page it is on, how deep its history is, and where it sits in the strip - Chrome reassigns tab ids, so nothing else would find it.
 * **Inspect and prune what it knows:** A memory page that browses, filters, and deletes stored items the way a browser history window does.
 * **Advanced Settings:**
 * Switch models on the fly.
@@ -125,7 +125,7 @@ Access the **Automacene Settings** page by right-clicking the extension icon and
 
 > `num_ctx` decides how much memory Ollama allocates, not just how much the
 > model remembers. A large context on a card that cannot hold it spills into
-> system RAM and can exhaust the machine — a 3B model at 128k needs roughly
+> system RAM and can exhaust the machine - a 3B model at 128k needs roughly
 > 15 GB. If the first message after changing it is very slow or the machine
 > stalls, lower it.
 
@@ -147,7 +147,7 @@ CHROME_BIN="/path/to/chrome" npm run dev
 
 **Reloading.** Reloading the extension does not inject content scripts into
 tabs that are already open, so reload the page too when testing anything that
-touches a page — page reading, or how a tab is recognised.
+touches a page - page reading, or how a tab is recognised.
 
 **The service worker.** MV3 stops it whenever it goes idle. Inspect it from
 `chrome://extensions` → Developer mode → **service worker**; its console is

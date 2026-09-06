@@ -1,18 +1,11 @@
-/* =============================================================
-   SURFACE — Sidepanel layout
-
-   Colocated with the entrypoint it belongs to. Layout only: what
-   goes where, and how big. Appearance comes from components and
-   tokens, so there is no color, shadow, or radius literal in here.
-============================================================= */
+/* SURFACE - Sidepanel layout. Colocated with the entrypoint it belongs to. */
 
 .sidepanel {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
 
-  /* The panel owns the viewport exactly. Anything that needs to
-     scroll does so internally, never the document. */
+  /* The panel owns the viewport exactly. */
   height: 100vh;
   padding: var(--ac-space-4);
   overflow: hidden;
@@ -35,9 +28,7 @@
   border-bottom: 1px solid var(--ac-color-border);
 }
 
-/* Status badge and the two page buttons. `min-width: 0` on the title lets
-   the name truncate before this group is squeezed, since a panel can be
-   dragged narrower than the header wants to be. */
+/* Status badge and the two page buttons. */
 .sidepanel__header-actions {
   display: flex;
   align-items: center;
@@ -52,15 +43,11 @@
   align-items: flex-start;
   gap: 2px;
 
-  /* Lets the name truncate before the action group is squeezed, since the
-     panel can be dragged narrower than the header wants to be. */
+  /* The name truncates before the action group is squeezed. */
   min-width: 0;
 }
 
-/* ---- Hero ----
-   Collapses once the conversation starts: the wording is hidden and
-   the mark reduces to just its pulsing square, which keeps its size
-   and stays clickable as the way back. */
+/* Hero */
 .sidepanel__hero {
   display: flex;
   flex-direction: column;
@@ -84,20 +71,13 @@
   display: none;
 }
 
-/* Collapsing does NOT resize the mark.
+/* Collapsing does NOT resize the mark. */
 
-   `lib/logo.ts` reframes the SVG onto the core square and hides the rest, so
-   what remains is the pulsing square at the size it already had. The size
-   itself comes from `.ac-logo--mark`, which is why there is no rule for it
-   here — a width set at this level would fight it. */
-
-/* Height, not width. The component supplies the artwork's aspect ratio, so
-   this reproduces the original `height: 12rem; width: auto`. */
+/* Height, not width. */
 .sidepanel__logo {
   block-size: 12rem;
   max-inline-size: 100%;
 }
-
 
 .sidepanel__hero-subtext {
   margin-top: var(--ac-space-2);
@@ -119,9 +99,7 @@
 
 /* ---- Composer ---- */
 
-/* The shared textarea style assumes a form field: three lines tall with a drag
-   handle. The composer starts at one line and grows with what is typed, so both
-   are overridden here rather than weakened for every other textarea. */
+/* The shared textarea style assumes a form field: three lines tall with a drag handle. */
 .sidepanel__composer .ac-input--textarea {
   min-height: 0;
   resize: none;
@@ -135,9 +113,7 @@
   gap: var(--ac-space-4);
 }
 
-/* The row of contributed actions. Rendering this from the addon
-   registry rather than from markup is what will let an addon add a
-   button here; the layout does not care how many there are. */
+/* The row of contributed actions. */
 .sidepanel__actions {
   display: flex;
   align-items: center;
@@ -181,14 +157,7 @@
   fill: currentColor;
 }
 
-/*
-  What the companion already knows about the page beside you.
-
-  Quiet by design. It sits in the button row and never moves, so it can be
-  glanced at rather than read — the value is in always being in the same place,
-  which is what lets somebody build a habit around it. A popup would interrupt
-  and would be dismissed unread within a day.
-*/
+/* What the companion already knows about the page beside you. */
 .sidepanel__page-status {
   flex: 1;
   min-width: 0;
@@ -202,8 +171,7 @@
   color: var(--ac-color-text-subtle);
 }
 
-/* Read before, so rereading may be redundant. Warm enough to catch the eye
-   without claiming anything is wrong, because nothing is. */
+/* Read before, so rereading may be redundant. */
 .sidepanel__page-status.is-known {
   color: var(--ac-color-warning);
 }
@@ -212,23 +180,7 @@
   flex-shrink: 0;
 }
 
-/*
-  How much of a reread was already stored, coloured by how redundant it was.
-
-  Green when nothing was already held, red when all of it was. That is the
-  direction the news runs in: rereading a page that had not changed cost a
-  duplicate copy and the recall slots that come with it, while a page that had
-  turned over completely was worth the second read.
-
-  The hue is set per notice from the measured ratio. Saturation and lightness
-  come from the palette, because one pair of values cannot serve both
-  backgrounds — and because HSL lightness is not perceptual luminance. Green
-  carries far more of it than red at the same nominal lightness, so the
-  mid-range of this gradient is the part that fails first: at 34% lightness the
-  yellow-green around 60% measured 3.22 against the light background, under the
-  4.5 that normal text needs. The values below were measured across the whole
-  range rather than picked by eye.
-*/
+/* How much of a reread was already stored, coloured by how redundant it was. */
 .sidepanel__overlap {
   color: hsl(
     var(--ac-overlap-hue, 161) var(--ac-overlap-saturation, 78%) var(--ac-overlap-lightness, 24%)
@@ -242,19 +194,7 @@
   gap: var(--ac-space-4);
 }
 
-/*
-  Which conversation this tab is having.
-
-  In the header rather than the composer placeholder, because a placeholder
-  disappears on the first keystroke — exactly when you are committing a thought
-  to a particular conversation, and exactly when you would want to know which
-  one. Recognising a restored tab cannot be made reliable, so this is what turns
-  a wrong guess into something you notice rather than deduce.
-
-  Styled as text rather than a button until hovered. It is a label first and a
-  control second; making it look clickable all the time would give a quiet line
-  more weight than it deserves.
-*/
+/* Which conversation this tab is having. */
 .sidepanel__conversation {
   overflow: hidden;
   max-width: 100%;

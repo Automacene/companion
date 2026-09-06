@@ -10,7 +10,7 @@
  * ── The service worker is the only place this can live ─────────
  * A tab closing has to outlive the tab, and `tabs.onRemoved` only fires here.
  * MV3 kills the worker on idle, so `ready()` has to be awaited before anything
- * touches a scope — the pools are empty until IndexedDB has been read back.
+ * touches a scope - the pools are empty until IndexedDB has been read back.
  *
  * ── The mind depends on settings ───────────────────────────────
  * Budgets are shares of `num_ctx`, so changing the context window changes the
@@ -56,7 +56,7 @@ export class SessionManager {
    * Which conversation each tab is having.
    *
    * Scopes used to be named after the tab id, which Chrome reassigns on every
-   * browser restart — so a restored tab found none of its history. This resolves
+   * browser restart - so a restored tab found none of its history. This resolves
    * a name that survives one.
    */
   public readonly identity = new TabIdentity();
@@ -64,8 +64,8 @@ export class SessionManager {
   /**
    * What each conversation is called.
    *
-   * Recognition cannot be made reliable — two tabs that reached the same page
-   * by different routes are genuinely indistinguishable — so it is made visible
+   * Recognition cannot be made reliable - two tabs that reached the same page
+   * by different routes are genuinely indistinguishable - so it is made visible
    * instead, and a name is what makes a wrong guess obvious rather than
    * something you deduce several questions later.
    */
@@ -91,9 +91,7 @@ export class SessionManager {
           this.storageFailure = null;
         })
         .catch((error: unknown) => {
-          // Recorded rather than swallowed, so the memory page can say that
-          // history is missing because storage failed rather than showing an
-          // empty archive as though that were the truth.
+          // Recorded rather than swallowed.
           this.storageFailure = error instanceof Error ? error.message : String(error);
           console.warn('[session] could not load stored memory:', error);
         });
@@ -118,8 +116,8 @@ export class SessionManager {
    * The conversation a tab is having, named if it did not have one.
    *
    * Naming happens here rather than inside the recogniser because the two are
-   * different jobs — one decides which conversation this is, the other decides
-   * what to call it — and only this layer sees both the id and the tab it came
+   * different jobs - one decides which conversation this is, the other decides
+   * what to call it - and only this layer sees both the id and the tab it came
    * from. Seeded from the page title, which is the only description available
    * when a conversation begins: the first question would say more, but it has
    * not been asked yet.
@@ -131,8 +129,7 @@ export class SessionManager {
       const tab = await browser.tabs.get(tabId);
       await this.names.ensure(id, tab.title, tab.url);
     } catch {
-      // A tab that vanished mid-question. The conversation keeps whatever name
-      // it already had, or gets one the next time it is asked about.
+      // A tab that vanished mid-question.
     }
 
     return id;
@@ -142,15 +139,14 @@ export class SessionManager {
    * Make a page the one this tab is looking at.
    *
    * The context pool holds a single node, so writing the new page is what
-   * evicts the old one — and the old one does not move across whole, it is cut
+   * evicts the old one - and the old one does not move across whole, it is cut
    * into pieces on the way to `scraped`. That is the entire lifecycle of a page
    * read, and it is expressed by the mind rather than coded here.
    */
   public async attachPage(tabId: number, page: PageContext): Promise<PageComparison> {
     const scope = await this.scopeFor(tabId);
 
-    // Measured against what is already stored BEFORE this reading is added, or
-    // the page would be compared against itself.
+    // Measured against what is already stored BEFORE this reading is added.
     const previous = await this.knownBlocks(page.url ?? '');
     const blocks = fingerprint(page.content ?? '');
 
@@ -158,8 +154,7 @@ export class SessionManager {
       content: page,
       metadata: { blocks, readAt: Date.now() },
     });
-    // `evict()` runs the pool's own policy, which is what enforces the count of
-    // one. Creating alone would leave both pages sitting there.
+    // `evict()` runs the pool's own policy, which is what enforces the count of one.
     await scope.evict();
 
     return comparePages(previous, blocks);
@@ -221,11 +216,7 @@ export class SessionManager {
     const convo = await this.ready();
     const seen = new Set<string>();
 
-    /*
-      Both stores are searched. A page read a moment ago is still the attached
-      one and has not reached `scraped` yet, so looking only there would report
-      a page you just read as never seen.
-    */
+    // Both stores are searched.
     for (const resolved of convo.memory.pools()) {
       for (const node of convo.memory.pool(resolved).list()) {
         if (urlOf(node) !== url) continue;
@@ -242,7 +233,7 @@ export class SessionManager {
    *
    * Returned as title and address only. It is what a turn records, so history
    * can say which page a question was asked against without storing the text a
-   * second time — the text is in the pool while it is current and in `scraped`
+   * second time - the text is in the pool while it is current and in `scraped`
    * afterwards.
    */
   public async attachedPage(tabId: number): Promise<{ title?: string; url?: string } | null> {
@@ -283,7 +274,7 @@ export class SessionManager {
    *
    * The mind is derived from `num_ctx` and the memory shares, so those changing
    * means new budgets and new eviction policies. Storage is untouched and read
-   * back on the next `ready()`, so nothing is lost — but anything mid-turn is
+   * back on the next `ready()`, so nothing is lost - but anything mid-turn is
    * abandoned, which is why this only runs when the numbers actually differ.
    */
   public async applySettings(next: ExtensionSettings): Promise<void> {

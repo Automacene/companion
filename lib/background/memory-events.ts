@@ -1,7 +1,7 @@
 /**
  * Telling the memory page that stored memory changed.
  *
- * IndexedDB itself has no equivalent of `browser.storage.onChanged` — nothing
+ * IndexedDB itself has no equivalent of `browser.storage.onChanged` - nothing
  * fires when a value under a key is overwritten, and the memory page never
  * opens the database directly anyway; only the background worker does, through
  * the conversation's storage addon. So there is nothing to subscribe to on the
@@ -10,7 +10,7 @@
  * say so.
  *
  * `BroadcastChannel` carries that announcement to any open extension page
- * without needing to know whether one is listening — unlike
+ * without needing to know whether one is listening - unlike
  * `browser.runtime.sendMessage`, which is what a page uses to ask the worker
  * something and expects an answer to. This is the reverse direction and there
  * is no answer to wait for, so a broadcast fits it better than a message.

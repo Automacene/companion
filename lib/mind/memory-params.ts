@@ -25,7 +25,7 @@ export interface MemoryParamDef {
    * Whether this budget occupies the context window.
    *
    * Thinking and action do not. Their pools carry `context: null` in the mind,
-   * so `gather()` never hands them to the assembler — they are stored, attached
+   * so `gather()` never hands them to the assembler - they are stored, attached
    * to the turn, and archived, but never sent. Counting them against `num_ctx`
    * would report every sane configuration as over budget.
    */
@@ -37,14 +37,7 @@ export interface MemoryParamDef {
 
 export const MEMORY_PARAMS: MemoryParamDef[] = [
   {
-    /*
-      Not a share — a count. How many archived items recall may return.
-
-      It is here rather than derived from the archive share because the two
-      bound different things: the share caps how much room recalled text may
-      occupy, and this caps how many separate memories are considered at all.
-      A generous share with a count of five still only ever sees five.
-    */
+    // Not a share - a count.
     id: 'recallCount',
     inPrompt: false,
     label: 'Conversations recalled',
@@ -56,13 +49,7 @@ export const MEMORY_PARAMS: MemoryParamDef[] = [
     step: 1,
   },
   {
-    /*
-      Page fragments are counted separately from conversations because they are
-      a different kind of memory and compete badly for one number. A page is
-      dense reference text and a turn is an exchange, so ranking them together
-      lets a long page outscore the answer that actually addressed the question.
-      Two counts means neither can crowd the other out.
-    */
+    // Counted separately from conversations, which they would otherwise crowd out.
     id: 'scrapeRecallCount',
     inPrompt: false,
     label: 'Page fragments recalled',
@@ -179,7 +166,7 @@ export function shareOf(memory: MemoryShares | undefined, id: MemoryParamId): nu
  *
  * `total` counts only the budgets that occupy the prompt, so it is the figure
  * the model page compares against `num_ctx`. It can exceed it, and saying so is
- * the point — the library's own defaults sum to 16,000 against a 4,096 window
+ * the point - the library's own defaults sum to 16,000 against a 4,096 window
  * and nothing anywhere mentions it.
  *
  * The shipped shares total 0.90, leaving room for the system prompt and the
@@ -193,8 +180,7 @@ export function resolveBudgets(
   let total = 0;
 
   for (const param of MEMORY_PARAMS) {
-    // `recallCount` is a count of items, not a share of the window, so it is
-    // taken as written rather than multiplied by the context length.
+    // `recallCount` is a count of items, not a share of the window.
     const value = COUNT_PARAMS.has(param.id)
       ? Math.round(shareOf(memory, param.id))
       : Math.max(0, Math.round(contextTokens * shareOf(memory, param.id)));

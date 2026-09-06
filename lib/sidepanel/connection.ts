@@ -11,7 +11,7 @@ import { checkOllamaConnection } from '../model';
 export class ConnectionManager {
   constructor(
     private statusDot: HTMLElement,
-    private statusPill: HTMLElement
+    private statusPill: HTMLElement,
   ) {}
 
   public async updateStatus(hostUrl = OLLAMA_HOST): Promise<boolean> {

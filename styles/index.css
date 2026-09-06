@@ -1,42 +1,6 @@
-/* =============================================================
-   AUTOMACENE COMPANION — Shared style entry point
+/* AUTOMACENE COMPANION - the only stylesheet a surface or an addon imports. */
 
-   The only stylesheet a surface or an addon imports. Nothing should
-   ever reference a file under tokens/, base/, or components/
-   directly; import order matters here and importing a piece on its
-   own silently drops the layers beneath it.
-
-   ── The layers, in cascade order ────────────────────────────
-   tokens/      Custom properties only. No selectors, no rules.
-                A theme is a palette file and nothing more.
-   base/        Element defaults and keyframes. No classes except
-                the small closed set of text helpers.
-   components/  Reusable pieces, used by more than one surface.
-
-   ── Where things live ──────────────────────────────────────
-   Used by one surface  → that entrypoint's folder, next to its
-                          index.html and main.ts
-   Used by two or more  → components/, here
-   Belongs to an addon  → that addon's folder
-
-   ── The rule that keeps theming working ────────────────────
-   No color, shadow, radius, spacing, or duration literal appears
-   outside tokens/. Surface and addon stylesheets may position and
-   size things; the moment one names a color, that color stops
-   responding to the theme. It greps cleanly:
-
-     grep -rE '#[0-9a-fA-F]{3,8}|rgba?\(' entrypoints lib
-
-   ── Naming ─────────────────────────────────────────────────
-   Everything is prefixed `ac-`, and tokens are `--ac-*`. That is
-   the public surface an addon can rely on. Classes follow
-   `.ac-block`, `.ac-block__element`, `.ac-block--modifier`, with
-   `.is-*` reserved for states JavaScript toggles.
-============================================================= */
-
-/* Tokens — palettes come first so components resolve against them.
-   Light is bound to `:root` as well as `[data-theme="light"]`, so
-   it is the fallback when nothing has stamped a theme yet. */
+/* Tokens - palettes come first so components resolve against them. */
 @import url("./tokens/structure.css");
 @import url("./tokens/palette-light.css");
 @import url("./tokens/palette-dark.css");

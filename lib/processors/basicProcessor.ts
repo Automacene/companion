@@ -22,8 +22,7 @@ export class BasicProcessor implements PostProcessor {
     const result = extractPage(source.document, {
       maxChars: source.maxChars,
       visibleOnly: true,
-      // Link targets roughly double the cost of a link and the model can rarely
-      // act on them. Off unless somebody asks.
+      // Link targets roughly double the cost of a link and the model can rarely act on them.
       keepLinks: false,
     });
 
@@ -35,9 +34,7 @@ export class BasicProcessor implements PostProcessor {
       url: result.url,
       metadata: {
         ...result.meta,
-        // The ratio that matters when judging whether a scrape went well. A
-        // page reporting 600,000 source characters and 4,000 extracted ones did
-        // its job; one reporting 600,000 and 400,000 did not.
+        // The ratio that matters when judging whether a scrape went well.
         reduction: result.meta.sourceChars
           ? Math.round((1 - result.meta.extractedChars / result.meta.sourceChars) * 100)
           : 0,

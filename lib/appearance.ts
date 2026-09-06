@@ -61,7 +61,7 @@ function overridesOf(settings: ExtensionSettings): ThemeOverrides {
  */
 export function startAppearance(
   settings: ExtensionSettings,
-  { backdropContainer = null, live = true }: AppearanceOptions = {}
+  { backdropContainer = null, live = true }: AppearanceOptions = {},
 ): AppearanceHandle {
   const root = document.documentElement;
 
@@ -90,16 +90,12 @@ export function startAppearance(
 
     applyOverrides(root, theme, overridesOf(next));
 
-    // Order matters: the palette and the overrides are both in place before
-    // the field re-reads its colours, or it would paint one frame behind.
+    // Order matters: the palette.
     backdrop.refreshTheme();
     backdrop.update(next.backdrop as never);
   };
 
-  const onStorageChange = (
-    changes: Record<string, { newValue?: unknown }>,
-    areaName: string
-  ) => {
+  const onStorageChange = (changes: Record<string, { newValue?: unknown }>, areaName: string) => {
     if (areaName !== 'local') return;
     const updated = changes.extensionSettings?.newValue as ExtensionSettings | undefined;
     if (updated) apply(updated);

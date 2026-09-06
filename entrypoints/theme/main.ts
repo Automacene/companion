@@ -101,8 +101,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const appearance = startAppearance(settings, {
     backdropContainer: document.getElementById('backdrop-layer'),
-    // This page is the one writing, so it applies its own changes directly
-    // rather than waiting for them to come back around through storage.
+    // This page is the one writing.
     live: false,
   });
 
@@ -135,8 +134,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const result = await patchAppearance(update);
     if (!result.success) {
-      // The real message, not a generic one. This page has no other way to
-      // tell you what went wrong, and "could not save" is unactionable.
+      // The real message, not a generic one.
       console.error('[Theme] save failed:', result.error);
       flash(result.error ?? 'Could not save', 'error');
     }
@@ -150,7 +148,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     return resolveBackdrop(settings.backdrop as never);
   }
 
-  // ── Theme picker ───────────────────────────────────────────────
+  // ── Theme picker ─────────────────────────────────────────────────────────
 
   const themePicker = document.getElementById('theme-picker');
 
@@ -176,7 +174,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // ── Backdrop ───────────────────────────────────────────────────
+  // ── Backdrop ─────────────────────────────────────────────────────────────
 
   const presetSelect = document.getElementById('backdrop-preset') as HTMLSelectElement | null;
   const presetHint = document.getElementById('backdrop-preset-hint');
@@ -185,13 +183,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   const rampSelect = document.getElementById('backdrop-ramp') as HTMLSelectElement | null;
   const rampPreview = document.getElementById('backdrop-ramp-preview');
   const customRampField = document.getElementById('custom-ramp-field');
-  const customRampInput = document.getElementById('backdrop-custom-ramp') as HTMLInputElement | null;
+  const customRampInput = document.getElementById(
+    'backdrop-custom-ramp',
+  ) as HTMLInputElement | null;
   const sliderHost = document.getElementById('backdrop-sliders');
 
   function fillSelect(
     select: HTMLSelectElement | null,
     items: { value: string; label: string }[],
-    selected: string
+    selected: string,
   ): void {
     if (!select) return;
     select.replaceChildren();
@@ -218,7 +218,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     fillSelect(
       presetSelect,
       PRESETS.map((preset) => ({ value: preset.id, label: preset.label })),
-      presetId
+      presetId,
     );
     if (presetHint) presetHint.textContent = getPreset(presetId).description;
 
@@ -226,7 +226,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     fillSelect(
       maskSelect,
       masks.map((mask) => ({ value: mask.id, label: mask.label })),
-      config.mask
+      config.mask,
     );
     if (maskHint) {
       maskHint.textContent = masks.find((mask) => mask.id === config.mask)?.description ?? '';
@@ -238,14 +238,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         ...RAMPS.map((ramp) => ({ value: ramp.id, label: ramp.label })),
         { value: CUSTOM_RAMP_ID, label: 'Custom…' },
       ],
-      config.ramp
+      config.ramp,
     );
 
     const usingCustom = config.ramp === CUSTOM_RAMP_ID;
     if (customRampField) customRampField.hidden = !usingCustom;
 
-    // Only overwrite the box when it is not being typed in, or a re-render
-    // triggered by something else would yank the cursor out mid-word.
+    // Only overwrite the box when it is not being typed in.
     if (customRampInput && document.activeElement !== customRampInput) {
       customRampInput.value = config.customRamp ?? '';
     }
@@ -305,9 +304,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       input.step = String(limits.step);
       input.value = String(value);
 
-      // `input` updates the readout and the live field on every frame of a
-      // drag; the write is left to `change`, when the drag ends, so a single
-      // gesture is one storage write rather than a hundred.
+      // `input` updates the readout and the live field on every frame of a drag.
       input.addEventListener('input', () => {
         const next = Number(input.value);
         readout.textContent = slider.format(next);
@@ -331,8 +328,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   presetSelect?.addEventListener('change', async () => {
-    // Switching preset drops the tuning, because the tuned values belonged to
-    // the preset that was there before and mostly make the new one look wrong.
+    // Switching preset drops the tuning.
     await commit({ backdrop: { preset: presetSelect.value } as never });
     renderBackdrop();
   });
@@ -345,8 +341,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   rampSelect?.addEventListener('change', async () => {
     const picked = rampSelect.value;
 
-    // Picking Custom for the first time seeds the box, so it opens with
-    // something editable rather than empty and drawing nothing.
+    // Picking Custom for the first time seeds the box.
     if (picked === CUSTOM_RAMP_ID && !currentBackdrop().customRamp) {
       await tune({ ramp: picked, customRamp: DEFAULT_CUSTOM_RAMP });
     } else {
@@ -357,8 +352,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (picked === CUSTOM_RAMP_ID) customRampInput?.focus();
   });
 
-  // Typing previews live but does not save, matching the sliders and the
-  // colour swatches: one gesture is one write, on the way out.
+  // Typing previews live but does not save, matching the sliders.
   customRampInput?.addEventListener('input', () => {
     const typed = normalizeRamp(customRampInput.value);
     const usable = isValidRamp(typed);
@@ -368,8 +362,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const config = { ...currentBackdrop(), ramp: CUSTOM_RAMP_ID, customRamp: typed };
     renderRampPreview(config);
 
-    // Below two characters there is no dark-to-light to draw, so the field
-    // falls back rather than flickering to nothing while somebody is mid-type.
+    // Below two characters there is no dark-to-light to draw.
     if (!usable) return;
 
     appearance.backdrop.update({
@@ -397,7 +390,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     flash('Backdrop reset');
   });
 
-  // ── Tokens ─────────────────────────────────────────────────────
+  // ── Tokens ───────────────────────────────────────────────────────────────
 
   const tokenHost = document.getElementById('token-groups');
   const searchInput = document.getElementById('token-search') as HTMLInputElement | null;
@@ -419,7 +412,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     for (const group of TOKEN_GROUPS) {
       const tokens = EDITABLE_TOKENS.filter(
-        (token) => token.group === group && matches(token, query)
+        (token) => token.group === group && matches(token, query),
       );
       if (tokens.length === 0) continue;
 
@@ -427,9 +420,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       section.className = 'theme-page__token-group';
       section.dataset.group = group;
 
-      // Colours open by default because that is what people came for; the rest
-      // stay shut so the page is scannable. A search opens everything, since a
-      // hit hidden inside a collapsed group reads as no result at all.
+      // Colours open by default because that is what people came for.
       section.open = query !== '' || group === 'Colours';
 
       const summary = document.createElement('summary');
@@ -483,9 +474,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     revert.textContent = 'Revert';
     revert.disabled = override === undefined;
 
-    // The text box always exists and is always authoritative. The friendly
-    // control is a second way to reach the same value, not a replacement — so
-    // anything the control cannot express is still editable.
+    // The text box always exists and is always authoritative.
     const text = document.createElement('input');
     text.type = 'text';
     text.id = `token-${token.name}`;
@@ -529,9 +518,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (control) {
       controls.appendChild(control);
 
-      // The text box is the escape hatch, not the front door. Hidden by
-      // default so a page of 81 settings reads as controls rather than as a
-      // form to fill in.
+      // The text box is the escape hatch, not the front door.
       const advanced = document.createElement('details');
       advanced.className = 'theme-page__token-advanced';
 
@@ -551,8 +538,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       advanced.append(summary, body);
       controls.appendChild(advanced);
     } else {
-      // No honest friendly control for this value, so the text box is the
-      // control and the custom property name stays visible beside it.
+      // No honest friendly control for this value.
       const code = document.createElement('code');
       code.className = 'theme-page__token-name';
       code.textContent = token.name;
@@ -564,9 +550,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     text.addEventListener('change', () => {
       const next = text.value.trim();
 
-      // Empty, or typed back to the default, means "stop overriding this"
-      // rather than "set it to the default" — so the value keeps following the
-      // palette if the palette ever changes.
+      // Empty, or typed back to the default.
       if (next === '' || next === fallback) {
         text.classList.remove('is-invalid');
         void write(token, null, settle);
@@ -612,7 +596,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     for (const group of TOKEN_GROUPS) {
       const meta = tokenHost?.querySelector<HTMLElement>(
-        `[data-group="${CSS.escape(group)}"] .theme-page__token-meta`
+        `[data-group="${CSS.escape(group)}"] .theme-page__token-meta`,
       );
       if (!meta) continue;
 
@@ -630,7 +614,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function write(
     token: TokenDefinition,
     value: string | null,
-    settle: (current: string | undefined) => void
+    settle: (current: string | undefined) => void,
   ): Promise<void> {
     const next = setOverride(overrides(), editing, token.name, value);
     await commit({ themeOverrides: next as never });
@@ -645,7 +629,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     flash(`Reset everything in ${editing}`);
   });
 
-  // ── Share ──────────────────────────────────────────────────────
+  // ── Share ────────────────────────────────────────────────────────────────
 
   const json = document.getElementById('theme-json') as HTMLTextAreaElement | null;
 
@@ -658,7 +642,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       flash('Copied to clipboard');
     } catch {
       // Clipboard access can be refused; the textarea already has the text.
-      flash('Copy failed — select the text below instead', 'error');
+      flash('Copy failed - select the text below instead', 'error');
     }
   });
 
@@ -686,7 +670,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     flash(`Loaded "${parsed.name}"`);
   });
 
-  // ── Cross-links ────────────────────────────────────────────────
+  // ── Cross-links ──────────────────────────────────────────────────────────
 
   const optionsLink = document.getElementById('open-options') as HTMLAnchorElement | null;
   if (optionsLink) optionsLink.href = browser.runtime.getURL('/model.html');
@@ -717,12 +701,19 @@ function toHex(value: string): string | null {
   const rgb = trimmed.match(/^rgba?\(([^)]+)\)$/i);
   if (!rgb) return null;
 
-  const parts = rgb[1]!.split(/[,\s/]+/).filter(Boolean).map(Number);
+  const parts = rgb[1]!
+    .split(/[,\s/]+/)
+    .filter(Boolean)
+    .map(Number);
   if (parts.length < 3 || parts.some(Number.isNaN)) return null;
 
   const hex = parts
     .slice(0, 3)
-    .map((channel) => Math.max(0, Math.min(255, Math.round(channel))).toString(16).padStart(2, '0'))
+    .map((channel) =>
+      Math.max(0, Math.min(255, Math.round(channel)))
+        .toString(16)
+        .padStart(2, '0'),
+    )
     .join('');
 
   return `#${hex}`;

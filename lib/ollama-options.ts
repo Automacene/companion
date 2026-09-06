@@ -3,7 +3,7 @@
  *
  * These settings used to be collected by the options page and then dropped:
  * the request carried `model`, `messages`, and `stream` and nothing else. The
- * server log proved it — a run with temperature 0.7 and repeat penalty 1.1
+ * server log proved it - a run with temperature 0.7 and repeat penalty 1.1
  * reported llama.cpp's own defaults straight back:
  *
  *   top_k = 40, top_p = 0.900, temp = 0.800, repeat_penalty = 1.000
@@ -62,8 +62,7 @@ export function buildRequestShape(settings: ExtensionSettings, model: string): R
 
   return {
     model,
-    // Explicitly boolean: the setting is optional, and `undefined` would make
-    // Ollama stream anyway, which the non-streaming path would then mis-parse.
+    // Explicitly boolean: the setting is optional.
     stream: settings.streamResponses !== false,
     options,
     extras,

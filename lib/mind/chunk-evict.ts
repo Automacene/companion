@@ -47,14 +47,7 @@ export function chunkTo(target: string) {
       const chunks = chunkPage(page);
 
       if (chunks.length === 0) {
-        /*
-          Not a page, or a page with no text in it.
-
-          The second case is real — the extractor returns nothing on a page
-          whose content never painted — and there is no value in storing a
-          fragment that is only a title. Anything that is not a page at all is
-          kept as it was.
-        */
+        // Not a page, or a page with no text in it.
         if (typeof page.content !== 'string') {
           items.push({ content: node.content, tags: node.tags, metadata: node.metadata });
         }
@@ -63,14 +56,8 @@ export function chunkTo(target: string) {
 
       for (const chunk of chunks) {
         items.push({
-          /*
-            `text` because that is what the note schema reads and what
-            `formatRecord` renders, so a fragment needs no special case
-            anywhere downstream. The provenance line is inside the text rather
-            than beside it for the same reason: it is then indexed with the
-            fragment, so searching a site's name finds what was read there.
-          */
-          content: { text: chunk.text },
+          // The bare string, not `{ text }`.
+          content: chunk.text,
           metadata: {
             kind: 'note',
             pageTitle: page.title ?? null,
@@ -78,15 +65,7 @@ export function chunkTo(target: string) {
             part: chunk.part,
             of: chunk.of,
             readAt: node?.metadata?.readAt ?? node?.metadata?.createdAt ?? Date.now(),
-            /*
-              Which blocks of the page this piece covers.
-
-              Kept so a later reading can be compared against what is already
-              stored without holding a second copy of the text to diff against.
-              Metadata rather than content, because content is what the tagger
-              indexes and a list of fingerprints is not something anyone should
-              be able to match a question against.
-            */
+            // Which blocks of the page this piece covers.
             blocks: chunk.blocks,
           },
         });

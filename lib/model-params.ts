@@ -24,7 +24,7 @@
  *       definition is not a form field. It belongs with the addon work.
  *
  * ── Omission means "model default" ─────────────────────────────
- * Ollama has no value meaning "use the default" — only absence. So a blank
+ * Ollama has no value meaning "use the default" - only absence. So a blank
  * control removes the key rather than sending a zero, which is why every value
  * here is optional and why `RANGE.min` exists separately from "unset".
  */
@@ -49,14 +49,14 @@ export interface ParamDef {
    * What the model does when this is not set, where that is a knowable number.
    *
    * Taken from what the runner actually reports on a cold load, not from the
-   * documentation — Ollama documents `repeat_penalty` as 1.1, for instance,
+   * documentation - Ollama documents `repeat_penalty` as 1.1, for instance,
    * while the server logs `repeat_penalty = 1.000` when nothing is sent.
    *
    * Used to park the slider somewhere honest and to label the empty box. It is
    * never sent: leaving a control at its default still omits the key, so the
    * model stays free to disagree.
    *
-   * Absent where there is no single number — a random seed, or a thread count
+   * Absent where there is no single number - a random seed, or a thread count
    * that depends on the machine.
    */
   defaultValue?: number;
@@ -74,7 +74,7 @@ export const PARAM_GROUPS = [
 ] as const;
 
 export const PARAMS: ParamDef[] = [
-  // ── Randomness ───────────────────────────────────────────────
+  // ── Randomness ───────────────────────────────────────────────────────────
   {
     id: 'temperature',
     label: 'Temperature',
@@ -150,7 +150,7 @@ export const PARAMS: ParamDef[] = [
     placeholder: 'random',
   },
 
-  // ── Repetition ───────────────────────────────────────────────
+  // ── Repetition ───────────────────────────────────────────────────────────
   {
     id: 'repeat_penalty',
     label: 'Repeat penalty',
@@ -201,7 +201,7 @@ export const PARAMS: ParamDef[] = [
     defaultValue: 0,
   },
 
-  // ── Length & context ─────────────────────────────────────────
+  // ── Length & context ─────────────────────────────────────────────────────
   {
     id: 'num_ctx',
     label: 'Context window',
@@ -260,7 +260,7 @@ export const PARAMS: ParamDef[] = [
     placeholder: '5m',
   },
 
-  // ── Output ───────────────────────────────────────────────────
+  // ── Output ───────────────────────────────────────────────────────────────
   {
     id: 'format',
     label: 'Response format',
@@ -289,7 +289,7 @@ export const PARAMS: ParamDef[] = [
     ],
   },
 
-  // ── Hardware ─────────────────────────────────────────────────
+  // ── Hardware ─────────────────────────────────────────────────────────────
   {
     id: 'num_gpu',
     label: 'Layers on GPU',
@@ -306,7 +306,8 @@ export const PARAMS: ParamDef[] = [
   {
     id: 'num_batch',
     label: 'Batch size',
-    description: 'Tokens processed together while reading the prompt. Larger is faster and uses more memory.',
+    description:
+      'Tokens processed together while reading the prompt. Larger is faster and uses more memory.',
     group: 'Hardware',
     kind: 'int',
     target: 'options',
@@ -336,7 +337,7 @@ export const PARAMS_BY_ID = new Map(PARAMS.map((param) => [param.id, param]));
  *
  * Derived from `defaultValue` where there is one, so the hint and the slider's
  * resting position can never claim different things. `placeholder` is only
- * written by hand for parameters whose default is not a number — a random seed,
+ * written by hand for parameters whose default is not a number - a random seed,
  * or a thread count that depends on the machine.
  */
 export function placeholderFor(param: ParamDef): string {
@@ -369,7 +370,10 @@ export const LEGACY_FIELDS: Record<string, string> = {
  * Range is enforced here rather than trusted from the control, because values
  * also arrive from storage written by an older build or edited by hand.
  */
-export function coerce(param: ParamDef, raw: unknown): string | number | boolean | string[] | undefined {
+export function coerce(
+  param: ParamDef,
+  raw: unknown,
+): string | number | boolean | string[] | undefined {
   if (raw === undefined || raw === null) return undefined;
 
   if (param.kind === 'select') {
@@ -392,8 +396,7 @@ export function coerce(param: ParamDef, raw: unknown): string | number | boolean
       return parts.length > 0 ? parts : undefined;
     }
 
-    // keep_alive takes a duration string or a number of seconds. Sending a
-    // bare number as a number avoids it being read as a duration.
+    // keep_alive takes a duration string or a number of seconds.
     if (param.id === 'keep_alive') {
       const asNumber = Number(value);
       return Number.isFinite(asNumber) ? asNumber : value;
@@ -402,9 +405,7 @@ export function coerce(param: ParamDef, raw: unknown): string | number | boolean
     return value;
   }
 
-  // Numbers. An empty string is a cleared control, not a zero — the previous
-  // code did `parseInt(value) || 0` and stored 0, which asked Ollama for a
-  // zero-token context window.
+  // Numbers.
   if (raw === '') return undefined;
 
   const parsed = Number(raw);

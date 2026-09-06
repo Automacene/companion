@@ -5,16 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Automacene Companion</title>
 
-    <!--
-      Open as a real tab rather than Chrome's embedded options modal.
-
-      The modal is a constrained overlay on chrome://extensions: a link from
-      inside it to another extension page does not navigate, which is exactly
-      what this page is made of. It is also far too short to be useful.
-
-      WXT reads entrypoint options from meta tags here, not from wxt.config.ts —
-      a manifest override for `options_ui` in the config is discarded.
-    -->
+    <!-- Open as a real tab; WXT reads this from the meta tag, not wxt.config.ts -->
     <meta name="manifest.open_in_tab" content="true" />
   </head>
   <body>

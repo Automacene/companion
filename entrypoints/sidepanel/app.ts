@@ -62,7 +62,7 @@ function clamp01(value: number): number {
 /**
  * If a turn produces no terminal message within this, the composer unlocks
  * anyway. A model loading cold can legitimately take a minute, so this is long
- * — it exists to stop the panel becoming permanently unusable, not to time
+ * - it exists to stop the panel becoming permanently unusable, not to time
  * anything out.
  */
 const REPLY_WATCHDOG_MS = 5 * 60 * 1000;
@@ -77,7 +77,7 @@ export class SidepanelApp {
    * Held here rather than read off the submit button's `disabled` state, which
    * is what it used to be. Two things went wrong with that. `requestSubmit()`
    * behaves as if the default submit button were clicked, so while the button
-   * was disabled every Enter press was silently swallowed — a typed message
+   * was disabled every Enter press was silently swallowed - a typed message
    * would vanish with no indication. And if a terminal message was ever missed,
    * the button stayed disabled forever, which made the composer permanently
    * dead rather than briefly stuck.
@@ -110,12 +110,10 @@ export class SidepanelApp {
   ) {
     this.port = this.connect();
 
-    // Toggle, not just expand: the mark is the only way back in either
-    // direction once the conversation has started.
+    // Toggle, not just expand: the mark is the only way back in either direction.
     pulser?.addEventListener('click', () => this.chatUI.toggleHero());
 
-    // Typing counts as activity, so the field does not downshift to its idle
-    // rate while somebody is composing a long prompt.
+    // Typing counts as activity.
     this.chatInput.addEventListener('input', () => this.backdrop.markActive());
   }
 
@@ -139,10 +137,9 @@ export class SidepanelApp {
 
       if (!this.awaitingReply) return;
 
-      // A reply was in flight. It is not coming back, so say so and unlock
-      // rather than leaving the composer dead.
+      // A reply was in flight.
       this.chatUI.streamError(
-        'The extension restarted while replying. Your message was not answered — send it again.',
+        'The extension restarted while replying. Your message was not answered - send it again.',
       );
       this.endReply();
     });
@@ -156,17 +153,14 @@ export class SidepanelApp {
     this.settings = await this.fetchSettings();
     await this.connectionManager.updateStatus(this.settings.ollamaHost || OLLAMA_HOST);
 
-    // Settings are shared through storage, so the panel follows a change made
-    // on either settings page without asking the worker again.
+    // Settings are shared through storage.
     browser.storage.onChanged.addListener((changes, area) => {
       if (area !== 'local') return;
       const updated = changes.extensionSettings?.newValue as ExtensionSettings | undefined;
       if (updated) this.settings = updated;
     });
 
-    // Size it once before anything is typed. The CSS height and the height
-    // computed from scrollHeight differ by a couple of pixels, and without this
-    // the box visibly jumps on the first keystroke.
+    // Size it once before anything is typed.
     this.resizeComposer();
 
     this.bindPortListeners();
@@ -217,45 +211,20 @@ export class SidepanelApp {
       this.requestPageStatus();
     });
 
-    /*
-      Navigating within a tab changes the page without changing the tab, so
-      `onActivated` never fires. Without this the line would keep describing the
-      page you were on three links ago, which is the opposite of predictable.
-    */
+    // Navigating within a tab changes the page without changing the tab, so `onActivated` never fires.
     browser.tabs.onUpdated.addListener((tabId, changed) => {
       if (tabId !== this.currentActiveTabId) return;
       if (!changed.url && changed.status !== 'complete') return;
 
       this.requestPageStatus();
 
-      /*
-        Ask for the scrollback again once the page has settled.
-
-        Opening the panel asks about the active tab immediately, and on a
-        restored tab that lands before the page has a url or a content script —
-        so the worker cannot yet tell which conversation the tab is having and
-        answers with an empty one. Asking again after the page finishes is what
-        lets a recovered conversation actually appear, rather than depending on
-        the panel having been open at the moment the browser started.
-      */
+      // Ask for the scrollback again once the page has settled.
       this.requestTabHistory(tabId);
     });
   }
 
   private bindFormEvents(): void {
-    /**
-     * Enter sends, Shift+Enter inserts a newline.
-     *
-     * The composer used to be an `<input>`, where Enter submitted the form for
-     * free and the handler here had to fake a newline by splicing the value.
-     * It is a `<textarea>` now, which reverses both: newlines are native, and
-     * Enter no longer submits anything — so the browser's default has to be
-     * cancelled and the submit driven by hand.
-     *
-     * `isComposing` guards an IME. Enter is how you accept a candidate word in
-     * Japanese, Chinese, and Korean input, and swallowing it would send a
-     * half-finished message mid-word.
-     */
+    // Enter sends, Shift+Enter inserts a newline. `isComposing` guards an IME.
     this.chatInput.addEventListener('keydown', (e: KeyboardEvent) => {
       if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
 
@@ -263,22 +232,15 @@ export class SidepanelApp {
       this.chatForm.requestSubmit();
     });
 
-    // Grow with the text rather than scrolling a single line, now that a
-    // message can genuinely be several lines long.
+    // Grow with the text rather than scrolling a single line.
     this.chatInput.addEventListener('input', () => this.resizeComposer());
 
     this.chatForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      /*
-        Refuse rather than swallow.
-
-        A submit arriving mid-reply used to disappear: the button was disabled,
-        so `requestSubmit()` did nothing at all and the text stayed in the box
-        with no explanation. Saying so is the whole difference.
-      */
+      // Refuse rather than swallow.
       if (this.awaitingReply) {
-        this.chatUI.appendSystemNotice('Still replying — wait for this one to finish.');
+        this.chatUI.appendSystemNotice('Still replying - wait for this one to finish.');
         return;
       }
 
@@ -299,14 +261,7 @@ export class SidepanelApp {
         prompt,
       });
 
-      /*
-        The connectivity check happens AFTER the send, not before it.
-
-        It used to be awaited first and used to decide whether to send at all,
-        which put a network round trip between pressing Enter and anything
-        happening. The worker reports a failure through STREAM_ERROR anyway, so
-        this only updates the status light.
-      */
+      // The connectivity check happens AFTER the send, not before it.
       void this.connectionManager.updateStatus(this.settings.ollamaHost || OLLAMA_HOST);
     });
   }
@@ -319,8 +274,7 @@ export class SidepanelApp {
 
     window.clearTimeout(this.watchdog);
     this.watchdog = window.setTimeout(() => {
-      // Nothing came back. Unlock regardless — a missing message must not cost
-      // the user the ability to type.
+      // Nothing came back.
       this.chatUI.streamError(
         'No reply came back. The model may still be loading, or the extension may have restarted.',
       );
@@ -381,8 +335,7 @@ export class SidepanelApp {
       this.renderConversationName();
     }
 
-    // A rename answers with the name and nothing else, so the page status
-    // below it would otherwise be rewritten from an empty message.
+    // A rename answers with the name and nothing else.
     if (msg.renamedOnly) return;
 
     const status = document.getElementById('page-status');
@@ -466,8 +419,7 @@ export class SidepanelApp {
   }
 
   private handleScrapeComplete(result: any, comparison?: any, _page?: any): void {
-    // Context landed. The field brightens for a moment, which is the one place
-    // the backdrop reports something instead of only decorating.
+    // Context landed.
     this.backdrop.pulse();
 
     if (this.scrapeBtn) {
@@ -483,24 +435,7 @@ export class SidepanelApp {
     const source: number = meta.sourceChars ?? 0;
     const reduction: number = meta.reduction ?? 0;
 
-    /*
-      Report what was KEPT, not what was found.
-
-      The old notice said "Page context staged (603,821 chars)", which reads as
-      a success and was the opposite. That figure was the whole document; the
-      budget then kept the first 8,868 characters of it, and on that page the
-      first 8,868 characters were the navigation bar. The model was handed a
-      menu and said, correctly, that no content had been provided.
-    */
-    /*
-      Nothing read is its own outcome and says so.
-
-      This used to report "~0 tokens kept, 100% dropped" in the same shape as a
-      successful read, which reads as though the page were genuinely empty. It
-      was not — the extractor had failed on it — and the model still received
-      the title and URL, so it would answer as if it had read the page while
-      knowing only its name.
-    */
+    // Report what was KEPT, not what was found.
     if (kept === 0) {
       this.chatUI.appendSystemNotice(
         'Nothing could be read from that page. Only its title and address will be ' +
@@ -510,26 +445,17 @@ export class SidepanelApp {
       return;
     }
 
-    /*
-      How much of this reading was already stored.
-
-      Reported as sections rather than characters. A site that reflows its
-      navigation changes a great many characters while saying nothing new, so a
-      character ratio swings for reasons nobody cares about, where a paragraph
-      either came back or it did not.
-    */
+    // How much of this reading was already stored.
     let overlap: HTMLElement | undefined;
     if (comparison?.hadPrevious && comparison.total > 0) {
       const percent = Math.round(comparison.ratio * 100);
 
       let sentence: string;
       if (comparison.identical) {
-        sentence = ' Identical to what was already stored — nothing new was learned.';
+        sentence = ' Identical to what was already stored - nothing new was learned.';
       } else if (comparison.unchanged === 0) {
-        // Worth saying out loud rather than staying silent. On a front page
-        // that turns over daily this is the normal answer, and it is the reason
-        // rereading was worth it.
-        sentence = ` None of it was already stored — all ${comparison.total} sections are new.`;
+        // Worth saying out loud rather than staying silent.
+        sentence = ` None of it was already stored - all ${comparison.total} sections are new.`;
       } else {
         sentence =
           ` ${percent}% of it was already stored ` +
@@ -552,14 +478,7 @@ export class SidepanelApp {
       overlap,
     );
 
-    /*
-      Refresh the line beside the button.
-
-      Without this the status keeps describing the state before the scrape —
-      still saying the page was read hours ago, still not offering to remove a
-      page that is now attached — until something else happens to refresh it.
-      Reloading the panel was the only way to see the truth.
-    */
+    // Refresh the line beside the button.
     this.requestPageStatus();
   }
 
@@ -575,7 +494,7 @@ export class SidepanelApp {
    * Fit the composer to its content, up to a ceiling.
    *
    * Height is reset before measuring because `scrollHeight` never shrinks below
-   * the element's current height — without the reset, deleting a line would
+   * the element's current height - without the reset, deleting a line would
    * leave the box permanently tall.
    */
   private resizeComposer(): void {

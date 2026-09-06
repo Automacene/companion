@@ -71,17 +71,7 @@ export function renderMemory({
       const readout = readouts.get(param.id);
       if (!readout) continue;
 
-      /*
-        Counts are not shares and must not be formatted as one. Running a count
-        through "share% · tokens" printed "1500% · 15 tokens" for a value of 15:
-        `shareOf` returns the raw count, multiplying by 100 turns 15 into 1500,
-        and it was never a token figure at all.
-
-        Asked of the params rather than by naming an id, which is the actual
-        repair. The first version of this tested `param.id === 'recallCount'`,
-        so when a second count was added it inherited the bug untouched and
-        rendered "400% · 4 tokens".
-      */
+      // Counts are not shares and must not be formatted as one.
       if (isCountParam(param.id)) {
         const count = tokens[param.id];
         const unit = COUNT_UNITS[param.id] ?? { one: 'item', many: 'items' };
@@ -90,8 +80,7 @@ export function renderMemory({
       }
 
       const share = Math.round(shareOf(current, param.id) * 100);
-      // Thinking and action never enter the prompt, so saying "of context"
-      // about them would be wrong.
+      // Thinking and action never enter the prompt.
       readout.textContent = `${share}% · ${tokens[param.id].toLocaleString()} tokens${
         param.inPrompt ? '' : ' (stored, not sent)'
       }`;
@@ -129,8 +118,7 @@ export function renderMemory({
       slider.step = String(param.step);
       slider.value = String(shareOf(current, param.id));
 
-      // Dragging updates the readouts and the total live; the write waits for
-      // the gesture to end, so one drag is one save rather than a hundred.
+      // Dragging updates the readouts and the total live.
       slider.addEventListener('input', () => {
         current = { ...current, [param.id]: Number(slider.value) };
         updateReadouts();

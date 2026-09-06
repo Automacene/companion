@@ -54,20 +54,14 @@ export class MessageDispatcher {
         // Tab-scoped actions require a valid tabId
         if (tabId === -1) return;
 
-        /*
-          What we already hold for the page this tab is showing.
-
-          The URL comes from the browser rather than from the panel, because the
-          panel cannot see the page it is beside — it only knows a tab id.
-        */
+        // What we already hold for the page this tab is showing.
         if (msg.action === PortAction.PAGE_STATUS) {
           try {
             const tab = await browser.tabs.get(tabId);
             const history = await this.sessionManager.pageHistory(tab.url ?? '');
             const attached = await this.sessionManager.attachedPage(tabId);
 
-            // Carried on the status the panel already asks for on every tab
-            // change, rather than a second round trip for one string.
+            // Carried on the status the panel already asks for on every tab change.
             const conversationId = await this.sessionManager.conversationIdOf(tabId);
             const name = await this.sessionManager.names.get(conversationId);
 
@@ -79,8 +73,7 @@ export class MessageDispatcher {
               ...history,
             });
           } catch {
-            // A tab that vanished mid-question is not an error worth reporting;
-            // the panel simply shows nothing for it.
+            // A tab that vanished mid-question is not an error worth reporting.
           }
           return;
         }
@@ -115,16 +108,7 @@ export class MessageDispatcher {
 
         switch (msg.action) {
           case PortAction.GET_HISTORY: {
-            /*
-              The panel throws its DOM away and rebuilds from here on every tab
-              switch, so this is the scrollback.
-
-              It reads the thread pool rather than the window, because eviction
-              moves older turns into the shared archive and they would silently
-              disappear from the panel while the model could still recall them.
-              The thread holds ids in order and never evicts; each id is then
-              resolved wherever the node now lives.
-            */
+            // The panel throws its DOM away and rebuilds from here on every tab switch, so this is the scrollback.
             const scope = await this.sessionManager.scopeFor(tabId);
             port.postMessage({
               action: PortAction.HISTORY_RESPONSE,
@@ -134,21 +118,11 @@ export class MessageDispatcher {
           }
 
           case ToolAction.SCRAPE_DOM: {
-            /*
-              A page read goes into this tab's context pool, which holds exactly
-              one. Putting the new page in is what evicts the old one, and the
-              old one is cut into pieces on its way to `scraped`.
-
-              This used to be a Map on this class, consumed by the very next
-              message. A pool survives the worker being killed and keeps the
-              page attached across several questions rather than one, which is
-              what somebody means by "the page I am looking at".
-            */
+            // A page read goes into this tab's context pool, which holds exactly one.
             this.scraperService
               .scrapeTab(tabId, { maxChars: pageCharBudget(currentSettings) })
               .then(async (result) => {
-                // How much of this reading was already stored. Computed before
-                // the page is added, or it would be compared against itself.
+                // How much of this reading was already stored.
                 const comparison = await this.sessionManager.attachPage(tabId, {
                   title: result.title,
                   url: result.url,
@@ -184,15 +158,13 @@ export class MessageDispatcher {
       });
     });
 
-    // One-off runtime messages (browser.runtime.sendMessage). Both settings
-    // pages use this rather than a port, since neither is tab-scoped.
+    // One-off runtime messages (browser.runtime.sendMessage).
     browser.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       const isReplace = msg.action === PortAction.SAVE_SETTINGS;
       const isPatch = msg.action === PortAction.PATCH_SETTINGS;
       if (!isReplace && !isPatch) return;
 
-      // A patch merges and returns the merged result, so live sessions are
-      // updated with the complete settings rather than only the changed keys.
+      // A patch merges and returns the merged result.
       const write = isPatch
         ? this.settingsManager.patchSettings(msg.settings)
         : this.settingsManager

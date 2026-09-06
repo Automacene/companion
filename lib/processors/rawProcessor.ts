@@ -8,7 +8,7 @@ import type { PageSource, PostProcessor, ProcessedResult } from './types';
  * characters and will not fit in any context window worth using.
  *
  * NOTE: this used to be unreachable. Its name was `DEFAULT_PROCESSOR_NAME`,
- * which is the string `'basic'` — the same name `BasicProcessor` registers
+ * which is the string `'basic'` - the same name `BasicProcessor` registers
  * under. The pipeline registered raw first and basic overwrote it, so asking
  * for raw silently returned basic. Naming it here rather than through the
  * constant is what stops that recurring.

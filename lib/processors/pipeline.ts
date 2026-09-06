@@ -35,7 +35,7 @@ export class ProcessingPipeline {
     const processor = this.processors.get(name);
     if (!processor) {
       throw new Error(
-        `[processors] '${name}' is not registered. Have: ${[...this.processors.keys()].join(', ')}`
+        `[processors] '${name}' is not registered. Have: ${[...this.processors.keys()].join(', ')}`,
       );
     }
     return processor.process(source);

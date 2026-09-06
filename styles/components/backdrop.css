@@ -1,19 +1,4 @@
-/* =============================================================
-   COMPONENT — Backdrop
-
-   The graph-paper grid and the ASCII field drifting over it. Shared
-   by every surface, which previously drew the same grid with two
-   different opacities because each page had written its own.
-
-   Three pieces:
-     .ac-backdrop        the static grid, painted on a container
-     .ac-backdrop__layer the positioned box the field draws inside
-     .ac-backdrop__field the canvas, created by `lib/backdrop/`
-
-   The field replaced a set of DOM ghost squares that were spawned on
-   a bare interval with no teardown. One canvas costs less than the
-   nodes did and stops when the document is hidden.
-============================================================= */
+/* COMPONENT - Backdrop. The graph-paper grid and the ASCII field drifting over it. */
 
 .ac-backdrop {
   position: relative;
@@ -31,8 +16,7 @@
   z-index: var(--ac-z-backdrop);
 }
 
-/* The canvas fills its layer. Sizing happens in JS against this box,
-   so the field never needs to know which surface it is mounted on. */
+/* The canvas fills its layer. */
 .ac-backdrop__field {
   position: absolute;
   inset: 0;
@@ -42,8 +26,7 @@
   pointer-events: none;
 }
 
-/* The grid is decoration. Anything that wants to be clickable has to
-   sit above it, which is what this class is for. */
+/* The grid is decoration. */
 .ac-backdrop__content {
   position: relative;
   z-index: var(--ac-z-raised);

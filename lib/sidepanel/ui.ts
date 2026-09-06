@@ -51,9 +51,6 @@ export class ChatUI {
   }
 
   /**
-   * A non-message notice in the stream, for staged context and the like.
-   */
-  /**
    * A non-message notice in the stream.
    *
    * `tail` is appended after the text as a real node, for the rare case where
@@ -84,21 +81,18 @@ export class ChatUI {
    * It takes TURNS now, not messages. A turn holds both halves of an exchange
    * and carries a stable id, where the old message array was a flat list in
    * which a question and its answer were unrelated entries. That matters here
-   * because a turn can be open — `response` is null until it closes — and only
+   * because a turn can be open - `response` is null until it closes - and only
    * a turn can say so.
    */
   public renderHistory(turns: ThreadTurn[]): void {
     this.chatContainer.replaceChildren();
 
-    // Always set, never only collapse: an empty tab has to put the hero back
-    // AND write the button's accessible name, which starts unset because the
-    // markup cannot know which state it will boot into.
+    // Always set, never only collapse.
     this.setHero(turns.length === 0);
 
     for (const turn of turns) {
       if (turn.query) {
-        // A page read shows as a marker, not as the page. The text itself was
-        // in the prompt on the turn it arrived and is in the archive now.
+        // A page read shows as a marker, not as the page.
         if (turn.page?.title || turn.page?.url) {
           this.appendPageMarker(turn.page.title || turn.page.url);
         }
@@ -108,13 +102,7 @@ export class ChatUI {
       if (turn.response !== null && turn.response !== undefined) {
         this.appendBubble('assistant', turn.response);
       } else {
-        /*
-          An open turn. It exists whenever a reply is still streaming, or was
-          streaming when the worker was killed.
-
-          Showing the question with nothing after it would read as a message the
-          extension lost, so it gets a visible unfinished state instead.
-        */
+        // An open turn.
         this.appendPending();
       }
     }
@@ -168,8 +156,7 @@ export class ChatUI {
   public streamError(error: string): void {
     if (this.activeAiBubble) {
       this.activeAiBubble.textContent = `Error: ${error}`;
-      // The error state sits on the bubble, not its content, so the whole
-      // card recolours rather than just the text inside it.
+      // The error state sits on the bubble, not its content.
       this.activeAiBubble.closest('.ac-message__body')?.classList.add('is-error');
     }
     this.resetSubmitButton();
@@ -187,7 +174,7 @@ export class ChatUI {
   /**
    * Flip the hero, and report where it ended up.
    *
-   * The mark is the only control for this, so it has to work both ways —
+   * The mark is the only control for this, so it has to work both ways -
    * opening the introduction with no way to put it away again leaves the panel
    * permanently shorter until a message is sent.
    */
@@ -209,8 +196,7 @@ export class ChatUI {
     setLogoMode(this.logo, open ? 'full' : 'mark');
 
     if (this.logo) {
-      // The button IS the toggle, so its name has to say what pressing it does
-      // next rather than what it did last.
+      // The button IS the toggle.
       this.logo.setAttribute('aria-label', open ? 'Hide introduction' : 'Show introduction');
       this.logo.setAttribute('aria-expanded', String(open));
       this.logo.title = open ? 'Hide introduction' : 'Show introduction';

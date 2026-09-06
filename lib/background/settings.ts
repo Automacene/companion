@@ -25,8 +25,7 @@ function migrateLegacyParams(
     const value = (saved as Record<string, unknown>)[oldName];
     if (value === undefined || value === null || value === '') continue;
 
-    // A cleared numeric box was stored as 0 by the old page. Migrating that
-    // would send `num_ctx: 0`, which asks for a zero-token window.
+    // A cleared numeric box was stored as 0 by the old page.
     if (value === 0 && PARAMS_BY_ID.get(paramId)?.kind !== 'float') continue;
 
     migrated[paramId] = value as string | number | boolean;
@@ -39,7 +38,7 @@ function migrateLegacyParams(
  * Reads and writes the one settings object in `browser.storage.local`.
  *
  * WHY THERE ARE TWO WRITE METHODS. Settings are edited from two separate pages
- * now — model configuration on the options page, appearance on the theme page.
+ * now - model configuration on the options page, appearance on the theme page.
  * Each page only knows about its own half. If both wrote the whole object, the
  * last one to save would erase whatever the other had changed, and the user
  * would find their host URL reset after picking a colour.
@@ -71,7 +70,6 @@ export class SettingsManager {
         connTimeout: saved.connTimeout ?? DEFAULT_SETTINGS.connTimeout,
         keepAlive: saved.keepAlive ?? DEFAULT_SETTINGS.keepAlive,
         activeModel: saved.activeModel ?? DEFAULT_SETTINGS.activeModel,
-        fallbackModel: saved.fallbackModel ?? DEFAULT_SETTINGS.fallbackModel,
         systemPrompt: saved.systemPrompt ?? DEFAULT_SETTINGS.systemPrompt,
         streamResponses: saved.streamResponses ?? DEFAULT_SETTINGS.streamResponses,
         temperature: saved.temperature ?? DEFAULT_SETTINGS.temperature,
@@ -95,7 +93,7 @@ export class SettingsManager {
    *
    * Shallow on purpose. `themeOverrides` and `backdrop` are replaced whole
    * rather than deep-merged, because a caller removing an override needs the
-   * removal to stick — a deep merge would have no way to express deletion.
+   * removal to stick - a deep merge would have no way to express deletion.
    *
    * @returns the settings as they now stand, so a caller can act on the result
    *   without a second read

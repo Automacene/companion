@@ -34,7 +34,7 @@ export type EntrySource = 'conversation' | 'page';
 /**
  * How the history list is narrowed.
  *
- * Every field is optional and they compose, which is the point — "pages, from
+ * Every field is optional and they compose, which is the point - "pages, from
  * the last day, mentioning pensions" is three filters over one list rather than
  * a view somebody had to think of in advance.
  */
@@ -54,7 +54,7 @@ export interface BrowseFilter {
  *
  * The size is the reason this exists. An attached page runs to thousands of
  * characters against a question of maybe sixty, and every one of those
- * characters is indexed for recall — so a turn carrying a page matches far more
+ * characters is indexed for recall - so a turn carrying a page matches far more
  * questions than the exchange alone ever would. None of that was visible.
  */
 export interface MemoryPart {
@@ -143,7 +143,7 @@ export class MemoryService {
    * Built the way a browser history window is, because that is what this is:
    * one list you narrow and pick from, not a menu of separate views with a
    * blunt "delete all of this kind" button on each. Conversations and page
-   * fragments appear together, sorted newest first, each saying which it is —
+   * fragments appear together, sorted newest first, each saying which it is -
    * so "what did I look at on Tuesday" and "what does it know about pensions"
    * are the same question asked with different filters.
    *
@@ -156,13 +156,7 @@ export class MemoryService {
     const query = filter.query?.trim() ?? '';
     const source = filter.source ?? 'all';
 
-    /*
-      One conversation's own turns, when the list is pointed at a scope.
-
-      Its window has not reached the archive yet — that only happens as turns
-      age out or the tab closes — so the conversation you are having right now
-      is exactly the one the shared stores know nothing about.
-    */
+    // One conversation's own turns, when the list is pointed at a scope.
     if (filter.scope) {
       if (!convo.hasScope(filter.scope)) return { entries: [], total: 0 };
 
@@ -212,7 +206,7 @@ export class MemoryService {
    * Finish a conversation by hand.
    *
    * `closeScope` runs each pool's own eviction first, so the turns move into
-   * the shared archive instead of being discarded — this ends a conversation,
+   * the shared archive instead of being discarded - this ends a conversation,
    * it does not delete it. A crashed tab is the case that needs it: no
    * `onRemoved` ever fires for one, so its turns stay locked in a scope that
    * nothing will ever read again.
@@ -230,8 +224,8 @@ export class MemoryService {
    * Forget the given entries, wherever each of them lives.
    *
    * A list rather than one id, because deleting from a history list is a
-   * selection. `unregister` finds each wherever it is — the shared archive, the
-   * page fragments, or a live tab's window — so the caller never has to know
+   * selection. `unregister` finds each wherever it is - the shared archive, the
+   * page fragments, or a live tab's window - so the caller never has to know
    * which store a row came from, and a mixed selection needs no special case.
    */
   private async forget(ids: string[]): Promise<{ removed: number }> {
@@ -252,7 +246,7 @@ export class MemoryService {
    *
    * The re-indexing is the part that matters and the part that is easy to get
    * wrong. Recall runs on keywords extracted from a node's whole content, and
-   * the extractor walks nested objects — so an attached page contributes every
+   * the extractor walks nested objects - so an attached page contributes every
    * word it contains to what that turn matches. Deleting the page text without
    * rebuilding the index would leave the turn answering questions about a page
    * it no longer holds, which is worse than not deleting it at all: the entry
@@ -282,7 +276,6 @@ export class MemoryService {
       if (ids.length === 0) return { removed: false };
 
       // The referenced nodes are the actual text; the turn only points at them.
-      // Both ends go, or the pointers dangle and the text is orphaned.
       for (const nodeId of ids) convo.unregister(nodeId);
       await pool.update(id, { content, metadata: { ...metadata, [part]: [] } });
     }
@@ -295,7 +288,7 @@ export class MemoryService {
    * Delete a conversation and keep none of it.
    *
    * `closeScope` evicts first, and eviction is what moves turns into the
-   * archive — so closing preserves. Emptying the scope's own pools beforehand
+   * archive - so closing preserves. Emptying the scope's own pools beforehand
    * leaves eviction nothing to carry across, and the same call then becomes a
    * deletion. That is the whole trick, and it means this cannot drift out of
    * step with however closing works later.
@@ -321,8 +314,7 @@ export class MemoryService {
       }
     }
 
-    // Now a no-op as far as archiving goes, and it still drops the pools and
-    // retires the scope name properly.
+    // Now a no-op as far as archiving goes, and it still drops the pools.
     await convo.closeScope(scope);
 
     announceMemoryChanged();
@@ -333,7 +325,7 @@ export class MemoryService {
    * Drop every pool the current mind does not declare.
    *
    * These cost a little storage each and, more to the point, are serialized
-   * into every save — the whole of memory is written out on each change, so
+   * into every save - the whole of memory is written out on each change, so
    * dead pools are paid for on every write forever. Nothing reads them and
    * nothing will, because the names are not in the mind any more.
    */
@@ -363,7 +355,7 @@ export class MemoryService {
    *
    * This used to return one flat list of pool names. Because the window,
    * thinking, action, and thread pools are all scoped per tab, the page showed
-   * "OPEN CONVERSATION" four times with no way to tell which was which — the
+   * "OPEN CONVERSATION" four times with no way to tell which was which - the
    * scope was in the resolved pool name and was being thrown away when the
    * label was made. `splitPoolName` puts it back.
    *
@@ -384,31 +376,13 @@ export class MemoryService {
       const size = convo.memory.pool(resolved).size;
       const declared = (convo.mind.pools as Record<string, { scoped?: boolean }>)[base];
 
-      /*
-        A pool the current mind knows nothing about.
-
-        Storage outlives the mind. Changing which pools exist leaves whatever
-        the previous arrangement wrote sitting in IndexedDB under names nothing
-        reads any more — `thinking`, `action`, and `tools` after they were
-        dropped, and any per-tab pools they had spawned. `splitPoolName` cannot
-        even take those apart, because it matches against the mind's own keys,
-        so `thinking:tab:9` comes back whole and unattributable.
-
-        They were being counted as shared memory, which put five dead pools in
-        the same grid as the archive and made both harder to read.
-      */
+      // A pool the current mind knows nothing about.
       if (!declared) {
         orphans.push({ name: resolved, size });
         continue;
       }
 
-      /*
-        The library instantiates an unscoped copy of every declared pool for the
-        default scope, whether or not the pool is scoped. So `window`, `context`,
-        and `thread` each show up with no scope attached, always empty, on every
-        single load. They are an artifact of how scopes are rebuilt, not
-        somewhere anything is stored, and listing them is noise.
-      */
+      // The library makes an unscoped copy of every declared pool, always empty. Noise.
       if (declared.scoped && !scope) continue;
 
       if (!scope) {
@@ -421,26 +395,12 @@ export class MemoryService {
       byScope.set(scope, counts);
     }
 
-    /*
-      Whether the tab is still there.
-
-      A tab that crashed never fires `onRemoved`, so its conversation stays open
-      holding turns nothing can recall. Asking the browser for the tab is the
-      only way to tell that apart from a conversation you simply have not
-      touched in a while, and it is what makes the close button meaningful.
-    */
+    // Whether the tab is still there.
     const conversations: ConversationStat[] = [];
     const names = await this.sessions.names.all();
 
     for (const [scope, counts] of byScope) {
-      /*
-        Which live tab, if any, is having this conversation.
-
-        The scope name used to be the tab id, so this parsed it back out. It is
-        a conversation id now — precisely so that it does NOT change when the
-        browser reassigns tab ids on a restart — so the live tab is looked up
-        through the same map the worker uses to route messages.
-      */
+      // Which live tab, if any, is having this conversation.
       const conversationId = scope.startsWith('convo:') ? scope.slice(6) : scope;
       const tabId = await this.sessions.identity.tabFor(conversationId);
 
@@ -473,8 +433,7 @@ export class MemoryService {
     conversations.sort((a, b) => Number(a.live) - Number(b.live));
 
     return {
-      // Reported rather than hidden. Without it, memory that failed to load
-      // looks exactly like memory that was never written.
+      // Reported rather than hidden.
       storageFailure: this.sessions.storageFailure,
       shared,
       orphans,
@@ -483,7 +442,7 @@ export class MemoryService {
   }
 }
 
-/** A pool that belongs to no conversation — the archive and the tool list. */
+/** A pool that belongs to no conversation - the archive and the tool list. */
 export interface PoolCount {
   name: string;
   size: number;
@@ -523,18 +482,13 @@ export interface MemoryStats {
 function toEntry(node: any, convo?: any, source: EntrySource = 'conversation'): MemoryEntry {
   const content = node?.content ?? {};
   const metadata = node?.metadata ?? {};
-  // `readAt` for a page fragment: it is when the page was read, where
-  // `createdAt` is when the fragment was cut, which happens later when the next
-  // page displaces it. A history sorted by filing time reads wrong.
+  // `readAt` for a page fragment: it is when the page was read.
   const createdAt = Number(metadata.readAt ?? metadata.createdAt ?? 0);
 
-  /*
-    A piece of a page. Its text already opens with the provenance line the
-    chunker wrote, so the summary drops that and shows the prose — the title is
-    carried alongside and rendered as its own thing.
-  */
+  // A piece of a page.
   if (source === 'page' || metadata.pageTitle !== undefined) {
-    const text = String(content.text ?? '');
+    // A note's content IS its text, not `{ text }`.
+    const text = typeof content === 'string' ? content : String(content?.text ?? '');
     const body = text.replace(/^From [^\n]*\n\n/, '');
     return {
       id: node.id,
@@ -572,6 +526,19 @@ function toEntry(node: any, convo?: any, source: EntrySource = 'conversation'): 
       source,
       summary: `${content.tool}(${JSON.stringify(content.params ?? {})})`,
       detail: JSON.stringify(content, null, 2),
+      createdAt,
+      parts: [],
+    };
+  }
+
+  // A bare string is a note, whose content is the text itself.
+  if (typeof content === 'string') {
+    return {
+      id: node.id,
+      kind: 'note',
+      source,
+      summary: content.slice(0, 200),
+      detail: content,
       createdAt,
       parts: [],
     };
@@ -623,8 +590,8 @@ function partsOf(content: any, metadata: any, convo?: any): MemoryPart[] {
 /**
  * The pool holding an id, across every scope.
  *
- * The library has this internally but does not expose it, and `unregister` —
- * which does use it — only removes whole nodes. Editing one needs the pool
+ * The library has this internally but does not expose it, and `unregister` -
+ * which does use it - only removes whole nodes. Editing one needs the pool
  * itself, so the walk is repeated here. Ids are unique across pools, so the
  * first hit is the only hit.
  */

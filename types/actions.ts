@@ -10,7 +10,7 @@ export const PortAction = {
   SAVE_SETTINGS: 'SAVE_SETTINGS',
   /**
    * Merge a partial update. The normal path, because settings are edited from
-   * two pages that each only know their own half — a full write from either
+   * two pages that each only know their own half - a full write from either
    * would erase the other's fields.
    */
   PATCH_SETTINGS: 'PATCH_SETTINGS',
@@ -28,7 +28,7 @@ export const PortAction = {
   /**
    * Rename the conversation this tab is having.
    *
-   * The name is a label on the conversation id, never the id itself — scope
+   * The name is a label on the conversation id, never the id itself - scope
    * names are baked into every pool a conversation owns, so renaming the
    * identifier would strand all of them. Which is also why renaming is free.
    */
@@ -58,7 +58,7 @@ export const ToolAction = {
    * Ask a page how deep its back/forward stack is.
    *
    * `history.length` is a page API, so only the content script can read it. It
-   * is how a tab is recognised after a browser restart reassigns tab ids — see
+   * is how a tab is recognised after a browser restart reassigns tab ids - see
    * lib/background/tab-identity.ts for why nothing plantable survives.
    */
   TAB_IDENTITY: 'TAB_IDENTITY',
@@ -97,7 +97,7 @@ export const MemoryAction = {
    *
    * The counterpart to MEMORY_CLOSE, which ends a conversation by moving its
    * turns into the archive. Closing was the only thing on offer, so erasing one
-   * meant archiving it first and then hunting its turns down in the archive —
+   * meant archiving it first and then hunting its turns down in the archive -
    * asking someone to file something in order to shred it.
    */
   MEMORY_DELETE_SCOPE: 'MEMORY_DELETE_SCOPE',
@@ -116,14 +116,14 @@ export const MemoryAction = {
    *
    * Normally a tab closing does this. A tab that crashed never fires
    * `onRemoved`, so its conversation sits open forever holding turns that no
-   * other tab can recall — this is how you finish one by hand.
+   * other tab can recall - this is how you finish one by hand.
    */
   MEMORY_CLOSE: 'MEMORY_CLOSE',
   /**
    * Drop one PART of an entry and keep the rest.
    *
    * A turn is not one thing. It holds the question, the answer, whatever page
-   * was attached, the model's reasoning, and what tools returned — and the
+   * was attached, the model's reasoning, and what tools returned - and the
    * attached page is routinely the largest of those by a wide margin. Forgetting
    * the whole turn to be rid of a page throws away the exchange as well, which
    * is the wrong trade when the exchange is the part worth keeping.

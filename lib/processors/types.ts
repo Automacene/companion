@@ -3,12 +3,12 @@
  *
  * A processor turns a page into text for the model. It receives the live
  * `Document` and runs inside the content script, which is a change from the
- * previous version — that one received a string of HTML in the background
+ * previous version - that one received a string of HTML in the background
  * worker and pulled tags off it with regular expressions.
  *
  * The reason for the move is that most of what makes a page unreadable can only
  * be judged from the DOM. Whether an element is navigation, whether it is on
- * screen at all, how much of a block is link text — none of that survives being
+ * screen at all, how much of a block is link text - none of that survives being
  * flattened to a string. Working on the string also meant the entire document,
  * megabytes on a large page, crossed the extension message channel before
  * anything had looked at it.

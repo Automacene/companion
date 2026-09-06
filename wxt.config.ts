@@ -17,8 +17,7 @@ export default defineConfig({
   }),
   webExt: {
     binaries: {
-      // Chromium target. Override per-machine with CHROME_BIN, since the
-      // default only exists on Linux boxes with Brave installed.
+      // Chromium target. Override per-machine with CHROME_BIN.
       chrome: process.env.CHROME_BIN || '/usr/bin/brave-browser',
     },
   },
@@ -27,7 +26,7 @@ export default defineConfig({
     permissions: ['sidePanel', 'activeTab', 'tabs', 'downloads', 'scripting', 'storage'],
     host_permissions: ['http://localhost:11434/*', '<all_urls>'],
     content_security_policy: {
-      extension_pages: "script-src 'self'; object-src 'self';"
+      extension_pages: "script-src 'self'; object-src 'self';",
     },
     action: {
       default_title: 'Open Automacene Sidepanel',

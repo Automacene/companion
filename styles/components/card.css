@@ -1,10 +1,4 @@
-/* =============================================================
-   COMPONENT — Card
-
-   A bordered panel. `--glass` adds the frosted translucency the
-   product uses over the backdrop grid; plain `.ac-card` is opaque
-   and cheaper, which matters for anything that repeats.
-============================================================= */
+/* COMPONENT - Card. A bordered panel. */
 
 .ac-card {
   background-color: var(--ac-color-raised);
@@ -14,14 +8,7 @@
   box-shadow: var(--ac-shadow-sm);
 }
 
-/* `backdrop-filter` is what makes the grid show through. It forces
-   a compositing layer, so it belongs on panels that persist rather
-   than on list items that churn.
-
-   Unprefixed only. The `-webkit-` alias is not a safety net here —
-   current Chrome has removed it, and leaving it in let the minifier
-   emit the dead prefixed property instead of the live one. The
-   build target in wxt.config.ts is what keeps this correct. */
+/* `backdrop-filter` is what makes the grid show through. */
 .ac-card--glass {
   background-color: var(--ac-color-overlay);
   backdrop-filter: var(--ac-blur-md);
@@ -58,8 +45,7 @@
   border-top: 1px solid var(--ac-color-border-subtle);
 }
 
-/* Vertical rhythm inside a card, so sections do not each invent
-   their own gap. */
+/* Vertical rhythm inside a card, so sections do not each invent their own gap. */
 .ac-card--stack {
   display: flex;
   flex-direction: column;

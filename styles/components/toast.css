@@ -1,17 +1,4 @@
-/* =============================================================
-   COMPONENT — Toast
-
-   Transient confirmation text. Hidden by opacity rather than
-   `display`, so it does not reflow the row it lives in when it
-   appears and disappears.
-
-   Visibility is the `.is-visible` state class and nothing else.
-   The options page previously used two mechanisms for one element
-   — `classList.add('show')` in one place and
-   `classList.remove('opacity-0')` in another, the latter naming a
-   Tailwind class that was never generated — so the toast only ever
-   worked down one of its two code paths.
-============================================================= */
+/* COMPONENT - Toast. Transient confirmation text. */
 
 .ac-toast {
   font-family: var(--ac-font-mono);

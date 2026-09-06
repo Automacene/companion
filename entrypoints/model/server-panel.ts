@@ -6,7 +6,7 @@
  * the last reply perform.
  *
  * Refreshes on a timer while the page is visible. The expiry countdown is the
- * reason — a model's remaining life is the answer to "why was that message
+ * reason - a model's remaining life is the answer to "why was that message
  * suddenly slow again", and a static number would be wrong the moment it drew.
  */
 import {
@@ -48,8 +48,7 @@ export function mountServerPanel({
   let inFlight = false;
 
   async function refresh(): Promise<void> {
-    // A slow or unreachable server can outlast the interval; overlapping polls
-    // would queue up requests against something already struggling.
+    // A slow or unreachable server can outlast the interval.
     if (inFlight) return;
     inFlight = true;
 
@@ -80,8 +79,8 @@ export function mountServerPanel({
         notice(
           'Not reachable',
           status.error ?? 'No response',
-          'Check that Ollama is running and that OLLAMA_ORIGINS allows this extension.'
-        )
+          'Check that Ollama is running and that OLLAMA_ORIGINS allows this extension.',
+        ),
       );
       return;
     }
@@ -91,17 +90,17 @@ export function mountServerPanel({
         ['Status', 'Running', 'ok'],
         ['Version', status.version ?? 'unknown'],
         ['Loaded', String(status.loaded.length)],
-      ])
+      ]),
     );
 
-    // ── Resident models ──────────────────────────────────────────
+    // ── Resident models ──────────────────────────────────────────────────────
     if (status.loaded.length === 0) {
       host.appendChild(
         notice(
           'Nothing loaded',
           'No model is in memory',
-          'The next message will load one, which is the slow first request.'
-        )
+          'The next message will load one, which is the slow first request.',
+        ),
       );
     } else {
       for (const model of status.loaded) {
@@ -121,8 +120,7 @@ export function mountServerPanel({
         head.append(name, ttl);
         card.appendChild(head);
 
-        // The split that matters. `size` against `size_vram` is how `ollama ps`
-        // decides "100% GPU" versus "13%/87% CPU/GPU".
+        // The split that matters.
         const share = Math.round(model.gpuShare * 100);
         const bar = document.createElement('div');
         bar.className = 'model-page__server-bar';
@@ -151,7 +149,7 @@ export function mountServerPanel({
       }
     }
 
-    // ── What the active model supports ───────────────────────────
+    // ── What the active model supports ───────────────────────────────────────
     if (detail) {
       const facts: [string, string][] = [];
       if (detail.contextLength) {
@@ -169,8 +167,7 @@ export function mountServerPanel({
 
         section.append(heading, chips(facts));
 
-        // The ceiling for num_ctx. Setting it higher does not gain anything and
-        // the runner will just clamp it.
+        // The ceiling for num_ctx.
         if (detail.contextLength) {
           const note = document.createElement('p');
           note.className = 'ac-field__hint';
@@ -182,7 +179,7 @@ export function mountServerPanel({
       }
     }
 
-    // ── Last run ─────────────────────────────────────────────────
+    // ── Last run ─────────────────────────────────────────────────────────────
     if (lastRun) {
       const summary = summarise(lastRun);
       const section = document.createElement('div');
@@ -195,24 +192,21 @@ export function mountServerPanel({
 
       section.appendChild(
         statRow([
-          [
-            'Speed',
-            summary.tokensPerSecond ? `${summary.tokensPerSecond.toFixed(1)} tok/s` : '—',
-          ],
+          ['Speed', summary.tokensPerSecond ? `${summary.tokensPerSecond.toFixed(1)} tok/s` : '-'],
           ['Generated', String(lastRun.evalCount)],
           ['Prompt', String(lastRun.promptEvalCount)],
           ['Total', formatDuration(lastRun.totalDuration)],
-        ])
+        ]),
       );
 
       const notes: string[] = [];
       if (summary.wasColdLoad) {
         notes.push(
-          `${formatDuration(lastRun.loadDuration)} of that was loading the model into memory, not generating.`
+          `${formatDuration(lastRun.loadDuration)} of that was loading the model into memory, not generating.`,
         );
       }
       if (summary.hitReplyLimit) {
-        notes.push('Stopped at the reply limit rather than finishing — raise num_predict.');
+        notes.push('Stopped at the reply limit rather than finishing - raise num_predict.');
       }
 
       if (notes.length) {
@@ -226,7 +220,7 @@ export function mountServerPanel({
     }
   }
 
-  /* ── small builders ─────────────────────────────────────────── */
+  // ── Small builders ───────────────────────────────────────────────────────
 
   function statRow(items: [string, string, string?][]): HTMLElement {
     const wrap = document.createElement('div');
@@ -271,7 +265,7 @@ export function mountServerPanel({
     wrap.className = 'model-page__server-notice';
 
     const heading = document.createElement('strong');
-    heading.textContent = `${title} — ${detail}`;
+    heading.textContent = `${title} - ${detail}`;
 
     const body = document.createElement('p');
     body.className = 'ac-field__hint';
@@ -281,7 +275,7 @@ export function mountServerPanel({
     return wrap;
   }
 
-  /* ── lifecycle ──────────────────────────────────────────────── */
+  // ── Lifecycle ────────────────────────────────────────────────────────────
 
   function start(): void {
     stop();
@@ -294,8 +288,7 @@ export function mountServerPanel({
     timer = undefined;
   }
 
-  // Polling a local server from a background tab is pointless work, and this
-  // page can sit open for a long time.
+  // Polling a local server from a background tab is pointless work.
   const onVisibility = () => (document.hidden ? stop() : start());
   document.addEventListener('visibilitychange', onVisibility);
 

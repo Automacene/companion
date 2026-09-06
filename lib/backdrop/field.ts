@@ -2,7 +2,7 @@
  * The ASCII field renderer.
  *
  * Walks a grid of cells, asks the mask how bright each one is, and draws a
- * character picked from a ramp by that brightness. That is the entire effect —
+ * character picked from a ramp by that brightness. That is the entire effect -
  * everything else in this file is about not burning a laptop battery to do it.
  *
  * Replaces the ghost-square overlay, which spawned DOM nodes on a bare
@@ -13,7 +13,7 @@
  *      runs `requestAnimationFrame` otherwise.
  *   2. Cap the frame rate. This look reads better at 14fps than at 60, and
  *      costs a quarter as much.
- *   3. Honour `prefers-reduced-motion` — one static frame, then stop.
+ *   3. Honour `prefers-reduced-motion` - one static frame, then stop.
  *   4. Downshift when idle. The common case is a panel left open and visible
  *      for twenty minutes while somebody reads the page behind it.
  *
@@ -100,8 +100,7 @@ export class AsciiField {
     this.config = config;
     this.reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
-    // The canvas is sized from its own box rather than the window, so a field
-    // mounted inside a panel does not have to know where that panel is.
+    // The canvas is sized from its own box rather than the window.
     this.observer = new ResizeObserver(() => this.measure());
 
     this.lastActivityAt = performance.now();
@@ -170,7 +169,7 @@ export class AsciiField {
     this.lastActivityAt = performance.now();
   }
 
-  // ── internals ──────────────────────────────────────────────────
+  // ── Internals ────────────────────────────────────────────────────────────
 
   /** Nothing to animate: motion is off, or the preset draws nothing. */
   private isStatic(): boolean {
@@ -209,8 +208,7 @@ export class AsciiField {
   private readonly tick = (now: number): void => {
     this.frameHandle = requestAnimationFrame(this.tick);
 
-    // Rule 4. Streaming counts as activity for as long as it lasts, so a long
-    // generation never downshifts mid-answer.
+    // Rule 4.
     const idle = !this.streaming && now - this.lastActivityAt > IDLE_AFTER_MS;
     const targetFps = idle ? Math.min(IDLE_FPS, this.config.fps) : this.config.fps;
 
@@ -268,21 +266,18 @@ export class AsciiField {
     const rowHeight = cell * ROW_RATIO;
     const time = (now / 1000) * speed;
 
-    // Both lifts raise the whole field rather than any one cell, which is what
-    // makes a pulse read as the background reacting instead of as noise.
+    // Both lifts raise the whole field rather than any one cell.
     const lift = this.pulse * PULSE_LIFT + (this.streaming ? STREAM_LIFT : 0);
     const ceiling = Math.min(1, intensity + this.pulse * 0.3);
 
     const context = this.context;
     context.clearRect(0, 0, this.width, this.height);
     context.font = `${cell - 1}px ${getComputedStyle(document.documentElement).getPropertyValue(
-      '--ac-font-mono'
+      '--ac-font-mono',
     )}`;
     context.textBaseline = 'top';
 
-    // Alpha carries brightness so the two fill colours can stay solid token
-    // values. Setting `globalAlpha` is cheaper than building an rgba() string
-    // per cell, and it means the colours need no parsing.
+    // Alpha carries brightness so the two fill colours can stay solid token values.
     let currentColor = '';
 
     for (let row = 0; row < this.rows; row++) {

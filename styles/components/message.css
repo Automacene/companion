@@ -1,14 +1,4 @@
-/* =============================================================
-   COMPONENT — Message
-
-   Chat bubbles and the rendered markdown inside them.
-
-   NOTE: the conversation layer is being replaced, so this file is
-   expected to be rewritten rather than extended. It is here in its
-   tokenized form so the reorganization is complete and the current
-   UI keeps working; treat it as the least settled file in the
-   folder.
-============================================================= */
+/* COMPONENT - Message. Chat bubbles and the rendered markdown inside them. */
 
 .ac-message {
   display: flex;
@@ -70,18 +60,14 @@
   color: var(--ac-color-text-subtle);
 }
 
-/* A failed turn. The bubble stays in place so the conversation does
-   not jump; only its colour changes. */
+/* A failed turn. */
 .ac-message__body.is-error {
   background-color: var(--ac-color-danger-soft);
   border-color: var(--ac-color-danger-border);
   color: var(--ac-color-danger);
 }
 
-/* ---- Rendered markdown ----
-   Scoped under `__content` so these rules can never reach the rest
-   of the UI. The reset stripped list markers and margins globally,
-   so prose has to put them back explicitly. */
+/* Rendered markdown. Scoped under `__content` so these rules can never reach the rest of the UI. */
 .ac-message__content > *:last-child {
   margin-bottom: 0;
 }
@@ -150,8 +136,7 @@
   text-decoration: underline;
 }
 
-/* Links inside a user bubble sit on the accent fill, where the info
-   blue is unreadable. */
+/* Links inside a user bubble sit on the accent fill, where the info blue is unreadable. */
 .ac-message--user .ac-message__content a {
   color: var(--ac-color-text-inverted);
 }
@@ -179,10 +164,7 @@
   padding-right: var(--ac-space-2);
 }
 
-/* ---- A turn whose answer never arrived ----
-   Dashed and muted, the same language the demo used for anything
-   provisional. It appears when the worker was killed mid-stream, or when
-   a turn errored — the question is real, the answer is not coming. */
+/* A turn whose answer never arrived */
 .ac-message--pending .ac-message__body {
   border: 1px dashed var(--ac-color-border);
   background: transparent;
@@ -190,10 +172,7 @@
   font-style: italic;
 }
 
-/* ---- The note that a page was read ----
-   Sits above the message it was attached to. Only the title, never the
-   page: the text was in the prompt on the turn it arrived, and repeating
-   it here is what the whole page-context rework exists to stop. */
+/* The note that a page was read. Sits above the message it was attached to. */
 .ac-message--note {
   justify-content: center;
 }

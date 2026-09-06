@@ -7,7 +7,7 @@
  *
  * Every control can be empty, and empty is meaningful: Ollama has no value for
  * "use the model's default", only the absence of the key. So a cleared box has
- * to actually clear the stored value rather than write a zero — which is what
+ * to actually clear the stored value rather than write a zero - which is what
  * the previous page did with `parseInt(value) || 0`, quietly asking for a
  * zero-token context window.
  */
@@ -49,9 +49,7 @@ export function renderParams({ host, values, onChange }: ParamsUiOptions): Param
   }
 
   function set(id: string, raw: string): void {
-    // Empty means "unset", which has to remove the key rather than store a
-    // blank — a stored empty string would be coerced away later anyway, but
-    // leaving it makes "is anything customised" impossible to answer.
+    // Empty means "unset", which has to remove the key.
     if (raw === '') delete current[id];
     else current[id] = raw;
 
@@ -72,9 +70,7 @@ export function renderParams({ host, values, onChange }: ParamsUiOptions): Param
 
       const section = document.createElement('details');
       section.className = 'model-page__param-group';
-      // All collapsed. Twenty parameters with one group hanging open is a wall
-      // of sliders to scroll past every visit, and the "n set" counter on each
-      // heading already says whether there is anything inside worth opening.
+      // All collapsed.
       section.open = false;
 
       const summary = document.createElement('summary');
@@ -120,7 +116,7 @@ export function renderParams({ host, values, onChange }: ParamsUiOptions): Param
      *
      * Setting the control back to 0.8 and setting it to "unset" look identical
      * on screen but are different requests: one pins temperature to 0.8 forever,
-     * the other lets the model choose — and a model whose own default differs
+     * the other lets the model choose - and a model whose own default differs
      * would be overridden by the first. Revert always removes the key.
      */
     const revert = document.createElement('button');
@@ -143,8 +139,7 @@ export function renderParams({ host, values, onChange }: ParamsUiOptions): Param
 
     wrap.append(head, control, hint);
 
-    // One place that decides what "set" looks like, so the row marker, the
-    // revert button, and the faded slider can never disagree.
+    // One place that decides what "set" looks like, so the row marker.
     const sync = () => {
       const isSet = param.id in current;
       wrap.classList.toggle('is-set', isSet);
@@ -190,15 +185,7 @@ export function renderParams({ host, values, onChange }: ParamsUiOptions): Param
   /**
    * A slider paired with a number box.
    *
-   * The slider is the approachable control, but it cannot express "unset" —
-   * every position is a value. So the number box sits beside it and is the one
-   * that can be emptied, and clearing it puts the parameter back to the model's
-   * default. The slider follows along without being able to blank it.
-   */
-  /**
-   * A slider paired with a number box.
-   *
-   * The slider is the approachable control but it cannot express "unset" —
+   * The slider is the approachable control but it cannot express "unset" -
    * every handle position is a value. So the box beside it is the one that can
    * be emptied, and while nothing is set the slider rests at the model's own
    * default and is faded to say the position is not in force.

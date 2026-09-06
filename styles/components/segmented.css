@@ -1,14 +1,4 @@
-/* =============================================================
-   COMPONENT — Segmented control
-
-   A row of mutually exclusive options, all visible at once. Use it
-   instead of a select when there are two to four choices and seeing
-   the alternatives is part of the decision — picking a theme, where
-   the point is knowing dark exists.
-
-   Selection is carried by `aria-pressed` rather than a class, so the
-   accessible state and the visible state cannot disagree.
-============================================================= */
+/* COMPONENT - Segmented control. A row of mutually exclusive options, all visible at once. */
 
 .ac-segmented {
   display: flex;

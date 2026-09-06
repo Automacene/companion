@@ -45,7 +45,7 @@ export type LogoMode = 'full' | 'mark';
 
 export interface LogoOptions {
   /**
-   * Render as a button. Use when clicking it does something — in the sidepanel
+   * Render as a button. Use when clicking it does something - in the sidepanel
    * it brings the collapsed hero back.
    *
    * A button wrapping the whole mark rather than a hit area over the square:
@@ -87,12 +87,10 @@ export function createLogo({
     host.setAttribute('aria-label', label);
   }
 
-  // Static markup from our own bundle, not user content, and SVG injected this
-  // way cannot execute script.
+  // Static markup from our own bundle, not user content.
   host.innerHTML = scoped;
 
-  // The mark is decorative once the wrapper carries the name, and a nested
-  // label would be announced twice.
+  // The mark is decorative once the wrapper carries the name.
   if (interactive) {
     const art = host.querySelector('svg');
     art?.removeAttribute('role');
@@ -106,7 +104,7 @@ export function createLogo({
 /**
  * Switch between the whole mark and the core square on its own.
  *
- * `mark` is what the collapsed sidepanel hero shows. It is not a smaller logo —
+ * `mark` is what the collapsed sidepanel hero shows. It is not a smaller logo -
  * the viewBox is reframed onto the square so the square renders at the size it
  * already had, and everything around it is hidden. That is the behaviour the
  * old absolutely-positioned badge was faking by covering the artwork.
@@ -124,8 +122,8 @@ export function setLogoMode(host: HTMLElement | null, mode: LogoMode): void {
 /**
  * Replace a placeholder element with the logo, keeping its classes.
  *
- * Lets a page mark the spot in its HTML — where the logo goes is layout, and
- * layout belongs in the markup — while the mark itself is built here.
+ * Lets a page mark the spot in its HTML - where the logo goes is layout, and
+ * layout belongs in the markup - while the mark itself is built here.
  *
  * @param selector  element to replace
  * @returns the new element, or null if the placeholder was not found

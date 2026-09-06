@@ -1,11 +1,4 @@
-/* =============================================================
-   COMPONENT — Value controls
-
-   The friendly editors for a single value: a swatch with opacity, a
-   slider with its reading, a short list of choices. Each one is the
-   default way to change a setting, with a text box behind a toggle
-   for the cases it cannot reach.
-============================================================= */
+/* COMPONENT - Value controls */
 
 .ac-control {
   display: flex;
@@ -15,11 +8,7 @@
   flex: 1;
 }
 
-/* ---- Colour: swatch plus opacity ----
-   Opacity is not optional decoration. A large share of the palette is
-   translucent, and `<input type="color">` cannot express alpha at all —
-   without this, picking a colour on a hairline border would silently
-   turn it solid. */
+/* Colour: swatch plus opacity. Opacity is not optional decoration. */
 .ac-control--color {
   flex-wrap: wrap;
 }
@@ -72,8 +61,7 @@
   min-width: 0;
 }
 
-/* Tabular figures and a reserved width, so the row does not twitch
-   sideways as the number under the handle changes. */
+/* Tabular figures and a reserved width, so the row does not twitch. */
 .ac-control__readout {
   flex-shrink: 0;
   min-inline-size: 4.5ch;

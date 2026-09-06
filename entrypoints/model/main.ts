@@ -19,45 +19,31 @@ import {
   DEFAULT_CONN_TIMEOUT,
   OLLAMA_HOST,
   DEFAULT_TEMPERATURE,
-  DEFAULT_SETTINGS
+  DEFAULT_SETTINGS,
 } from '../../lib/constants';
 import { checkOllamaConnection, type OllamaModel } from '../../lib/model';
 
-function populateModelDropdowns(
-  models: OllamaModel[],
-  selectedValues?: { activeModel?: string; fallbackModel?: string }
-) {
+function populateModelDropdowns(models: OllamaModel[], selectedValues?: { activeModel?: string }) {
   const primarySelect = document.getElementById('active-model') as HTMLSelectElement | null;
-  const fallbackSelect = document.getElementById('fallback-model') as HTMLSelectElement | null;
-  if (!primarySelect || !fallbackSelect) return;
+  if (!primarySelect) return;
 
-  const optionsHtml = models.map((m) => `<option value="${m.name}">${m.name}</option>`).join('');
-  primarySelect.innerHTML = optionsHtml;
-  fallbackSelect.innerHTML = `<option value="">None</option>` + optionsHtml;
+  primarySelect.innerHTML = models
+    .map((m) => `<option value="${m.name}">${m.name}</option>`)
+    .join('');
 
   if (selectedValues?.activeModel) {
-    const activeOption = Array.from(primarySelect.options).find((opt) => opt.value === selectedValues.activeModel);
+    const activeOption = Array.from(primarySelect.options).find(
+      (opt) => opt.value === selectedValues.activeModel,
+    );
     if (activeOption) {
       primarySelect.value = selectedValues.activeModel;
     } else {
-      const fallbackOpt = document.createElement('option');
-      fallbackOpt.value = selectedValues.activeModel;
-      fallbackOpt.textContent = selectedValues.activeModel;
-      primarySelect.appendChild(fallbackOpt);
+      // A model that is set but not in the list - offline, or pulled since.
+      const missing = document.createElement('option');
+      missing.value = selectedValues.activeModel;
+      missing.textContent = selectedValues.activeModel;
+      primarySelect.appendChild(missing);
       primarySelect.value = selectedValues.activeModel;
-    }
-  }
-
-  if (selectedValues?.fallbackModel) {
-    const fallbackOption = Array.from(fallbackSelect.options).find((opt) => opt.value === selectedValues.fallbackModel);
-    if (fallbackOption) {
-      fallbackSelect.value = selectedValues.fallbackModel;
-    } else {
-      const fallbackOpt = document.createElement('option');
-      fallbackOpt.value = selectedValues.fallbackModel;
-      fallbackOpt.textContent = selectedValues.fallbackModel;
-      fallbackSelect.appendChild(fallbackOpt);
-      fallbackSelect.value = selectedValues.fallbackModel;
     }
   }
 }
@@ -67,42 +53,31 @@ function applySettingsToForm(settings: ExtensionSettings | null | undefined) {
   const hostInput = document.getElementById('ollama-host') as HTMLInputElement | null;
   const timeoutInput = document.getElementById('conn-timeout') as HTMLInputElement | null;
   const primarySelect = document.getElementById('active-model') as HTMLSelectElement | null;
-  const fallbackSelect = document.getElementById('fallback-model') as HTMLSelectElement | null;
   const systemPrompt = document.getElementById('system-prompt') as HTMLTextAreaElement | null;
   const streamResponses = document.getElementById('stream-responses') as HTMLInputElement | null;
   const debugModeEl = document.getElementById('debug-mode') as HTMLInputElement | null;
 
   if (hostInput) hostInput.value = resolvedSettings.ollamaHost || OLLAMA_HOST;
-  if (timeoutInput) timeoutInput.value = resolvedSettings.connTimeout?.toString() || DEFAULT_CONN_TIMEOUT.toString();
+  if (timeoutInput)
+    timeoutInput.value =
+      resolvedSettings.connTimeout?.toString() || DEFAULT_CONN_TIMEOUT.toString();
   if (systemPrompt) systemPrompt.value = resolvedSettings.systemPrompt || '';
   if (streamResponses) streamResponses.checked = !!resolvedSettings.streamResponses;
-
 
   if (debugModeEl) debugModeEl.checked = !!resolvedSettings.debugMode;
 
   if (primarySelect && resolvedSettings.activeModel) {
-    const activeOption = Array.from(primarySelect.options).find((opt) => opt.value === resolvedSettings.activeModel);
+    const activeOption = Array.from(primarySelect.options).find(
+      (opt) => opt.value === resolvedSettings.activeModel,
+    );
     if (activeOption) {
       primarySelect.value = resolvedSettings.activeModel;
     } else {
-      const fallbackOpt = document.createElement('option');
-      fallbackOpt.value = resolvedSettings.activeModel;
-      fallbackOpt.textContent = resolvedSettings.activeModel;
-      primarySelect.appendChild(fallbackOpt);
+      const missing = document.createElement('option');
+      missing.value = resolvedSettings.activeModel;
+      missing.textContent = resolvedSettings.activeModel;
+      primarySelect.appendChild(missing);
       primarySelect.value = resolvedSettings.activeModel;
-    }
-  }
-
-  if (fallbackSelect && resolvedSettings.fallbackModel) {
-    const fallbackOption = Array.from(fallbackSelect.options).find((opt) => opt.value === resolvedSettings.fallbackModel);
-    if (fallbackOption) {
-      fallbackSelect.value = resolvedSettings.fallbackModel;
-    } else {
-      const fallbackOpt = document.createElement('option');
-      fallbackOpt.value = resolvedSettings.fallbackModel;
-      fallbackOpt.textContent = resolvedSettings.fallbackModel;
-      fallbackSelect.appendChild(fallbackOpt);
-      fallbackSelect.value = resolvedSettings.fallbackModel;
     }
   }
 }
@@ -110,9 +85,7 @@ function applySettingsToForm(settings: ExtensionSettings | null | undefined) {
 document.addEventListener('DOMContentLoaded', async () => {
   const storedSettings = await readSettings();
 
-  // Appearance is owned by the theme page, but every surface still has to
-  // apply it for itself. Staying live keeps this page in step while somebody
-  // edits the theme in another tab.
+  // Appearance is owned by the theme page.
   startAppearance(storedSettings, {
     backdropContainer: document.getElementById('backdrop-layer'),
   });
@@ -143,8 +116,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (res.success && res.models && res.models.length) {
       setStatus('ok', '[ 200 OK ]');
       populateModelDropdowns(res.models, {
-        activeModel: (document.getElementById('active-model') as HTMLSelectElement | null)?.value || undefined,
-        fallbackModel: (document.getElementById('fallback-model') as HTMLSelectElement | null)?.value || undefined,
+        activeModel:
+          (document.getElementById('active-model') as HTMLSelectElement | null)?.value || undefined,
       });
       if (showToast) showToast_('Model list loaded');
       return { success: true, models: res.models };
@@ -186,8 +159,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await runTestConnection(true);
   });
 
-  // Navigation. Extension page URLs are only knowable from inside the
-  // extension, so the hrefs are filled in here rather than in the markup.
+  // Navigation.
   const hubLink = document.getElementById('open-hub') as HTMLAnchorElement | null;
   const themeLink = document.getElementById('open-theme') as HTMLAnchorElement | null;
 
@@ -202,7 +174,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   /**
    * Generation parameters, held here rather than read back out of the DOM.
    *
-   * The controls can be empty, and empty means "let the model decide" — which
+   * The controls can be empty, and empty means "let the model decide" - which
    * is a different thing from zero and cannot be recovered by reading an input
    * value after the fact. Keeping the authoritative copy in memory is what lets
    * a cleared box actually delete the key.
@@ -217,9 +189,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         values: params,
         onChange: (next) => {
           params = next;
-          // Every memory figure is a share of `num_ctx`, so changing the context
-          // length changes all of them. Without this the sliders keep showing
-          // token counts for the old window.
+          // Every memory figure is a share of `num_ctx`.
           memoryUi?.refresh();
         },
       })
@@ -238,8 +208,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         })
       : null;
 
-  // Reads the host field rather than the saved setting, so typing a new URL
-  // and pressing Refresh checks the one on screen.
+  // Reads the host field rather than the saved setting, so typing a new URL.
   const serverPanel = statusHost
     ? mountServerPanel({
         host: statusHost,
@@ -249,7 +218,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         getTimeoutMs: () =>
           parseInt(
             (document.getElementById('conn-timeout') as HTMLInputElement | null)?.value || '',
-            10
+            10,
           ) || DEFAULT_CONN_TIMEOUT,
         getActiveModel: () =>
           (document.getElementById('active-model') as HTMLSelectElement | null)?.value || '',
@@ -274,16 +243,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const hostInput = document.getElementById('ollama-host') as HTMLInputElement | null;
     const timeoutInput = document.getElementById('conn-timeout') as HTMLInputElement | null;
     const primarySelect = document.getElementById('active-model') as HTMLSelectElement | null;
-    const fallbackSelect = document.getElementById('fallback-model') as HTMLSelectElement | null;
     const systemPrompt = document.getElementById('system-prompt') as HTMLTextAreaElement | null;
     const streamResponses = document.getElementById('stream-responses') as HTMLInputElement | null;
-      const debugModeEl = document.getElementById('debug-mode') as HTMLInputElement | null;
+    const debugModeEl = document.getElementById('debug-mode') as HTMLInputElement | null;
 
     return {
       ollamaHost: hostInput?.value.trim() || OLLAMA_HOST,
       connTimeout: parseInt(timeoutInput?.value || '', 10) || DEFAULT_CONN_TIMEOUT,
       activeModel: primarySelect?.value || '',
-      fallbackModel: fallbackSelect?.value || '',
       systemPrompt: systemPrompt?.value || '',
       streamResponses: streamResponses ? streamResponses.checked : true,
       memory,
@@ -297,8 +264,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const settingsData = getSettingsFromForm();
 
-    // A patch rather than a replace: this page knows nothing about theme or
-    // backdrop, and writing the whole object would erase them.
+    // A patch rather than a replace: this page knows nothing about theme.
     const response = await patchSettings(settingsData);
 
     if (response.success) {

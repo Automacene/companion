@@ -1,32 +1,13 @@
 /**
- * Identifying the pieces of a page, so a reread can be compared to the last one.
+ * Fingerprinting a page's paragraphs, so a reread can be compared to the last.
  *
- * A page you have already read is the common case — you come back to a repo, a
- * doc, a profile — and reading it again stores a second full copy of text that
- * is mostly or entirely identical. That costs storage, and it costs recall
- * accuracy: duplicate fragments take more than one of the few slots a question
- * gets, and they inflate the document frequency of their own terms, which makes
- * those words less discriminating for every later question.
+ * Rereading a page stores a second copy of text you already have, which costs
+ * recall accuracy as much as storage: duplicates take more than one of the few
+ * slots a question gets, and inflate the document frequency of their own terms.
  *
- * Rather than decide automatically what to do about that, the extension says
- * what it found and lets you choose. This file is the measurement behind that
- * sentence: split a page the same way the chunker does, fingerprint each piece,
- * and compare two readings.
- *
- * ── Why blocks and not characters ──────────────────────────────
- *
- * The obvious comparison is character overlap, and it is misleading. A site
- * that reflows its navigation or reorders a sidebar changes a lot of
- * characters while saying nothing new, so the figure swings for reasons the
- * reader does not care about. A paragraph either came back or it did not, which
- * is stable under reformatting and reads as a sentence: twelve of fourteen
- * sections unchanged.
- *
- * ── Why the split lives here ───────────────────────────────────
- *
- * The chunker splits on the same rule. If the two ever disagreed, the pieces
- * being counted would not be the pieces being stored, and the percentage would
- * describe something nobody could see. One function, both callers.
+ * Compared by block rather than by character, because a site that reflows its
+ * navigation changes many characters while saying nothing new. `blocksOf` is
+ * shared with the chunker so the pieces counted are the pieces stored.
  */
 
 /**
@@ -104,7 +85,7 @@ export interface PageComparison {
  * How much of a new reading was already known.
  *
  * Measured against the new reading rather than against the union, so the number
- * answers the question actually being asked — how much of what I am about to
+ * answers the question actually being asked - how much of what I am about to
  * store do I already have. A page that lost a section without gaining one still
  * reports everything present as known, which is right: nothing new arrived.
  *

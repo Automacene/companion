@@ -18,19 +18,7 @@
               <span class="ac-heading">AUTOMACENE COMPANION</span>
             </div>
 
-            <!--
-              Which conversation this tab is having.
-
-              Kept in the header rather than in the composer placeholder: a
-              placeholder disappears on the first keystroke, which is exactly
-              when you are committing a thought to a particular conversation.
-              Recognising a tab after a restart cannot be made reliable, so
-              this is what makes a wrong guess visible in a glance.
-
-              A button because it renames on click. Naming a conversation
-              belongs where you are having it, not on a settings page you would
-              have to know to visit.
-            -->
+            <!-- The conversation this tab is having; click to rename -->
             <button
               id="conversation-name"
               type="button"
@@ -96,12 +84,7 @@
                 Map
               </button>
 
-              <!--
-                Quiet, always present, always in the same place. It says when
-                this page was last read and, after a scrape, how much of it was
-                already stored. Predictable enough to build a habit on, which a
-                popup would not be.
-              -->
+              <!-- When this page was last read, and how much of a reread was already stored -->
               <span id="page-status" class="sidepanel__page-status"></span>
 
               <button

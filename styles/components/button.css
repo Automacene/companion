@@ -1,14 +1,4 @@
-/* =============================================================
-   COMPONENT — Button
-
-   `.ac-btn` carries everything shared. A variant modifier chooses
-   the fill. Always write both:  class="ac-btn ac-btn--primary"
-
-   Naming: `.ac-block`, `.ac-block__element`, `.ac-block--modifier`,
-   and `.is-*` for states that JavaScript toggles. Same shape for
-   every component in this folder, and the shape addons should
-   follow for their own.
-============================================================= */
+/* COMPONENT - Button. `.ac-btn` carries everything shared. */
 
 .ac-btn {
   display: inline-flex;

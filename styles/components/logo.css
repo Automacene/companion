@@ -1,37 +1,17 @@
-/* =============================================================
-   COMPONENT — Logo
-
-   The mark, inlined by `lib/logo.ts` so it can carry the theme and
-   respond to a click. Colours live in `assets/logo.svg` as tokens
-   with brand-literal fallbacks; everything here is size, layout, and
-   the pulse.
-
-   The pulsing square used to be a separate DOM element positioned
-   over the image at `top: 24%; left: 44.8%`. Those percentages were
-   tied to both the artwork's aspect ratio and the logo's height, and
-   the square they covered was already in the drawing.
-============================================================= */
+/* COMPONENT - Logo */
 
 .ac-logo {
   display: inline-flex;
   align-items: center;
   justify-content: center;
 
-  /*
-    Sized by HEIGHT, with the width following from the artwork's own
-    proportions. The viewBox is 390 × 290, so driving width instead makes the
-    mark about a quarter shorter than intended and looks half the size.
-
-    `aspect-ratio` is what lets a surface set one dimension and get the other
-    for free, which is what `height: 12rem; width: auto` used to do on the img.
-  */
+  /* Sized by HEIGHT, with the width following from the artwork's own proportions. */
   aspect-ratio: 390 / 290;
   padding: 0;
   border: 0;
   background: none;
 
-  /* The mark scales as a unit, so a surface can shrink it without
-     re-laying out anything inside. */
+  /* The mark scales as a unit, so a surface can shrink it without re-laying out anything inside. */
   transition: inline-size var(--ac-transition-base);
 }
 
@@ -46,17 +26,8 @@
   cursor: pointer;
 }
 
-/* ---- Mark only ----
-   The core square by itself, at the size it already had inside the full
-   artwork. `setLogoMode` reframes the viewBox onto the square; these rules
-   drop everything the new frame would otherwise still show, since hiding by
-   cropping alone would leave neighbouring nodes poking into the corners. */
-/* Two classes deliberately. A surface sets its own size on the logo — the
-   sidepanel uses 12rem — with a single class and from a stylesheet that loads
-   after this one, so a single class here would lose the tie and the mark would
-   keep the full artwork's dimensions.
-
-   The standalone frame is square, so the artwork's ratio does not apply. */
+/* Mark only. The core square by itself, at the size it already had inside the full artwork. */
+/* Two classes deliberately. */
 .ac-logo.ac-logo--mark {
   aspect-ratio: 1;
   block-size: var(--ac-logo-mark-size);
@@ -76,11 +47,7 @@
   border-radius: var(--ac-radius-md);
 }
 
-/* ---- The pulse ----
-   Rotation is set inside the SVG; these only add scale, so the two
-   compose instead of one replacing the other. `transform-box` is
-   declared there too, which is what makes `center` the square's own
-   middle rather than the SVG origin. */
+/* The pulse */
 
 .ac-logo__core-square {
   animation: ac-logo-breathe 1.8s var(--ac-ease-in-out) infinite;
@@ -115,8 +82,7 @@
   }
 }
 
-/* The token layer collapses durations under reduced motion, which would leave
-   the halo mid-expansion and permanently visible. Stop it outright instead. */
+/* Reduced motion collapses durations, which would freeze the halo visible. */
 @media (prefers-reduced-motion: reduce) {
   .ac-logo__core-square,
   .ac-logo__core-halo {

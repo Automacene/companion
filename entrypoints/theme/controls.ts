@@ -3,14 +3,14 @@
  *
  * Every value here is ultimately a CSS string, and a text box that accepts any
  * CSS string is the most capable control and the least usable one. So each kind
- * of value gets a control shaped for it — a swatch, a slider, a set of choices
- * — and the text box stays available behind a toggle for the cases the friendly
+ * of value gets a control shaped for it - a swatch, a slider, a set of choices
+ * - and the text box stays available behind a toggle for the cases the friendly
  * control cannot reach.
  *
  * The rule this file follows: a friendly control may only ever produce values
  * it can also read back. If it cannot represent what is already set, it returns
  * null and the row falls back to text. Nothing here is allowed to quietly
- * flatten a value it did not understand — that is how somebody's carefully
+ * flatten a value it did not understand - that is how somebody's carefully
  * typed `rgba(…)` turns into an opaque colour just because they opened a panel.
  */
 import type { TokenDefinition } from '../../lib/theme/manifest.generated';
@@ -27,9 +27,7 @@ export interface ControlContext {
   onCommit(value: string): void;
 }
 
-/* ────────────────────────────────────────────────────────────────
-   Value parsing
-   ──────────────────────────────────────────────────────────────── */
+// ── Value parsing ────────────────────────────────────────────────────────
 
 interface Rgba {
   r: number;
@@ -41,7 +39,7 @@ interface Rgba {
 /**
  * Read a colour into channels.
  *
- * Handles the forms the palettes actually use — 3, 6, and 8 digit hex, plus
+ * Handles the forms the palettes actually use - 3, 6, and 8 digit hex, plus
  * `rgb()` and `rgba()` with comma or space separators. Returns null for
  * anything else, including `color-mix()` and named colours, so those keep the
  * text box rather than being approximated.
@@ -78,7 +76,7 @@ export function parseColor(input: string): Rgba | null {
   if (parts.length < 3) return null;
 
   const numbers = parts.map((part) =>
-    part.endsWith('%') ? parseFloat(part) / 100 : parseFloat(part)
+    part.endsWith('%') ? parseFloat(part) / 100 : parseFloat(part),
   );
   if (numbers.slice(0, 3).some(Number.isNaN)) return null;
 
@@ -119,13 +117,8 @@ export function parseMeasure(input: string): Measure | null {
   return { amount, unit: match[2] ?? '' };
 }
 
-/* ────────────────────────────────────────────────────────────────
-   Slider ranges
-
-   Keyed by token prefix rather than derived from the current value,
-   so the same control has the same feel wherever it appears and the
-   handle does not sit in a different place for every token.
-   ──────────────────────────────────────────────────────────────── */
+// ── Slider ranges ────────────────────────────────────────────────────────
+// Keyed by token prefix, so a control has the same feel wherever it appears.
 
 interface Range {
   min: number;
@@ -165,18 +158,14 @@ function rangeFor(name: string, unit: string, amount: number): (Range & { unit: 
   const entry = RANGES.find((candidate) => candidate.match.test(name));
   if (!entry) return null;
 
-  // Zero is unitless in CSS, so `letter-spacing: 0` is written without `em`
-  // even though every other value in that group carries one. Adopt the group's
-  // unit rather than sending an otherwise ordinary token to the text box.
+  // Zero is unitless in CSS, so `letter-spacing.
   const compatible = entry.unit === unit || (amount === 0 && unit === '');
   if (!compatible) return null;
 
   return { ...entry.range, unit: entry.unit };
 }
 
-/* ────────────────────────────────────────────────────────────────
-   Choice lists
-   ──────────────────────────────────────────────────────────────── */
+// ── Choice lists ─────────────────────────────────────────────────────────
 
 const FONT_STACKS: { label: string; value: string }[] = [
   {
@@ -202,9 +191,7 @@ const EASINGS: { label: string; value: string }[] = [
   { label: 'Snap', value: 'cubic-bezier(0.34, 1.56, 0.64, 1)' },
 ];
 
-/* ────────────────────────────────────────────────────────────────
-   Builders
-   ──────────────────────────────────────────────────────────────── */
+// ── Builders ─────────────────────────────────────────────────────────────
 
 /**
  * The friendly control for a token, or null when there is no honest one.
@@ -330,16 +317,14 @@ function buildMeasureControl(context: ControlContext): HTMLElement | null {
   slider.min = String(range.min);
   slider.max = String(range.max);
   slider.step = String(range.step);
-  // A stored value outside the usual range stays reachable rather than being
-  // snapped into it the moment the slider is touched.
+  // A stored value outside the usual range stays reachable.
   slider.value = String(clamp(measure.amount, range.min, range.max));
   slider.setAttribute('aria-label', context.token.label);
 
   const readout = document.createElement('span');
   readout.className = 'ac-control__readout';
 
-  // Unit comes from the range, not from what was parsed: a value that arrived
-  // as a bare `0` still has to go back out as `0em` for letter-spacing.
+  // Unit comes from the range, not from what was parsed.
   const format = (amount: number) => `${round(amount, 4)}${range.unit}`;
   readout.textContent = format(measure.amount);
 
@@ -409,7 +394,7 @@ function buildBlurControl(context: ControlContext): HTMLElement | null {
 /** A select, used where the useful values are a short known list. */
 function buildChoiceControl(
   context: ControlContext,
-  choices: { label: string; value: string }[]
+  choices: { label: string; value: string }[],
 ): HTMLElement | null {
   const wrap = document.createElement('div');
   wrap.className = 'ac-control ac-control--choice';
@@ -428,8 +413,7 @@ function buildChoiceControl(
     select.appendChild(option);
   }
 
-  // Whatever is set stays selectable even when it is not one of ours, so
-  // opening the control cannot change the value by itself.
+  // Whatever is set stays selectable even when it is not one of ours.
   if (!known) {
     const option = document.createElement('option');
     option.value = context.value;
@@ -471,9 +455,7 @@ function buildShadowControl(context: ControlContext): HTMLElement | null {
   return buildChoiceControl(context, depths);
 }
 
-/* ────────────────────────────────────────────────────────────────
-   Shared
-   ──────────────────────────────────────────────────────────────── */
+// ── Shared ───────────────────────────────────────────────────────────────
 
 /** A control that can be told the value changed elsewhere (a Revert, an import). */
 export interface ControlElement extends HTMLElement {

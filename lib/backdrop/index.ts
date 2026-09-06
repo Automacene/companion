@@ -1,5 +1,5 @@
 /**
- * Backdrop — the ASCII field behind every surface.
+ * Backdrop - the ASCII field behind every surface.
  *
  * The one door in. A surface calls `mountBackdrop` with a container and gets a
  * handle back; nothing else here needs importing directly.
@@ -35,7 +35,7 @@ export interface BackdropHandle {
   update(settings: BackdropSettings | undefined): void;
   /** Re-read palette colours after a theme change. */
   refreshTheme(): void;
-  /** Brighten briefly — recall fired, a scrape landed. */
+  /** Brighten briefly - recall fired, a scrape landed. */
   pulse(): void;
   /** Hold denser while tokens arrive. */
   setStreaming(streaming: boolean): void;
@@ -66,7 +66,7 @@ const NOOP_HANDLE: BackdropHandle = {
  */
 export function mountBackdrop(
   container: HTMLElement | null,
-  settings: BackdropSettings | undefined
+  settings: BackdropSettings | undefined,
 ): BackdropHandle {
   if (!container) return NOOP_HANDLE;
 
@@ -79,8 +79,7 @@ export function mountBackdrop(
   try {
     field = new AsciiField({ canvas, config: clampConfig(resolveBackdrop(settings)) });
   } catch (error) {
-    // A canvas context can genuinely be refused under memory pressure. The
-    // background is decoration, so losing it must not take the panel with it.
+    // A canvas context can genuinely be refused under memory pressure.
     console.warn('[backdrop] disabled:', error);
     canvas.remove();
     return NOOP_HANDLE;

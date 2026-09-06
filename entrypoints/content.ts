@@ -8,7 +8,7 @@ import { ToolAction } from '../types/actions';
  * It now runs the processor itself and returns finished text. Previously it
  * serialized `document.documentElement.outerHTML` and handed that to the
  * background worker to strip with regular expressions, which meant the whole
- * document — megabytes on a large page — crossed the message channel before
+ * document - megabytes on a large page - crossed the message channel before
  * anything examined it, and the worker had no way to tell content from
  * navigation once the DOM was gone.
  *
@@ -19,15 +19,7 @@ export default defineContentScript({
   matches: ['<all_urls>'],
   main() {
     browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-      /*
-        How deep this tab's back/forward stack is.
-
-        The worker uses it to recognise a tab after a browser restart, when the
-        tab id it knew has been reassigned. Nothing is stored in the page: this
-        reports a number the browser already keeps, and a restored session
-        restores the stack it counts, which is why it survives when planted
-        markers do not.
-      */
+      // How deep this tab's back/forward stack is.
       if (message.action === ToolAction.TAB_IDENTITY) {
         sendResponse({ depth: history.length });
         return true;

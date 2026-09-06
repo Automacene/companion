@@ -2,7 +2,7 @@
  * Settings hub.
  *
  * Two doors and nothing else. This is the page Chrome opens for "Options", and
- * the real settings live one click away on their own pages — model
+ * the real settings live one click away on their own pages - model
  * configuration is set once and left alone, appearance is played with, and the
  * two want different layouts and different amounts of room.
  *
@@ -25,7 +25,7 @@ import { OLLAMA_HOST } from '../../lib/constants';
  * Break out of Chrome's embedded options panel into a real tab.
  *
  * `manifest.open_in_tab` should make this unnecessary, but it only applies to
- * a build the browser has actually reloaded — an older unpacked build, or a
+ * a build the browser has actually reloaded - an older unpacked build, or a
  * profile that has not picked up the new manifest, still renders this page as
  * a short modal on chrome://extensions where the links out of it go nowhere.
  *
@@ -38,86 +38,76 @@ import { OLLAMA_HOST } from '../../lib/constants';
 if (window.top !== window.self) {
   void browser.tabs.create({ url: browser.runtime.getURL('/options.html') });
 } else {
+  document.addEventListener('DOMContentLoaded', async () => {
+    const settings = await readSettings();
 
-document.addEventListener('DOMContentLoaded', async () => {
-  const settings = await readSettings();
-
-  startAppearance(settings, {
-    backdropContainer: document.getElementById('backdrop-layer'),
-  });
-
-  mountLogo('.hub__logo');
-
-  // Extension page URLs are only knowable from inside the extension.
-  const modelLink = document.getElementById('open-model') as HTMLAnchorElement | null;
-  const themeLink = document.getElementById('open-theme') as HTMLAnchorElement | null;
-  const memoryLink = document.getElementById('open-memory') as HTMLAnchorElement | null;
-
-  if (modelLink) modelLink.href = browser.runtime.getURL('/model.html');
-  if (themeLink) themeLink.href = browser.runtime.getURL('/theme.html');
-  if (memoryLink) memoryLink.href = browser.runtime.getURL('/memory.html');
-
-  /*
-    How much is stored, so the card says something rather than only pointing.
-
-    A failure here says so instead of claiming the archive is empty. The two
-    were reported identically before, which sent me hunting through storage for
-    a bug that was really the worker running a stale bundle with no memory
-    handler in it.
-  */
-  void askWorker<{ pools?: { name: string; size: number }[] }>({
-    action: MemoryAction.MEMORY_STATS,
-  })
-    .then((result) => {
-      const summary = document.getElementById('memory-summary');
-      if (!summary) return;
-
-      const archive = (result.pools ?? []).find((p) => p.name === 'archive');
-      summary.textContent = archive?.size ? `${archive.size} remembered` : 'nothing stored yet';
-    })
-    .catch(() => {
-      const summary = document.getElementById('memory-summary');
-      if (summary) summary.textContent = 'could not read memory';
+    startAppearance(settings, {
+      backdropContainer: document.getElementById('backdrop-layer'),
     });
 
-  // Summaries, so the cards say something rather than only pointing.
-  const modelSummary = document.getElementById('model-summary');
-  const themeSummary = document.getElementById('theme-summary');
+    mountLogo('.hub__logo');
 
-  if (modelSummary) {
-    modelSummary.textContent = `${settings.activeModel ?? 'no model'} · ${
-      settings.ollamaHost ?? OLLAMA_HOST
-    }`;
-  }
+    // Extension page URLs are only knowable from inside the extension.
+    const modelLink = document.getElementById('open-model') as HTMLAnchorElement | null;
+    const themeLink = document.getElementById('open-theme') as HTMLAnchorElement | null;
+    const memoryLink = document.getElementById('open-memory') as HTMLAnchorElement | null;
 
-  if (themeSummary) {
-    const preset = getPreset(settings.backdrop?.preset ?? 'flow');
-    const changed = Object.values(settings.themeOverrides ?? {}).reduce(
-      (total, values) => total + Object.keys(values ?? {}).length,
-      0
-    );
+    if (modelLink) modelLink.href = browser.runtime.getURL('/model.html');
+    if (themeLink) themeLink.href = browser.runtime.getURL('/theme.html');
+    if (memoryLink) memoryLink.href = browser.runtime.getURL('/memory.html');
 
-    themeSummary.textContent = [
-      settings.theme ?? 'system',
-      `${preset.label.toLowerCase()} backdrop`,
-      changed > 0 ? `${changed} customised` : null,
-    ]
-      .filter(Boolean)
-      .join(' · ');
-  }
+    // How much is stored, so the card says something rather than only pointing.
+    void askWorker<{ pools?: { name: string; size: number }[] }>({
+      action: MemoryAction.MEMORY_STATS,
+    })
+      .then((result) => {
+        const summary = document.getElementById('memory-summary');
+        if (!summary) return;
 
-  // The connection light. This page does nothing with Ollama itself, but it is
-  // the first thing opened when something is wrong, so it should say whether
-  // the server is even reachable before you go hunting through the model page.
-  const statusDot = document.getElementById('status-dot');
-  const statusPill = document.getElementById('status-pill');
+        const archive = (result.pools ?? []).find((p) => p.name === 'archive');
+        summary.textContent = archive?.size ? `${archive.size} remembered` : 'nothing stored yet';
+      })
+      .catch(() => {
+        const summary = document.getElementById('memory-summary');
+        if (summary) summary.textContent = 'could not read memory';
+      });
 
-  const { success } = await checkOllamaConnection(settings.ollamaHost || OLLAMA_HOST);
+    // Summaries, so the cards say something rather than only pointing.
+    const modelSummary = document.getElementById('model-summary');
+    const themeSummary = document.getElementById('theme-summary');
 
-  if (statusDot) statusDot.className = `ac-status-dot ac-status-dot--${success ? 'ok' : 'error'}`;
-  if (statusPill) {
-    statusPill.className = `ac-badge ac-badge--${success ? 'ok' : 'error'}`;
-    statusPill.textContent = success ? '[ 200 OK ]' : '[ OFFLINE ]';
-  }
-});
+    if (modelSummary) {
+      modelSummary.textContent = `${settings.activeModel ?? 'no model'} · ${
+        settings.ollamaHost ?? OLLAMA_HOST
+      }`;
+    }
+
+    if (themeSummary) {
+      const preset = getPreset(settings.backdrop?.preset ?? 'flow');
+      const changed = Object.values(settings.themeOverrides ?? {}).reduce(
+        (total, values) => total + Object.keys(values ?? {}).length,
+        0,
+      );
+
+      themeSummary.textContent = [
+        settings.theme ?? 'system',
+        `${preset.label.toLowerCase()} backdrop`,
+        changed > 0 ? `${changed} customised` : null,
+      ]
+        .filter(Boolean)
+        .join(' · ');
+    }
+
+    // The connection light.
+    const statusDot = document.getElementById('status-dot');
+    const statusPill = document.getElementById('status-pill');
+
+    const { success } = await checkOllamaConnection(settings.ollamaHost || OLLAMA_HOST);
+
+    if (statusDot) statusDot.className = `ac-status-dot ac-status-dot--${success ? 'ok' : 'error'}`;
+    if (statusPill) {
+      statusPill.className = `ac-badge ac-badge--${success ? 'ok' : 'error'}`;
+      statusPill.textContent = success ? '[ 200 OK ]' : '[ OFFLINE ]';
+    }
+  });
 }

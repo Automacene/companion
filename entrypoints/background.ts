@@ -21,14 +21,7 @@ import { DEFAULT_SETTINGS } from '../lib/constants';
 
 const settingsManager = new SettingsManager();
 
-/*
-  Built with the defaults so the module has no top-level await, then given the
-  stored settings as soon as they arrive.
-
-  The mind is derived from `num_ctx` and the memory shares, so constructing it
-  before settings are read would give every tab the wrong budgets until
-  something happened to rebuild it.
-*/
+// Defaults first so the module has no top-level await; real settings follow.
 const sessionManager = new SessionManager(DEFAULT_SETTINGS);
 const scraperService = new ScraperService();
 const streamService = new StreamService(sessionManager);
@@ -45,7 +38,7 @@ const testServices = {
    * `__TEST_SERVICES__.identity.debug()`.
    *
    * Every failure inside it is caught, because none of them should be allowed
-   * to break a conversation — which also means none of them announce
+   * to break a conversation - which also means none of them announce
    * themselves. This is how to see what it decided and why.
    */
   identity: sessionManager.identity,
@@ -58,34 +51,15 @@ export default defineBackground(() => {
     .setPanelBehavior({ openPanelOnActionClick: true })
     .catch((error) => console.error('Failed to set panel behavior:', error));
 
-  // Real settings, as early as possible. Anything arriving before this resolves
-  // uses the defaults and gets corrected when the mind is rebuilt.
+  // Real settings, as early as possible.
   void settingsManager
     .getSettings()
     .then((settings) => sessionManager.applySettings(settings))
     .catch((error) => console.warn('[background] could not read settings:', error));
 
-  /*
-    A closed tab ends its conversation, and ending it is how its turns reach the
-    shared archive: `closeScope` runs each pool's own eviction policy first, so
-    the window, thinking, and actions all land in the archive before the pools
-    are removed. Another tab can then recall them.
-  */
+  // Closing a tab ends its conversation, which is how its turns reach the archive.
   browser.tabs.onRemoved.addListener((tabId, removeInfo) => {
-    /*
-      A window closing is not the same as a tab being closed.
-
-      `onRemoved` fires for every tab when the browser quits, and closing a
-      scope ends the conversation: its turns are evicted into the archive and
-      its pools are dropped. So quitting Brave was dismantling every open
-      conversation moments before the restart that was meant to restore them —
-      the tab was recognised perfectly afterwards and found an empty scope
-      waiting, because the turns had already been filed away and the scrollback
-      index thrown out.
-
-      `isWindowClosing` separates the two. Deliberately closing a tab still ends
-      that conversation, which is what it has always meant.
-    */
+    // A window closing is not the same as a tab being closed.
     if (removeInfo?.isWindowClosing) {
       void sessionManager.identity.forget(tabId);
       return;
@@ -94,26 +68,18 @@ export default defineBackground(() => {
     void sessionManager.closeTab(tabId).then(() => sessionManager.identity.forget(tabId));
   });
 
-  /*
-    Keep each conversation's description current as its tab moves.
-
-    A tab is recognised after a restart by the page it is on and how it got
-    there, so a description fixed at the moment the conversation started would
-    match nothing once the tab had navigated on.
-  */
+  // Keep each conversation's description current as its tab moves.
   browser.tabs.onUpdated.addListener((tabId, changed) => {
     if (!changed.url && changed.status !== 'complete') return;
     void sessionManager.identity.note(tabId);
   });
 
-  // Changing `num_ctx` or the memory shares changes every budget, so the mind
-  // is rebuilt. Storage is untouched and read back on the next use.
+  // Changing `num_ctx` or the memory shares changes every budget, so the mind is rebuilt.
   settingsManager.onSettingsChanged((settings) => {
     void sessionManager.applySettings(settings as never);
   });
 
-  // Reading and pruning the archive. Separate from the dispatcher because it is
-  // not tab-scoped: the archive belongs to the browser, not to a conversation.
+  // Reading and pruning the archive.
   memoryService.init();
 
   new MessageDispatcher(sessionManager, settingsManager, scraperService, streamService).init();

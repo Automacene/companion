@@ -1,32 +1,13 @@
 /**
  * What a conversation is called.
  *
- * A conversation is identified by something opaque — `c-321s4huz` — and it has
- * to stay that way, because the id is baked into the names of every pool the
- * conversation owns. Renaming the identifier would strand all of them. So a
- * name is a label hung on the id rather than the id itself, which also means
- * renaming is free and cannot break anything, which is what you want from a
- * thing people edit.
+ * The id stays opaque because it is baked into the name of every pool the
+ * conversation owns; a name is a label hung on it, which is what makes renaming
+ * free. Two tabs that started apart and landed on the same page are genuinely
+ * indistinguishable, so recovery cannot be made reliable - a name on screen
+ * makes a wrong guess visible instead, and correctable.
  *
- * ── Why a name matters more than it looks like it should ───────
- *
- * A tab is recognised after a restart by the page it is on, how deep its
- * history is, and where it sits in the strip. Two tabs that started from
- * different places and then landed on the same page become genuinely
- * indistinguishable — nothing observable separates them, and no scoring fixes
- * that because the information is not there.
- *
- * The recovery cannot be made reliable, so it is made visible instead. A name
- * on screen turns a wrong guess into something you notice at once and correct,
- * rather than something you deduce three questions later when the model seems
- * to have forgotten what you were doing.
- *
- * ── Kept apart from the recovery records ───────────────────────
- *
- * The obvious home is the record that already exists per conversation, and it
- * is the wrong one: those are capped and pruned by age, so a name would vanish
- * while its conversation carried on. Names are small and losing one is more
- * annoying than losing a stale fingerprint, so they live in their own map.
+ * Kept apart from the recovery records, which are capped and pruned by age.
  */
 
 const NAMES_KEY = 'companion-conversation-names';
@@ -41,7 +22,7 @@ const MAX_NAME = 48;
  * ends up called something " - Wikipedia" or something " | LinkedIn", and the
  * part that identifies it gets cut off first when the header runs out of room.
  */
-const TITLE_SEPARATORS = [' | ', ' - ', ' – ', ' — ', ' · ', ' :: ', ' » '];
+const TITLE_SEPARATORS = [' | ', ' - ', ' - ', ' - ', ' · ', ' :: ', ' » '];
 
 /** Below this, a trailing segment is a site name rather than part of the title. */
 const SUFFIX_MAX = 30;
@@ -125,7 +106,7 @@ export class ConversationNames {
 /**
  * A name from the page a conversation started on.
  *
- * The page title is the only thing available when a conversation is created —
+ * The page title is the only thing available when a conversation is created -
  * the first question would describe it better, but it has not been asked yet.
  * A title makes a serviceable first guess once the site's own name is taken off
  * the end of it.
@@ -147,8 +128,8 @@ export function nameFrom(title?: string, url?: string): string {
 /**
  * Drop a trailing site name, if that is what the last segment is.
  *
- * Length is the test. A short tail after a separator is a site — "Wikipedia",
- * "LinkedIn", "GitHub" — while a long one is usually part of what the page is
+ * Length is the test. A short tail after a separator is a site - "Wikipedia",
+ * "LinkedIn", "GitHub" - while a long one is usually part of what the page is
  * actually about, and cutting it would throw away the useful half. Only the
  * last segment is considered, so "Quantum computing - Wikipedia" loses one
  * piece and a title that merely contains a dash keeps its shape.
@@ -170,12 +151,7 @@ function trimSiteSuffix(title: string): string {
     }
   }
 
-  /*
-    Some sites lead with their own name instead — GitHub writes
-    "GitHub - owner/repo: what it is", so trimming only the tail leaves the
-    least useful word first and the identifying part gets cut by the length
-    cap. A short leading segment is the site; a long one is the title.
-  */
+  // Some sites lead with their own name, so the tail is not always the site.
   for (const separator of TITLE_SEPARATORS) {
     const at = out.indexOf(separator);
     if (at <= 0) continue;
@@ -189,11 +165,7 @@ function trimSiteSuffix(title: string): string {
     }
   }
 
-  /*
-    And a colon usually separates a name from its description, so the half
-    before it is the name. Only taken when what remains is still substantial,
-    or a title that merely contains a colon loses most of itself.
-  */
+  // And a colon usually separates a name from its description, so the half before it is the name.
   const colon = out.indexOf(': ');
   if (colon > 8 && out.length > MAX_NAME) out = out.slice(0, colon).trim();
 

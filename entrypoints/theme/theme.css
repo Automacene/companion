@@ -1,10 +1,4 @@
-/* =============================================================
-   SURFACE — Appearance page
-
-   Layout only. No colour, radius, shadow, or spacing literal appears
-   here; every value comes from a token, which is what lets this page
-   restyle itself while you are using it.
-============================================================= */
+/* SURFACE - Appearance page. Layout only. */
 
 .theme-page {
   min-height: 100vh;
@@ -118,9 +112,7 @@
   border-top: 1px solid var(--ac-color-border-subtle);
 }
 
-/* ---- Custom character ramp ----
-   Indented and ruled so it reads as belonging to the select above it
-   rather than as another field in the stack. */
+/* Custom character ramp */
 /* See the `[hidden]` rule in reset.css for why the attribute is trusted. */
 .theme-page__custom-ramp {
   display: flex;
@@ -201,8 +193,7 @@
   border-top: 1px solid var(--ac-color-border-subtle);
 }
 
-/* A changed token is marked on its edge rather than by colouring the text,
-   which would fight whatever colour the user just chose. */
+/* Marked on the edge, since colouring the text fights the colour just chosen. */
 .theme-page__token.is-changed {
   border-left: 2px solid var(--ac-color-accent);
   background: var(--ac-color-accent-soft);
@@ -228,8 +219,7 @@
   margin-top: var(--ac-space-2);
 }
 
-/* ---- The exact-value escape hatch ----
-   Full width on its own line, so opening it pushes nothing sideways. */
+/* The exact-value escape hatch */
 .theme-page__token-advanced {
   flex-basis: 100%;
   order: 10;
@@ -266,8 +256,7 @@
   padding: var(--ac-space-2) 0 var(--ac-space-3);
 }
 
-/* A row with no friendly control keeps the text box as its main control,
-   so it should not look like a row whose control failed to load. */
+/* With no friendly control the text box is the control, not a failed one. */
 .theme-page__token--raw .theme-page__token-input {
   flex: 1;
   min-width: 0;
@@ -288,8 +277,7 @@
   font-size: var(--ac-text-2xs);
 }
 
-/* Native colour inputs carry heavy platform chrome; this strips it back to
-   the swatch itself. */
+/* Native colour inputs carry heavy platform chrome; this strips it back to the swatch itself. */
 .theme-page__swatch {
   flex-shrink: 0;
   inline-size: var(--ac-space-7);

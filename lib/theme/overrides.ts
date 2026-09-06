@@ -7,7 +7,7 @@
  *
  * Overrides are written as inline custom properties on `<html>`. That beats any
  * stylesheet rule without needing `!important`, and it layers over whichever
- * palette is currently active rather than replacing it — so an override of the
+ * palette is currently active rather than replacing it - so an override of the
  * accent survives switching between light and dark, while everything the user
  * did not touch keeps following the theme.
  */
@@ -52,9 +52,7 @@ export function isValidValue(token: TokenDefinition, value: string): boolean {
   const trimmed = value.trim();
   if (trimmed === '') return false;
 
-  // A custom property accepts almost anything, so validating against the
-  // property name itself would pass every typo. Check against a real property
-  // that takes this kind of value.
+  // A custom property accepts almost anything.
   const probe: Record<string, string> = {
     color: 'color',
     length: 'width',
@@ -110,15 +108,10 @@ export function pruneOverrides(overrides: ThemeOverrides): ThemeOverrides {
  *
  * @param root  usually `document.documentElement`
  */
-export function applyOverrides(
-  root: HTMLElement,
-  theme: Theme,
-  overrides: ThemeOverrides
-): void {
+export function applyOverrides(root: HTMLElement, theme: Theme, overrides: ThemeOverrides): void {
   const values = overrides[theme] ?? {};
 
-  // Remove first, so a token dropped from the overrides goes back to the
-  // palette value rather than keeping whatever was written last time.
+  // Remove first, so a token dropped from the overrides goes back to the.
   for (const token of TOKENS_BY_NAME.values()) {
     if (!(token.name in values)) root.style.removeProperty(token.name);
   }
@@ -143,7 +136,7 @@ export function setOverride(
   overrides: ThemeOverrides,
   theme: Theme,
   name: string,
-  value: string | null
+  value: string | null,
 ): ThemeOverrides {
   const forTheme = { ...(overrides[theme] ?? {}) };
 
@@ -171,7 +164,7 @@ export function toPackage(
   name: string,
   extendsTheme: Theme,
   overrides: ThemeOverrides,
-  author?: string
+  author?: string,
 ): ThemePackage {
   return {
     version: 1,

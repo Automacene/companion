@@ -13,7 +13,7 @@ export interface ScrapeOptions {
  *
  * This used to receive raw HTML and run the processor here. The processor moved
  * into the content script, so all that is left is the request and staging the
- * result — which is the whole point: what arrives is a few thousand characters
+ * result - which is the whole point: what arrives is a few thousand characters
  * of text rather than the entire document.
  */
 export class ScraperService {
@@ -27,9 +27,7 @@ export class ScraperService {
         maxChars: options.maxChars ?? DEFAULT_MAX_CHAR_BUDGET,
       });
     } catch (cause) {
-      // The usual cause is a tab that was already open when the extension was
-      // reloaded, so it has no content script. Saying that is more use than
-      // "could not establish connection".
+      // The usual cause is a tab that was already open when the extension was.
       throw new Error(
         'No content script on that tab. Reload the page and try again. ' +
           `(${cause instanceof Error ? cause.message : String(cause)})`,
@@ -40,14 +38,7 @@ export class ScraperService {
       throw new Error(response?.error || 'The page could not be read.');
     }
 
-    /*
-      Returned rather than stored. The dispatcher holds it until the next
-      message, then it rides on that turn as its own field.
-
-      This used to call `conversation.setContext`, which put the page in a slot
-      that the next message spliced into its own text — which is why a scraped
-      page came back in the visible history on every tab switch.
-    */
+    // Returned rather than stored.
     return response.data as ProcessedResult;
   }
 }

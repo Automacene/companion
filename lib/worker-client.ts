@@ -1,26 +1,12 @@
 /**
  * Sending a one-off message to the background worker.
  *
- * MV3 stops the service worker whenever it goes idle. Sending it a message is
- * supposed to start it again, and it does — but the message and the worker's
- * listener registration race each other. When the message wins, there is no
- * listener yet to receive it, and Chrome resolves `sendMessage` with
- * `undefined` instead of rejecting.
+ * MV3 stops the worker on idle. Sending it a message starts it again, but the
+ * message and the listener registration race: when the message wins, Chrome
+ * resolves `sendMessage` with `undefined` rather than rejecting, so the failure
+ * is silent and looks identical to a handler that declined to answer.
  *
- * That failure is the hard one to find, because nothing announces it. No
- * exception is thrown, nothing is written to the console, and the caller gets
- * `undefined` — which is exactly what a listener that declined to answer also
- * returns. A page that opens cold and asks the worker one question therefore
- * appears to be talking to a broken handler when the handler is fine and simply
- * was not listening yet.
- *
- * It hits pages harder than it hits the sidepanel. The sidepanel holds a
- * long-lived port, and `connect()` does not drop this way, so it kept working
- * while every page that used `sendMessage` failed on open.
- *
- * Retrying is what fixes it: the first attempt is what starts the worker, so by
- * the second attempt the listeners exist. The delay grows between attempts
- * because a cold start also has to evaluate the whole background bundle.
+ * Retrying fixes it, because the first attempt is what wakes the worker.
  */
 
 /** Attempts before giving up. The first is usually the one that wakes it. */
@@ -36,7 +22,7 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  *
  * Resolves with whatever the handler passed to `sendResponse`. Rejects only
  * when the worker stayed silent across every attempt, which means it genuinely
- * failed to start or has no handler for this action — a real fault worth
+ * failed to start or has no handler for this action - a real fault worth
  * showing the user, unlike the cold start this absorbs.
  */
 export async function askWorker<T = any>(message: object): Promise<T> {
@@ -46,12 +32,7 @@ export async function askWorker<T = any>(message: object): Promise<T> {
     try {
       response = (await browser.runtime.sendMessage(message)) as T | undefined;
     } catch {
-      /*
-        "Could not establish connection. Receiving end does not exist." is the
-        same cold worker reported as a rejection rather than as `undefined`,
-        so it gets the same retry. A handler that throws does not land here —
-        its error comes back inside a resolved response.
-      */
+      // "Could not establish connection.
       response = undefined;
     }
 

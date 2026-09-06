@@ -1,19 +1,4 @@
-/* =============================================================
-   COMPONENT — Status dot & badge
-
-   The connection readout, shared by the sidepanel header and the
-   options header. Both were previously written twice with slightly
-   different class names, which is how they drifted apart.
-
-   Four states, named for meaning rather than for the situation that
-   produced them, so an addon reporting its own health can reuse
-   them without the names lying:
-
-     (default)  unknown / not yet checked
-     --ok       reachable, healthy
-     --warn     in progress, degraded
-     --error    unreachable, failed
-============================================================= */
+/* COMPONENT - Status dot & badge */
 
 /* ---- Dot ---- */
 .ac-status-dot {
@@ -43,8 +28,7 @@
   background-color: var(--ac-color-danger);
 }
 
-/* A settled state has nothing to draw attention to, so the pulse
-   stops once the answer is known and good. */
+/* Nothing to draw attention to, so the pulse stops once the answer is good. */
 .ac-status-dot--ok {
   animation: none;
 }

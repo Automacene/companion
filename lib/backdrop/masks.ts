@@ -2,7 +2,7 @@
  * Mask sources for the ASCII field.
  *
  * A mask answers one question: how bright is the cell at (col, row) at time t.
- * It gets no canvas, no DOM, and no state — which is what makes it safe to let
+ * It gets no canvas, no DOM, and no state - which is what makes it safe to let
  * a preset name one, and what would make it safe to let an addon register one.
  *
  * Registered by name, the same way processors are in
@@ -27,7 +27,7 @@ export type MaskSource = (
   row: number,
   time: number,
   cols: number,
-  rows: number
+  rows: number,
 ) => number;
 
 export interface MaskDefinition {
@@ -94,8 +94,7 @@ const drift: MaskSource = (col, row, time) => {
  * vertical motion far better than a wide page does.
  */
 const rain: MaskSource = (col, row, time, _cols, rows) => {
-  // Each column gets its own phase and speed from its index, so the columns
-  // never line up into a visible wave front.
+  // Each column gets its own phase and speed from its index.
   const phase = Math.sin(col * 12.9898) * 43758.5453;
   const offset = phase - Math.floor(phase);
   const speed = 0.6 + offset * 0.9;
@@ -141,7 +140,7 @@ const DEFINITIONS: MaskDefinition[] = [
 ];
 
 const REGISTRY = new Map<string, MaskDefinition>(
-  DEFINITIONS.map((definition) => [definition.id, definition])
+  DEFINITIONS.map((definition) => [definition.id, definition]),
 );
 
 /** Register a mask. Re-registering an id replaces it. */

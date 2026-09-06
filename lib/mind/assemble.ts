@@ -1,26 +1,13 @@
 /**
  * Companion's assemble hook: gathered pools in, Ollama chat messages out.
  *
- * The library's default assembler flattens everything into one string, which
- * would put the system prompt inside a user turn — Ollama's chat template
- * gives the system role a privileged position, and text arriving as `user`
- * does not get it. This assembler keeps the roles.
+ * The library's default flattens everything into one string, which would put
+ * the system prompt inside a user turn. This keeps the roles, so history
+ * arrives as real user/assistant pairs.
  *
- * How the pools map:
- *
- *   system text + scraped + archive -> one `system` message
- *   window (closed turns)           -> alternating `user` / `assistant`
- *   context pool + the query        -> the final `user` message
- *
- * `thread` is not assembled — it carries `context: null` in the mind, so
- * `gather()` never hands it over. It exists for the panel's scrollback.
- *
- * Recalled material IS counted here, unlike the pools. Eviction bounds what a
- * pool holds, but recall is bounded by a count of items, and a count says
- * nothing about size: eight fragments of six hundred characters and eight of
- * six thousand are the same number and very different prompts. `archiveShare`
- * is the token budget for the two ranked pools together, and it is spent in
- * score order so the best matches survive the cut.
+ * Recalled material is counted here even though pools are not, because recall
+ * is bounded by a count of items and a count says nothing about size. The two
+ * ranked pools share one token budget, spent in score order.
  */
 import { formatRecord, parseNode } from '@automacene/conversation';
 import type { ModelMessage } from 'ai';
@@ -39,7 +26,7 @@ interface GatheredSource {
 export interface Gathered {
   query: string;
   turnId: string | null;
-  /** Whatever was attached to the current turn — for companion, a page read. */
+  /** Whatever was attached to the current turn - for companion, a page read. */
   context: unknown;
   scope: string | null;
   mind: { assemble?: { template?: string }; pools: Record<string, unknown> };
@@ -64,7 +51,7 @@ function systemTextOf(mind: Gathered['mind']): string {
  * Build the assemble hook with the recall budget baked in.
  *
  * The budget is a companion setting derived from `num_ctx`, and `gather()` has
- * no way to carry one — it hands over pools, not preferences. Closing over it
+ * no way to carry one - it hands over pools, not preferences. Closing over it
  * here is the same arrangement the eviction hooks use: the mind names a hook,
  * and the hook is where the number lives.
  */
@@ -82,15 +69,7 @@ export function assembleChat(gathered: Gathered): ModelMessage[] {
   const base = systemTextOf(gathered.mind);
   if (base) system.push(base);
 
-  /*
-    Recalled material, from both ranked pools, sharing one token budget.
-
-    Spent in score order across the two rather than a fixed slice each, so a
-    question that is really about a page is answered mostly with page
-    fragments and one about an earlier conversation mostly with turns. Giving
-    each pool a guaranteed share would waste it whenever a question is
-    lopsided, which most questions are.
-  */
+  // Recalled material, from both ranked pools, sharing one token budget.
   const recalled = [
     ...(sources.scraped?.entries ?? []).map((entry) => ({ entry, from: 'scraped' as const })),
     ...(sources.archive?.entries ?? []).map((entry) => ({ entry, from: 'archive' as const })),
@@ -107,8 +86,7 @@ export function assembleChat(gathered: Gathered): ModelMessage[] {
     if (!text) continue;
 
     const cost = gathered.estimateTokens(text);
-    // Always keep the first, whatever it costs. A budget too small to hold one
-    // memory should degrade to one memory, not to silently none.
+    // Always keep the first, whatever it costs.
     if (spent + cost > budget && fromPages.length + fromTalk.length > 0) break;
 
     spent += cost;
@@ -123,27 +101,12 @@ export function assembleChat(gathered: Gathered): ModelMessage[] {
     system.push('# Recalled from earlier browsing\n' + fromTalk.join('\n'));
   }
 
-  /*
-    The page open in this tab, as standing context rather than as something the
-    user just said.
-
-    It used to be glued onto the front of the question, which made a follow-up
-    look like a document handoff: a 39-character question arrived as a 6,744
-    character message, positioned after the history, so the most recent thing in
-    the conversation was always "here is a large page". The model answered by
-    summarising it again from the top instead of continuing — asking about the
-    economy got back the same list of headlines it had already given.
-
-    In the system block the page is background that stays put between turns, and
-    the question is only the question. The mind's own template has ordered it
-    this way all along, `{context}` before `{window}` and `{query}`; this
-    assembler was the thing disagreeing.
-  */
+  // The page open in this tab, as standing context rather than as something the user just said.
   const open = sources.context?.entries?.[0]?.node?.content as
     { title?: string; url?: string; content?: string } | undefined;
 
   if (open?.content) {
-    const where = [open.title, open.url].filter(Boolean).join(' — ');
+    const where = [open.title, open.url].filter(Boolean).join(' - ');
     system.push(
       `# The page open in this tab
 ${where}
@@ -159,25 +122,14 @@ ${open.content}
   const messages: ModelMessage[] = [];
   if (system.length > 0) messages.push({ role: 'system', content: system.join('\n\n') });
 
-  // The window, as real turns. This is the part a string assembler cannot do:
-  // each closed turn becomes a genuine user/assistant pair, so the model's
-  // chat template treats history as history.
+  // The window, as real turns.
   for (const entry of sources.window?.entries ?? []) {
     const record = parseNode(entry.node) as any;
-    // The window pool holds turns only, but parseNode's return type is the
-    // union of every registered kind, so narrow by the field we need.
+    // The window pool holds turns only.
     if (!record || record.kind !== 'turn') continue;
 
     if (record.query) {
-      /*
-        History gets the question and a note of which page was open, never the
-        page itself. Replaying a twelve-thousand character page on every
-        subsequent turn grows the prompt without bound.
-
-        The turn only ever holds the title and address now — the text lives in
-        the context pool while it is current and in `scraped` afterwards — so
-        there is nothing here to accidentally repeat.
-      */
+      // History gets the question and a note of which page was open, never the page itself.
       const marker = pageMarkerFor(record.context);
       messages.push({
         role: 'user',

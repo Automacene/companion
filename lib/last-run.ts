@@ -1,7 +1,7 @@
 /**
  * Metrics from the most recent generation.
  *
- * Ollama attaches timings and token counts to the final object of a response —
+ * Ollama attaches timings and token counts to the final object of a response -
  * the `done: true` chunk in a stream, or the whole body when not streaming.
  * They were being read and discarded.
  *
@@ -94,8 +94,7 @@ export function summarise(run: LastRun): RunSummary {
   return {
     tokensPerSecond: rate(run.evalCount, run.evalDuration),
     promptTokensPerSecond: rate(run.promptEvalCount, run.promptEvalDuration),
-    // A warm model still reports a small load duration for the lookup, so the
-    // test is a threshold rather than "greater than zero".
+    // A warm model still reports a small load duration for the lookup.
     wasColdLoad: run.loadDuration > COLD_LOAD_THRESHOLD_NS,
     loadShare: run.totalDuration > 0 ? run.loadDuration / run.totalDuration : 0,
     hitReplyLimit: run.doneReason === 'length',

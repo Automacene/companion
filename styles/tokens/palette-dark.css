@@ -1,26 +1,9 @@
-/* =============================================================
-   TOKENS — Dark palette
-
-   Defines exactly the same token names as `palette-light.css`.
-   That is the whole rule a palette has to satisfy: same names,
-   different values, nothing else in the file.
-
-   There is deliberately no `prefers-color-scheme` query here. If a
-   palette had to appear twice — once for the media query and once
-   for the explicit choice — the two copies would drift. Instead
-   `lib/theme.ts` resolves the "system" setting to a concrete theme
-   name and stamps it on the document, so this file only ever has
-   to answer one question: what does dark look like.
-============================================================= */
+/* TOKENS - Dark palette. Defines exactly the same token names as `palette-light.css`. */
 
 [data-theme="dark"] {
   color-scheme: dark;
 
-  /* ---- Accent ----
-     The same #ff5500 as the mark, lifted two steps in lightness. At full
-     strength it reads hot but thin against #111113, and small text set in it
-     loses legibility — so the hue and saturation are held and only the
-     lightness moves. */
+  /* Accent. The same #ff5500 as the mark, lifted two steps in lightness. */
   --ac-color-accent: #ff7029;
   --ac-color-accent-hover: #ff8b52;
   --ac-color-accent-soft: rgba(255, 85, 0, 0.16);
@@ -44,10 +27,8 @@
   --ac-color-border-subtle: rgba(255, 255, 255, 0.06);
   --ac-color-border-strong: rgba(255, 255, 255, 0.28);
 
-
   /* ---- Status ---- */
-  /* Saturation and lightness for the reread-overlap gradient. Only the hue
-     varies at runtime; these keep it legible against this background. */
+  /* Saturation and lightness for the reread-overlap gradient. */
   --ac-overlap-saturation: 70%;
   --ac-overlap-lightness: 66%;
 
@@ -70,10 +51,7 @@
   /* ---- Backdrop grid ---- */
   --ac-color-grid-line: rgba(255, 255, 255, 0.05);
 
-  /* ---- Shadows ----
-     Heavier than the light theme's. A 5% black shadow is invisible
-     against a #111 surface, so the opacities climb rather than the
-     geometry changing. */
+  /* Shadows. Heavier than the light theme's. */
   --ac-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --ac-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.5);
   --ac-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);

@@ -6,8 +6,8 @@
  * writes that attribute.
  *
  * `system` is resolved here rather than in CSS on purpose. Handling it with a
- * `prefers-color-scheme` query would mean every palette appeared twice — once
- * inside the query and once for the explicit choice — and the two copies would
+ * `prefers-color-scheme` query would mean every palette appeared twice - once
+ * inside the query and once for the explicit choice - and the two copies would
  * drift the first time a token was added to one of them.
  */
 

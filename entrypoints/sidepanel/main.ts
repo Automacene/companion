@@ -2,7 +2,7 @@
  * Sidepanel bootstrap.
  *
  * Two stylesheets: the shared design system, then this surface's own layout.
- * Nothing else should ever be imported here — `styles/index.css` pulls in the
+ * Nothing else should ever be imported here - `styles/index.css` pulls in the
  * tokens, base, and components in the order the cascade needs.
  */
 import '../../styles/index.css';
@@ -17,7 +17,6 @@ import { SidepanelApp } from './app';
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Appearance first, and awaited, so the panel never paints the wrong palette.
-  // Every token is a custom property, so one write to the root settles it.
   const settings = await readSettings();
 
   const appearance = startAppearance(settings, {
@@ -33,10 +32,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const scrapeBtn = document.getElementById('scrape-btn') as HTMLButtonElement | null;
   const hero = document.querySelector<HTMLElement>('.sidepanel__hero');
 
-  // The mark is the control that brings the collapsed hero back, so it is a
-  // button. The old separate badge could never do that job: it lived inside
-  // `.sidepanel__logo-wrap`, which `is-collapsed` set to `display: none` — it
-  // was hidden at exactly the moment expanding became possible.
+  // The mark is the control that brings the collapsed hero back, so it is a button.
   const heroBadge = mountLogo('.sidepanel__logo', {
     interactive: true,
     label: 'Show introduction',
@@ -47,10 +43,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // Both settings pages open in a tab. `browser.runtime.getURL` is the only
-  // way to know an extension page's URL from inside the extension, and WXT
-  // types its argument as the set of pages that actually got built — so a
-  // typo here is a compile error rather than a dead button.
+  // Both settings pages open in a tab.
   const openPage = (url: string) => () => {
     void browser.tabs.create({ url });
   };
@@ -72,7 +65,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     chatInput,
     scrapeBtn,
     heroBadge,
-    appearance.backdrop
+    appearance.backdrop,
   );
 
   await app.init();

@@ -68,7 +68,7 @@ export interface ExtensionSettings {
    * `num_ctx` is itself a setting and the split should follow it.
    *
    * Replaces `maxMemory`, which was a character budget belonging to the old
-   * conversation class — the one that truncated a scraped page to its first
+   * conversation class - the one that truncated a scraped page to its first
    * few thousand characters, which on most sites is the navigation bar.
    */
   memory?: Record<string, number>;
@@ -77,7 +77,6 @@ export interface ExtensionSettings {
   connTimeout?: number;
   keepAlive?: string;
   activeModel?: string;
-  fallbackModel?: string;
   systemPrompt?: string;
   streamResponses?: boolean;
   temperature?: string | number;

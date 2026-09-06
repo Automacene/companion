@@ -1,20 +1,10 @@
-/* =============================================================
-   BASE — Typography helpers
-
-   A small, closed set of text utilities. Deliberately closed: this
-   is not a utility framework, and anything needing more than these
-   should become a component instead of growing this file.
-
-   All prefixed `ac-` so an addon's own classes cannot collide.
-============================================================= */
+/* BASE - Typography helpers. A small, closed set of text utilities. */
 
 .ac-mono {
   font-family: var(--ac-font-mono);
 }
 
-/* The recurring small-uppercase-monospace label used for section
-   headings, status text, and pill captions. One class rather than
-   four declarations repeated everywhere. */
+/* The small-uppercase-monospace label, for headings and pill captions. */
 .ac-label {
   font-family: var(--ac-font-mono);
   font-size: var(--ac-text-2xs);
@@ -47,14 +37,12 @@
   color: var(--ac-color-accent);
 }
 
-/* Long model output and scraped URLs both overflow a narrow panel.
-   `anywhere` breaks mid-token when there is no other option. */
+/* Long model output and scraped URLs both overflow a narrow panel. */
 .ac-text-wrap {
   overflow-wrap: anywhere;
 }
 
-/* Visible to screen readers, invisible on screen. Needed wherever an
-   icon-only control has to carry a name. */
+/* Visible to screen readers, invisible on screen. */
 .ac-visually-hidden {
   position: absolute;
   width: 1px;

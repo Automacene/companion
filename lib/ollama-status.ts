@@ -2,8 +2,8 @@
  * What the Ollama server will tell a browser about itself.
  *
  * Worth being clear about the limit up front: the interesting diagnostics we
- * have been reading during development — the sampler parameters llama.cpp
- * echoes back, the layer offload counts — live in the server's stdout, which
+ * have been reading during development - the sampler parameters llama.cpp
+ * echoes back, the layer offload counts - live in the server's stdout, which
  * an extension cannot reach. There is no API for them.
  *
  * What the HTTP API does expose is enough to answer the questions that actually
@@ -57,10 +57,7 @@ export interface ServerStatus {
  * @param timeoutMs  the connection timeout setting. Applied here and nowhere
  *   near generation, where a cold model load legitimately takes a minute.
  */
-export async function fetchServerStatus(
-  hostUrl: string,
-  timeoutMs = 5000
-): Promise<ServerStatus> {
+export async function fetchServerStatus(hostUrl: string, timeoutMs = 5000): Promise<ServerStatus> {
   const host = hostUrl.replace(/\/+$/, '');
 
   try {
@@ -93,8 +90,7 @@ function toLoadedModel(raw: Record<string, any>): LoadedModel {
     name: String(raw.name ?? raw.model ?? 'unknown'),
     size,
     sizeVram,
-    // Guarded rather than a bare divide: a model reported at zero bytes would
-    // otherwise show NaN% in the panel.
+    // Guarded rather than a bare divide.
     gpuShare: size > 0 ? Math.min(1, sizeVram / size) : 0,
     expiresAt: parseExpiry(raw.expires_at),
     contextLength: Number(raw.context_length) || null,
@@ -149,7 +145,7 @@ export interface ModelDetail {
 export async function fetchModelDetail(
   hostUrl: string,
   model: string,
-  timeoutMs = 5000
+  timeoutMs = 5000,
 ): Promise<ModelDetail | null> {
   const host = hostUrl.replace(/\/+$/, '');
   const controller = new AbortController();
@@ -167,8 +163,7 @@ export async function fetchModelDetail(
     const data = await response.json();
     const info = data?.model_info ?? {};
 
-    // The key is namespaced by architecture — `llama.context_length`,
-    // `qwen3.context_length` — so it is found by suffix rather than by name.
+    // The key is namespaced by architecture - `llama.context_length`.
     const contextKey = Object.keys(info).find((key) => key.endsWith('.context_length'));
 
     return {
@@ -184,7 +179,7 @@ export async function fetchModelDetail(
   }
 }
 
-/* ── formatting ────────────────────────────────────────────────── */
+// ── Formatting ───────────────────────────────────────────────────────────
 
 export function formatBytes(bytes: number): string {
   if (bytes <= 0) return '0 B';

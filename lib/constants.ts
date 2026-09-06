@@ -5,9 +5,9 @@ import { DEFAULT_MEMORY } from './mind/memory-params';
 
 export const OLLAMA_HOST = 'http://localhost:11434';
 export const MODEL_NAME = 'llama3';
-export const DEFAULT_SYSTEM_PROMPT = 'You are Automacene Companion, an AI sidepanel assistant analyzing webpage context concisely and accurately.';
+export const DEFAULT_SYSTEM_PROMPT =
+  'You are Automacene Companion, an AI sidepanel assistant analyzing webpage context concisely and accurately.';
 export const DEFAULT_ACTIVE_MODEL = 'llama3.2:latest';
-export const DEFAULT_FALLBACK_MODEL = 'qwen3.5:latest';
 export const DEFAULT_CONN_TIMEOUT = 5000;
 export const DEFAULT_KEEP_ALIVE = '5m';
 export const DEFAULT_TEMPERATURE = 0.7;
@@ -28,7 +28,6 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
   connTimeout: DEFAULT_CONN_TIMEOUT,
   keepAlive: DEFAULT_KEEP_ALIVE,
   activeModel: DEFAULT_ACTIVE_MODEL,
-  fallbackModel: DEFAULT_FALLBACK_MODEL,
   systemPrompt: DEFAULT_SYSTEM_PROMPT,
   streamResponses: true,
   temperature: DEFAULT_TEMPERATURE,

@@ -1,8 +1,4 @@
-/* =============================================================
-   SURFACE — Memory page
-
-   Layout only; every value comes from a token.
-============================================================= */
+/* SURFACE - Memory page. Layout only; every value comes from a token. */
 
 .memory-page {
   min-height: 100vh;
@@ -46,13 +42,7 @@
 
 /* ---- Counts ---- */
 
-/*
-  The container stacks; the counts inside it are the grid.
-
-  These were the same element, which worked while the page showed nothing but
-  a row of numbers. It now holds the shared counts, a heading, and one card per
-  conversation, and those must not be laid out as equal grid cells.
-*/
+/* The container stacks; the counts inside it are the grid. */
 .memory-page__stats {
   display: flex;
   flex-direction: column;
@@ -89,10 +79,7 @@
   border-radius: var(--ac-radius-md);
 }
 
-/*
-  A conversation whose tab is gone needs to read as unfinished business rather
-  than as a warning. The left edge marks it without colouring the whole card.
-*/
+/* A conversation whose tab is gone is unfinished business, not a warning. */
 .memory-page__convo--stale {
   border-left: 2px solid var(--ac-color-warning);
 }
@@ -253,8 +240,7 @@
   text-align: center;
 }
 
-/* A failed request must not look like an empty archive — on this page in
-   particular, since telling you what is stored is the entire job. */
+/* A failed request must not look like an empty archive. */
 .memory-page__problem {
   padding: var(--ac-space-5);
   border: 1px dashed var(--ac-color-danger-border);
@@ -264,16 +250,7 @@
   font-size: var(--ac-text-sm);
 }
 
-/*
-  What an entry is made of, as tags on its summary line.
-
-  An entry used to read as one blob of question and answer, which hid the
-  largest thing in it. An attached page runs to thousands of characters against
-  a question of maybe sixty, and every one of those characters is indexed for
-  recall — so a turn carrying a page matches far more questions than the
-  exchange alone ever would. These say what is in there and how big it is
-  before you open anything.
-*/
+/* What an entry is made of, as tags on its summary line. */
 .memory-page__tags {
   display: flex;
   flex-shrink: 0;
@@ -327,24 +304,13 @@
   overflow: auto;
 }
 
-
-/*
-  Deleting sits next to closing and does the opposite, so it is coloured for
-  the difference. Everything else on this card is reversible.
-*/
+/* Deleting sits next to closing and does the opposite, so it is coloured for the difference. */
 .memory-page__convo-danger {
   color: var(--ac-color-danger);
   border-color: var(--ac-color-danger-border);
 }
 
-/*
-  Filters, selection, and rows — the history-window arrangement.
-
-  One list you narrow and pick from, rather than a menu of views each with its
-  own "delete all of this" button. The blunt buttons could only ever express
-  what somebody thought of in advance; a filter plus a tick box expresses
-  whatever you actually want gone.
-*/
+/* Filters, selection, and rows - the history-window arrangement. */
 .memory-page__filters {
   display: flex;
   flex-wrap: wrap;
@@ -382,8 +348,7 @@
   border-color: var(--ac-color-accent);
 }
 
-/* Appears only once something is ticked. See the `[hidden]` rule in reset.css
-   for why the attribute is trusted to do the hiding. */
+/* Appears only once something is ticked. */
 .memory-page__selection {
   display: flex;
   gap: var(--ac-space-3);

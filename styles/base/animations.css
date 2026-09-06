@@ -1,17 +1,6 @@
-/* =============================================================
-   BASE — Keyframes
+/* BASE - Keyframes. Shared named animations. */
 
-   Shared named animations. Keyframes are global in CSS whatever
-   file they sit in, so collecting them here makes that visibility
-   deliberate rather than accidental.
-
-   Every name is prefixed `ac-` for the same reason the classes are:
-   an addon defining `@keyframes pulse` would otherwise silently
-   replace ours.
-============================================================= */
-
-/* Slow attention pulse for the connection indicator. Holds full
-   opacity at both ends so a stopped animation looks correct. */
+/* Slow attention pulse for the connection indicator. */
 @keyframes ac-pulse {
   0%,
   100% {
@@ -30,9 +19,7 @@
   }
 }
 
-/* Expanding ring, used by the logo badge. The ring is drawn with
-   box-shadow rather than a pseudo-element so it never affects
-   layout or hit-testing. */
+/* Expanding ring, used by the logo badge. */
 @keyframes ac-pulse-ring {
   0% {
     box-shadow: 0 0 0 0 var(--ac-color-accent-glow);
@@ -48,8 +35,7 @@
   }
 }
 
-/* The standard entrance for anything appended to a live list —
-   chat messages, toasts, notices. */
+/* The standard entrance for anything appended to a live list - chat messages, toasts, notices. */
 @keyframes ac-fade-slide-in {
   from {
     opacity: 0;
@@ -61,8 +47,7 @@
   }
 }
 
-/* Indeterminate progress, for waits with no known duration such as
-   a cold model load. */
+/* Indeterminate progress, for waits with no known duration such as a cold model load. */
 @keyframes ac-breathe {
   0%,
   100% {

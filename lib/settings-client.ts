@@ -65,19 +65,15 @@ const APPEARANCE_KEYS = ['theme', 'themeOverrides', 'backdrop'] as const;
  * Every surface still finds out, because they all listen to
  * `browser.storage.onChanged` rather than to the worker.
  *
- * @throws never — failures come back on the result
+ * @throws never - failures come back on the result
  */
-export async function patchAppearance(
-  update: Partial<ExtensionSettings>
-): Promise<WriteResult> {
+export async function patchAppearance(update: Partial<ExtensionSettings>): Promise<WriteResult> {
   const offLimits = Object.keys(update).filter(
-    (key) => !APPEARANCE_KEYS.includes(key as (typeof APPEARANCE_KEYS)[number])
+    (key) => !APPEARANCE_KEYS.includes(key as (typeof APPEARANCE_KEYS)[number]),
   );
 
   if (offLimits.length > 0) {
-    // A guard rather than a silent pass-through: writing a model setting this
-    // way would skip the sessions that need to hear about it, and the symptom
-    // would be a setting that looks saved but does nothing until reload.
+    // A guard rather than a silent pass-through.
     return {
       success: false,
       error: `${offLimits.join(', ')} must go through patchSettings, not patchAppearance`,
@@ -109,13 +105,7 @@ export async function replaceSettings(settings: ExtensionSettings): Promise<Writ
 
 async function send(action: string, settings: unknown): Promise<WriteResult> {
   try {
-    /*
-      Through `askWorker` because a settings page is usually opened cold, and a
-      cold worker drops the first message without reporting anything. That made
-      a write vanish in the worst possible way: storage was never touched, the
-      page had no error to show, and the form still displayed the value the user
-      had just typed. It looked saved.
-    */
+    // A settings page is usually opened cold, and a cold worker drops the first message.
     const response = await askWorker<WriteResult>({ action, settings });
 
     if (!response.success) {

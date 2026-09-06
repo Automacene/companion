@@ -10,7 +10,7 @@
  * expressions. Measured against a real LinkedIn profile that produced 603,821
  * characters, roughly 151,000 tokens against a context window of 8,192. The
  * budget then kept the first 8,868 characters and threw away 98.5% of the rest
- * — and the first 8,868 characters of LinkedIn are the navigation bar, so the
+ * - and the first 8,868 characters of LinkedIn are the navigation bar, so the
  * model was handed nine thousand characters of menus and correctly reported
  * that no content had been provided.
  *
@@ -20,7 +20,7 @@
  *   words are inside it.
  *
  *   Elements can be dropped for not being on screen. `checkVisibility` answers
- *   the actual question — would a person see this — and catches collapsed
+ *   the actual question - would a person see this - and catches collapsed
  *   menus, inactive tabs, and the second copy of a table that sites render for
  *   a different screen width and hide with CSS.
  *
@@ -33,11 +33,7 @@
  * expensive enough to matter. Reading is free; copying is not.
  */
 
-/*
-  Node type numbers rather than the `Node.*` constants. `Node` is a global in a
-  browser but not anywhere else, so referring to it ties this file to a document
-  context it does not otherwise need and breaks it under a test harness.
-*/
+// Node type numbers rather than the `Node.*` constants.
 const TEXT_NODE = 3;
 const ELEMENT_NODE = 1;
 
@@ -139,7 +135,7 @@ const DEFAULTS = { maxChars: 12000, keepLinks: false, visibleOnly: true };
  * Below this share of the painted text, the walk is treated as having failed.
  *
  * Set well under half deliberately. Dropping navigation, headers, and footers
- * legitimately removes a large slice of a page — a third gone is an ordinary
+ * legitimately removes a large slice of a page - a third gone is an ordinary
  * result and must not trigger this. Only a near-total loss does.
  */
 const SALVAGE_RATIO = 0.25;
@@ -171,8 +167,7 @@ export function extractPage(doc: Document, options: ExtractOptions = {}): Extrac
   const url = doc.location?.href ?? '';
   const sourceChars = doc.documentElement?.innerHTML?.length ?? 0;
 
-  // A selection beats every heuristic here. If somebody highlighted something,
-  // that is a clearer statement of what they mean than anything we could infer.
+  // A selection beats every heuristic here.
   const selection = doc.defaultView?.getSelection()?.toString().trim();
   if (selection && selection.length > 40) {
     const text = clamp(selection, opts.maxChars);
@@ -216,28 +211,7 @@ export function extractPage(doc: Document, options: ExtractOptions = {}): Extrac
   let strategy = found.strategy;
   let text = clamp(render(found.element, opts, state), opts.maxChars);
 
-  /*
-    Check the walk against what the browser actually painted.
-
-    The walk above reads the DOM tree and applies this file's own rules about
-    what counts as content. Those rules are guesses, and on a site that builds
-    its page unusually they can be badly wrong in a way nothing here would
-    notice — a LinkedIn profile came back with exactly zero characters while the
-    page was plainly full of text.
-
-    `innerText` answers a different question and is not a guess: it is the
-    browser's own layout-aware account of what a person sees, so it already
-    respects every CSS rule, every hidden subtree, and every collapsed section
-    without being told about any of them. It makes worse output than the walk —
-    no headings, no list structure, and navigation left in — which is why it is
-    not the primary path.
-
-    But it is the honest measure of how much text is really there. When the walk
-    keeps only a small fraction of it, the rules misfired rather than the page
-    being empty, and the browser's flawed answer beats this file's broken one.
-    Losing a third of a page to navigation removal is normal and stays; losing
-    nearly all of it is a failure and gets replaced.
-  */
+  // Check the walk against what the browser actually painted.
   const painted = renderedText(found.element) || renderedText(body);
 
   if (painted.length >= MIN_PAINTED && text.length < painted.length * SALVAGE_RATIO) {
@@ -394,22 +368,7 @@ function render(root: HTMLElement, opts: typeof DEFAULTS, state: { skipped: numb
 
     const el = node as HTMLElement;
 
-    /*
-      The furniture and visibility rules apply to what is INSIDE the chosen
-      block, never to the block itself.
-
-      Testing the root was how a LinkedIn profile came back with exactly zero
-      characters. `findContent` picks a candidate on visibility alone, then this
-      re-tested it with the furniture rules as well, and the two disagreed:
-      LinkedIn marks `main` with `aria-hidden="true"` whenever an overlay is up
-      — the sign-in wall, a cookie prompt — to hold focus in the modal. So the
-      block was chosen, rejected on the first call, and the walk ended before it
-      began. Every page whose content sits under an open overlay read as blank.
-
-      A block that was deliberately selected as the content is the content. If
-      it was the wrong choice, that is a problem for `findContent`, not
-      something to express by discarding the page.
-    */
+    // The furniture and visibility rules apply to what is INSIDE the chosen block, never to the block itself.
     if (el !== root && !isReadable(el, opts)) {
       state.skipped++;
       return;
@@ -451,8 +410,7 @@ function render(root: HTMLElement, opts: typeof DEFAULTS, state: { skipped: numb
 
     for (const child of Array.from(el.childNodes)) walk(child);
 
-    // End the line after a block, or sentences from separate paragraphs run
-    // together into one.
+    // End the line after a block.
     if (/^(p|div|section|article|tr|blockquote|figcaption|dd|dt|h[1-6])$/.test(tag)) {
       lines.push('');
     }

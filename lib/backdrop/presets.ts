@@ -2,7 +2,7 @@
  * Character ramps and backdrop presets.
  *
  * A preset is the tuned bundle: which mask, which characters, how big, how
- * bright, how fast. All plain numbers and strings, so a preset is data — it
+ * bright, how fast. All plain numbers and strings, so a preset is data - it
  * serialises, it can be stored, and eventually a user can author one.
  *
  * Defaults here are the tuned ones. Most people will never open the editor, so
@@ -22,12 +22,12 @@ export interface CharacterRamp {
  * the field sparse instead of covering every cell.
  */
 export const RAMPS: CharacterRamp[] = [
-  { id: 'classic', label: 'Classic', characters: " .`,:;~+=ilxzXY*S%#&@" },
+  { id: 'classic', label: 'Classic', characters: ' .`,:;~+=ilxzXY*S%#&@' },
   { id: 'light', label: 'Light', characters: ' .:-=+*#%@' },
   { id: 'blocks', label: 'Blocks', characters: '  ░▒▓█' },
   { id: 'dots', label: 'Dots', characters: ' ·∶⁘⁙⁛∷' },
   { id: 'binary', label: 'Binary', characters: '   ..::0011' },
-  { id: 'terminal', label: 'Terminal', characters: ' .·-—=≡▤▦▩' },
+  { id: 'terminal', label: 'Terminal', characters: ' .·--=≡▤▦▩' },
 ];
 
 const RAMPS_BY_ID = new Map(RAMPS.map((ramp) => [ramp.id, ramp]));
@@ -66,7 +66,7 @@ export function isValidRamp(characters: string): boolean {
  * The ramp to draw with, darkest first, as an array of whole characters.
  *
  * An array rather than a string because the renderer indexes into this, and
- * `charAt` on a string splits anything outside the basic plane in half — type
+ * `charAt` on a string splits anything outside the basic plane in half - type
  * an emoji into the custom ramp and you would get half a surrogate pair, which
  * renders as a replacement box.
  *
@@ -253,11 +253,8 @@ export function clampConfig(config: BackdropConfig): BackdropConfig {
 
   return {
     ...config,
-    // Normalised here rather than only in the editor, so a value that arrived
-    // from an imported theme or hand-edited storage is cleaned up too.
-    ...(config.customRamp !== undefined
-      ? { customRamp: normalizeRamp(config.customRamp) }
-      : {}),
+    // Normalised here rather than only in the editor.
+    ...(config.customRamp !== undefined ? { customRamp: normalizeRamp(config.customRamp) } : {}),
     cell: Math.round(clamp(config.cell, 'cell')),
     intensity: clamp(config.intensity, 'intensity'),
     accentAt: clamp(config.accentAt, 'accentAt'),

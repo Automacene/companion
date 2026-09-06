@@ -2,8 +2,8 @@
  * The memory page.
  *
  * The archive is shared by every tab and grows like browsing history, and until
- * now nothing could see into it. That made a fair question — "why did it not
- * remember that?" — impossible to answer, and gave no way to remove something
+ * now nothing could see into it. That made a fair question - "why did it not
+ * remember that?" - impossible to answer, and gave no way to remove something
  * you would rather it did not keep.
  *
  * Search here runs the same ranking the model does, deliberately. A search that
@@ -24,7 +24,7 @@ import type { MemoryEntry, PoolCount, ConversationStat } from '../../lib/backgro
  * Ask the worker something, and report a failure AS a failure.
  *
  * This used to catch and return null, which the page then rendered through
- * `?? []` — so a request that never reached the worker looked exactly like an
+ * `?? []` - so a request that never reached the worker looked exactly like an
  * empty archive. On a page whose whole job is telling you what is stored, those
  * two must never look the same.
  *
@@ -45,11 +45,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const hub = document.getElementById('open-hub') as HTMLAnchorElement | null;
   if (hub) hub.href = browser.runtime.getURL('/options.html');
 
-  /*
-    The dot reports whether the WORKER answered, not whether Ollama is up.
-    Ollama is irrelevant here — this page only reads storage — and a dot that
-    sits grey forever because nothing ever sets it is worse than no dot.
-  */
+  // The dot reports whether the WORKER answered, not whether Ollama is up.
   const statusDot = document.getElementById('status-dot');
   const setReachable = (ok: boolean) => {
     if (statusDot) statusDot.className = `ac-status-dot ac-status-dot--${ok ? 'ok' : 'error'}`;
@@ -76,23 +72,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     setReachable(true);
     statsHost.replaceChildren();
 
-    // Storage failing is different from storage being empty, and only one of
-    // them means history was lost.
+    // Storage failing is different from storage being empty.
     if (result.storageFailure) {
       statsHost.appendChild(
         problem(`${result.storageFailure} Anything from before this session is not loaded.`),
       );
     }
 
-    /*
-      Shared memory first, then conversations.
-
-      These used to be one flat grid of pool names, which printed "OPEN
-      CONVERSATION" once per tab with nothing to tell them apart — the window,
-      thinking, action, and thread pools are all per-tab, so four tabs produced
-      sixteen identically labelled cells. Splitting them by what they belong to
-      is the whole difference between a diagnostic dump and a page you can read.
-    */
+    // Shared memory first, then conversations.
     const shared: PoolCount[] = result.shared ?? [];
     const orphans: PoolCount[] = result.orphans ?? [];
     const conversations: ConversationStat[] = result.conversations ?? [];
@@ -120,14 +107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       statsHost.appendChild(grid);
     }
 
-    /*
-      Pools from an older arrangement, named and offered for removal.
-
-      These were being counted as shared memory, so the grid showed `thinking`,
-      `action`, `tools` and a couple of per-tab leftovers next to the archive as
-      though they were all the same sort of thing. They are dead: nothing reads
-      them, and they are written out again on every save.
-    */
+    // Pools from an older arrangement, named and offered for removal.
     if (orphans.length > 0) {
       const held = orphans.reduce((sum, pool) => sum + pool.size, 0);
 
@@ -187,14 +167,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  /*
-    The filter, as one object.
-
-    Everything on this page narrows one list rather than choosing between
-    several. That is the difference between a history window and a set of
-    category buttons: "pages, from the last day, mentioning pensions" is three
-    filters composed, and nobody had to anticipate that combination.
-  */
+  // The filter, as one object.
   const filter: {
     query: string;
     source: 'all' | 'conversations' | 'pages';
@@ -291,8 +264,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     shown = result.entries ?? [];
-    // A row that is no longer listed cannot stay ticked, or "delete selected"
-    // would remove things the list is not showing.
+    // A row that is no longer listed cannot stay ticked.
     selected = new Set([...selected].filter((id) => shown.some((entry) => entry.id === id)));
 
     drawChips();
@@ -342,11 +314,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const ids = [...selected];
     if (ids.length === 0) return;
 
-    /*
-      Named counts rather than "this cannot be undone" alone. The stakes are
-      obvious; what is worth confirming is the scope, and that is the part a
-      blunt wipe button always got wrong.
-    */
+    // Named counts rather than "this cannot be undone" alone.
     const pages = shown.filter((e) => selected.has(e.id) && e.source === 'page').length;
     const talk = ids.length - pages;
     const parts = [
@@ -367,18 +335,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   search?.addEventListener('input', debounce(refreshList, 200));
 
-  /*
-    Redrawing when storage changes, not only when this page caused it.
-
-    Without this, a second tab finishing a turn — or the panel closing that
-    tab and archiving what it held — left the page showing whatever it looked
-    like on open until somebody manually reloaded it. IndexedDB has nothing
-    like `browser.storage.onChanged` to notice that by itself, so the
-    background worker says so directly after every write; see
-    `lib/background/memory-events.ts` for why a broadcast rather than a
-    message. Debounced because a tab closing runs a turn's save and the
-    scope's close-save within the same moment.
-  */
+  // Redrawing when storage changes, not only when this page caused it.
   onMemoryChanged(debounce(refresh, 150));
 
   await refresh();
@@ -388,7 +345,7 @@ document.addEventListener('DOMContentLoaded', async () => {
  * One conversation, with what it holds and what can be done to it.
  *
  * The close button is the point of this card. A tab that crashed never fires
- * `onRemoved`, so nothing ever ends its conversation — the turns sit in a scope
+ * `onRemoved`, so nothing ever ends its conversation - the turns sit in a scope
  * that no tab will read again and that no other tab can recall from, because
  * reaching the shared archive is exactly what closing does. Before this there
  * was no way to finish one by hand.
@@ -407,14 +364,7 @@ function conversationCard(
   const head = document.createElement('div');
   head.className = 'memory-page__convo-head';
 
-  /*
-    The conversation's name, which is the thing a person recognises it by.
-
-    The tab title was standing in for this and drifts: it describes wherever the
-    tab happens to be now, not what the conversation is about. A name is set
-    once and stays put until somebody changes it, which is what makes this list
-    scannable.
-  */
+  // The conversation's name, which is the thing a person recognises it by.
   const name = document.createElement('span');
   name.className = 'memory-page__convo-title';
   name.textContent = convo.name ?? convo.title ?? convo.scope;
@@ -429,13 +379,7 @@ function conversationCard(
 
   const counts = document.createElement('p');
   counts.className = 'memory-page__convo-counts ac-mono';
-  /*
-    Facts underneath, not a second description.
-
-    Two generated summaries of the same thing will eventually disagree and one
-    of them will read as wrong. What the subtitle can say without ever being
-    stale is what is observably true: where the tab is, how much it holds.
-  */
+  // Facts underneath, not a second description.
   counts.textContent = [
     convo.title && convo.title !== convo.name ? convo.title : null,
     `${convo.turns} ${convo.turns === 1 ? 'turn' : 'turns'}`,
@@ -475,17 +419,7 @@ function conversationCard(
     onChange();
   });
 
-  /*
-    Deleting outright, as a peer of closing rather than a step after it.
-
-    Closing was the only thing on offer, and closing preserves — it moves the
-    turns into the shared archive. So erasing a conversation meant archiving it
-    first and then finding its turns again among everything else, which is
-    asking somebody to file a thing in order to shred it.
-
-    The two are one word apart and opposite in effect, so the confirm says
-    plainly what survives in each case.
-  */
+  // Deleting outright, as a peer of closing rather than a step after it.
   const drop = document.createElement('button');
   drop.type = 'button';
   drop.className = 'ac-btn ac-btn--ghost memory-page__convo-danger';
@@ -538,14 +472,7 @@ function row(entry: MemoryEntry, onChange: () => void, select: RowSelection): HT
   const summary = document.createElement('summary');
   summary.className = 'memory-page__entry-summary';
 
-  /*
-    The tick box, outside the disclosure.
-
-    Clicking a `summary` toggles the `details` it belongs to, so a checkbox
-    inside one would open the row every time you tried to select it. Stopping
-    propagation keeps the two gestures separate: tick to select, click the text
-    to read.
-  */
+  // The tick box, outside the disclosure.
   const box = document.createElement('input');
   box.type = 'checkbox';
   box.className = 'memory-page__check';
@@ -570,15 +497,7 @@ function row(entry: MemoryEntry, onChange: () => void, select: RowSelection): HT
         ? new Date(entry.createdAt).toLocaleDateString()
         : '';
 
-  /*
-    Tags for what this entry is carrying beyond the exchange itself.
-
-    An entry used to render as one blob of question and answer, which hid the
-    biggest thing in it: an attached page is thousands of characters against a
-    question of maybe sixty, and all of it is indexed for recall. A turn holding
-    a page therefore matches far more questions than the exchange alone would,
-    and nothing on the page said so. The tag says so, and carries the size.
-  */
+  // Tags for what this entry is carrying beyond the exchange itself.
   const tags = document.createElement('span');
   tags.className = 'memory-page__tags';
 
@@ -590,8 +509,7 @@ function row(entry: MemoryEntry, onChange: () => void, select: RowSelection): HT
     tags.appendChild(tag);
   }
 
-  // A fragment says which page and where in it, since the text alone is a
-  // paragraph from the middle of something.
+  // A fragment says which page and where in it.
   if (entry.page) {
     const from = document.createElement('span');
     from.className = 'memory-page__from';
@@ -611,15 +529,7 @@ function row(entry: MemoryEntry, onChange: () => void, select: RowSelection): HT
 
   body.appendChild(detail);
 
-  /*
-    Each part shown and removable on its own.
-
-    Forgetting the whole turn to be rid of an attached page throws away the
-    exchange with it, which is the wrong trade when the exchange is the part
-    worth keeping. These remove one piece and leave the rest stored — and the
-    worker re-indexes what remains, so a turn stripped of its page stops
-    matching questions about that page.
-  */
+  // Each part shown and removable on its own.
   for (const part of entry.parts) {
     const block = document.createElement('div');
     block.className = 'memory-page__part';
@@ -631,8 +541,8 @@ function row(entry: MemoryEntry, onChange: () => void, select: RowSelection): HT
     name.className = 'memory-page__part-name';
     name.textContent =
       part.chars !== undefined
-        ? `${part.label} — ${part.note} (${part.chars.toLocaleString()} characters)`
-        : `${part.label} — ${part.note}`;
+        ? `${part.label} - ${part.note} (${part.chars.toLocaleString()} characters)`
+        : `${part.label} - ${part.note}`;
 
     const drop = document.createElement('button');
     drop.type = 'button';
@@ -683,7 +593,7 @@ function chip(label: string, on: boolean, onPick: () => void): HTMLElement {
 /**
  * Why the list is empty, in terms of the filter that emptied it.
  *
- * "Nothing here" is useless when three filters are applied — the useful thing
+ * "Nothing here" is useless when three filters are applied - the useful thing
  * is which one to loosen.
  */
 function emptyMessage(filter: {

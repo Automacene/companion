@@ -65,19 +65,11 @@
               <section class="ac-card ac-card--stack">
                 <h2 class="ac-card__title">2. Model &amp; Assistant Rules</h2>
 
-                <div class="ac-field-row ac-field-row--2">
-                  <div class="ac-field">
-                    <label for="active-model" class="ac-field__label">Primary Model</label>
-                    <select id="active-model" class="ac-input ac-input--mono">
-                      <option value="llama3">llama3 (Default)</option>
-                    </select>
-                  </div>
-                  <div class="ac-field">
-                    <label for="fallback-model" class="ac-field__label">Fallback Model</label>
-                    <select id="fallback-model" class="ac-input ac-input--mono">
-                      <option value="">None</option>
-                    </select>
-                  </div>
+                <div class="ac-field">
+                  <label for="active-model" class="ac-field__label">Model</label>
+                  <select id="active-model" class="ac-input ac-input--mono">
+                    <option value="llama3">llama3 (Default)</option>
+                  </select>
                 </div>
 
                 <div class="ac-field">
@@ -100,14 +92,7 @@
 
             <!-- RIGHT COLUMN -->
             <div class="model-page__column">
-              <!--
-                Server panel.
-
-                Everything here comes from the HTTP API, which is all an
-                extension can see — the sampler readout and layer offload counts
-                we read during development live in the server's stdout and have
-                no endpoint.
-              -->
+              <!-- Server panel -->
               <section class="ac-card ac-card--stack">
                 <div class="ac-card__header">
                   <h2 class="ac-card__title">3. Server</h2>
@@ -118,15 +103,7 @@
                 <div id="server-status"></div>
               </section>
 
-              <!--
-                Generation parameters.
-
-                Rendered from `lib/model-params.ts` rather than written out
-                here: the same list builds these controls and the request body,
-                so a parameter cannot exist in one and not the other. That list
-                is also where the verified-against-a-real-server notes live,
-                including why mirostat is absent.
-              -->
+              <!-- Generation parameters, rendered from lib/model-params.ts -->
               <section class="ac-card ac-card--stack">
                 <div class="ac-card__header">
                   <h2 class="ac-card__title">4. Generation</h2>
@@ -135,7 +112,7 @@
                   </button>
                 </div>
                 <p class="ac-field__hint">
-                  Every box left blank uses the model's own default — that is the only way
+                  Every box left blank uses the model's own default - that is the only way
                   Ollama can be told to decide for itself.
                 </p>
                 <div id="param-groups"></div>
@@ -150,8 +127,7 @@
                   set above, so these follow it rather than needing their own numbers.
                 </p>
 
-                <!-- The total against num_ctx. Nothing said this before, and the
-                     library's own defaults sum to 16,000 against a 4,096 window. -->
+                <!-- Running total against num_ctx -->
                 <div id="memory-total" class="model-page__memory-total"></div>
 
                 <div id="memory-params"></div>

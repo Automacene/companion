@@ -19,12 +19,12 @@ export interface ModelSettings {
 }
 
 /**
- * Creates an official Vercel AI SDK provider pointing to 
+ * Creates an official Vercel AI SDK provider pointing to
  * Ollama's local OpenAI-compatible endpoint (/v1)
  */
 export function getOllamaVercelProvider(hostUrl: string) {
   const cleanHost = hostUrl.replace(/\/+$/, '');
-  
+
   return createOpenAI({
     baseURL: `${cleanHost}/v1`,
     apiKey: 'ollama', // Required placeholder for TypeScript
@@ -35,7 +35,7 @@ export function getOllamaVercelProvider(hostUrl: string) {
  * Health check & model discovery using local Ollama endpoint
  */
 export async function checkOllamaConnection(
-  hostUrl: string
+  hostUrl: string,
 ): Promise<{ success: boolean; models: OllamaModel[]; error?: string }> {
   try {
     const cleanHost = hostUrl.replace(/\/+$/, '');
@@ -83,7 +83,7 @@ export async function streamChatResponse(
    * Receives the timings and token counts Ollama attaches to the final object.
    * They were previously parsed and thrown away.
    */
-  onMetrics?: (metrics: LastRun) => void
+  onMetrics?: (metrics: LastRun) => void,
 ): Promise<string> {
   const cleanHost = settings.ollamaHost.replace(/\/+$/, '');
   const shape = settings.request;
@@ -97,9 +97,7 @@ export async function streamChatResponse(
       messages: normalizeMessages(messages),
       stream: shape?.stream ?? true,
 
-      // Omitted rather than sent empty. Ollama treats a missing key as "use the
-      // model's default", and there is no value that means the same thing — so
-      // an empty options object has to actually be absent.
+      // Omitted rather than sent empty.
       ...(shape?.extras ?? {}),
       ...(shape && Object.keys(shape.options).length > 0 ? { options: shape.options } : {}),
     }),
@@ -109,14 +107,11 @@ export async function streamChatResponse(
     throw new Error(`Ollama HTTP error! status: ${response.status}`);
   }
 
-  // Streaming off still returns one JSON object, just all at once. Reading it
-  // as a whole body rather than pushing it through the line parser keeps the
-  // two paths from having to agree about buffering.
+  // Streaming off still returns one JSON object, just all at once.
   if (shape?.stream === false) {
     const payload = await response.json();
 
-    // The whole body is the final object when not streaming, so it carries the
-    // metrics directly.
+    // The whole body is the final object when not streaming.
     const metrics = readMetrics(payload, settings.activeModel);
     if (metrics) onMetrics?.(metrics);
 
@@ -129,9 +124,7 @@ export async function streamChatResponse(
   const decoder = new TextDecoder();
   let fullResponse = '';
 
-  // Ollama emits newline-delimited JSON, and a chunk boundary can land in the
-  // middle of a line. Anything after the last newline is held back until the
-  // next read completes it, otherwise long replies drop tokens at random.
+  // Ollama emits newline-delimited JSON.
   let pending = '';
 
   while (true) {
@@ -178,7 +171,7 @@ export async function streamChatResponse(
  * Parse one NDJSON line, or null if it is blank or incomplete.
  *
  * Returns the whole object rather than just the text, because the last line of
- * a stream carries no content at all — only `done: true` and the run metrics.
+ * a stream carries no content at all - only `done: true` and the run metrics.
  * Pulling the text out here would have discarded them.
  */
 function parseLine(line: string): any | null {
